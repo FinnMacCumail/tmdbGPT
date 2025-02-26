@@ -1,0 +1,9 @@
+config.yaml
+__pycache__/
+*.pyc
+# Ignore environment variables and virtual environment
+.env
+venv/
+
+# Ignore database folder
+embeddings/
