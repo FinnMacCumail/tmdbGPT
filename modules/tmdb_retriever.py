@@ -1,164 +1,170 @@
-import json
-import chromadb
 import openai
 import requests
-from sentence_transformers import SentenceTransformer
+import json
 import os
+from chromadb import PersistentClient
 from dotenv import load_dotenv
+from endMap import TMDB_API_MAP, handle_tmdb_dispatcher # Import API mapping and dispatcher
 
-# Load API keys from .env file
+# Load API keys
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
-# Initialize OpenAI client
+# OpenAI Client
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
-# Paths
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-CHROMA_DB_PATH = os.path.join(BASE_DIR, "embeddings", "chroma_db")
+# ChromaDB Configuration (Persistent Storage)
+CHROMA_DB_PATH = "/home/ola/ollamadev/funcall/embeddings/chroma_db"
+chroma_client = PersistentClient(path=CHROMA_DB_PATH)
+collection = chroma_client.get_or_create_collection(name="tmdb_queries")
 
-# ✅ Ensure ChromaDB connects correctly
-print(f"🛠️ Debug: Connecting to ChromaDB at {CHROMA_DB_PATH}")
+# OpenAI System Message
+system_message = """
+You are a TMDB assistant that determines the correct API category and request type.
 
-# Initialize ChromaDB client (persistent storage)
-chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-collection = chroma_client.get_collection(name="tmdb_queries")
+- **Movies:** Popular, Trending, Search, Details, Recommendations, Credits
+- **People:** Search, Filmography, Credits
+- **TV Shows:** Popular, Trending, Search, Details, Recommendations, Credits
 
-# Load sentence transformer model
-model = SentenceTransformer("all-MiniLM-L6-v2")
+🚨 **IMPORTANT:**
+- **If the user requests movies with filters (e.g., action movies from 2022), use filters instead of query.**
+- **If the user requests a director’s films, call the 'filmography' action.**
 
+✅ **Examples of Correct API Calls:**
+- "Find action movies from 2022" → `{ "category": "movies", "action": "search", "filters": { "with_genres": "28", "primary_release_year": "2022", "sort_by": "popularity.desc" } }`
+- "How many films has Sofia Coppola directed?" → `{ "category": "people", "action": "filmography", "query": "Sofia Coppola" }`
+"""
 
-def determine_media_type(user_query):
-    """
-    Determines if the user wants movies or TV shows based on query keywords.
-    """
-    if "tv" in user_query.lower() or "show" in user_query.lower():
-        return "tv"
-    return "movie"  # Default to movies
+# OpenAI Function Definition for Dynamic TMDB Queries
+tmdb_functions = [
+    {
+        "type": "function",
+        "function": {
+            "name": "tmdb_dispatcher",
+            "description": "Handles TMDB API requests for movies, people, and TV shows dynamically.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": list(TMDB_API_MAP.keys()),
+                        "description": "The type of request (Movies, People, TV, etc.)."
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": list(set(action for cat in TMDB_API_MAP.values() for action in cat)),
+                        "description": "The action to perform (search, trending, recommendations, etc.)."
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "Search query (e.g., 'Sofia Coppola', 'Sci-Fi Movies')."
+                    },
+                    "filters": {
+                        "type": "object",
+                        "description": "Filters such as genre, year, popularity, etc.",
+                        "additionalProperties": True
+                    }
+                },
+                "required": ["category", "action"]
+            }
+        }
+    }
+]
 
+# Function to Retrieve Best API Call from ChromaDB
+def retrieve_best_tmdb_api_call(user_query):
+    """Retrieve the best TMDB API call based on user input."""
+    search_results = collection.query(
+        query_texts=[user_query], 
+        n_results=1
+    )
+    
+    # Debugging: Print the retrieved metadata structure
+    print(f"🛠️ Debug: ChromaDB Metadata Retrieved -> {search_results['metadatas']}")
 
-def determine_time_window(user_query):
-    """
-    Determines if the user wants trending data for 'day' or 'week'.
-    """
-    if "week" in user_query.lower():
-        return "week"
-    return "day"  # Default to daily trending
+    if not search_results["metadatas"] or not search_results["metadatas"][0]:
+        return None, 0  # No valid match
 
+    best_match_metadata = search_results["metadatas"][0]
+    
+    # If best_match_metadata is a list, get the first dictionary
+    if isinstance(best_match_metadata, list):
+        best_match_metadata = best_match_metadata[0]  # Extract first dictionary
 
-def retrieve_best_tmdb_api_call(user_query, top_k=3):
-    """
-    Retrieves the most relevant TMDB API call from ChromaDB using similarity search.
-    """
-    print("🛠️ Debug: Checking stored embeddings in ChromaDB...")
-    all_items = collection.get(include=["metadatas"])
-    print(f"✅ Found {len(all_items['metadatas'])} stored API calls.")
+    best_api_call = json.loads(best_match_metadata.get("solution", "{}"))  # Now safely access .get()
+    match_score = search_results["distances"][0] if "distances" in search_results else 0
 
-    # Convert user query to an embedding
-    query_embedding = model.encode(user_query).tolist()
+    return best_api_call, match_score
 
-    # Perform similarity search in ChromaDB
-    search_results = collection.query(query_embeddings=[query_embedding], n_results=top_k)
+# User Query Processing
+def handle_user_query(user_input):
+    """Determines the correct API call and retrieves data dynamically."""
 
-    # Ensure search results contain valid data
-    if not search_results or not search_results.get("metadatas") or not search_results.get("distances"):
-        return {"error": "❌ No matching TMDB API found."}
+    # Try ChromaDB first
+    best_api_call, match_score = retrieve_best_tmdb_api_call(user_input)
 
-    try:
-        best_match_metadata = search_results["metadatas"][0][0].get("solution")
-        match_score = search_results["distances"][0][0]  # Extract first float value
-    except (IndexError, AttributeError, TypeError):
-        return {"error": "❌ Retrieved metadata format is incorrect."}
+    # If a strong match is found in ChromaDB, use it
+    if best_api_call and match_score > 0.7:
+        print(f"🛠️ Debug: Using Cached API Call - Match Score: {match_score}")
+        return handle_tmdb_dispatcher(best_api_call)
 
-    print(f"🛠️ Debug: Best Match Retrieved -> {best_match_metadata}")
-    print(f"🛠️ Debug: Match Score -> {match_score}")
-
-    # Ensure best_match_metadata is a valid JSON string before parsing
-    if not best_match_metadata:
-        return {"error": "❌ Retrieved API metadata is empty or malformed."}
-
-    try:
-        api_call_details = json.loads(best_match_metadata)
-    except json.JSONDecodeError:
-        return {"error": "❌ Retrieved API metadata is not valid JSON."}
-
-    # 🔥 Fix: Ensure correct media type
-    if api_call_details["endpoint"] == "/trending/{media_type}/{time_window}":
-        if "movie" in user_query.lower():
-            api_call_details["endpoint"] = "/trending/movie/day"
-        else:
-            api_call_details["endpoint"] = "/trending/tv/day"  # Default to TV
-
-    # If confidence is low, ask OpenAI for further refinement
-    if match_score > 0.7:
-        print("⚠️ Low confidence in API match. Asking OpenAI to refine the request...")
-        refined_call = refine_with_openai(user_query, api_call_details)
-        return refined_call
-
-    return api_call_details
-
-
-
-def refine_with_openai(user_query, retrieved_api_call):
-    """
-    Uses OpenAI to refine API call details when retrieval confidence is low.
-    """
-    prompt = f"""
-    The user asked: "{user_query}"
-
-    The closest API call retrieved is:
-    {json.dumps(retrieved_api_call, indent=2)}
-
-    Improve the API call so it accurately matches the user intent.
-    """
+    # Otherwise, use OpenAI to generate a new API call dynamically
     response = client.chat.completions.create(
         model="gpt-4-turbo",
-        messages=[{"role": "system", "content": "You are a TMDB API expert."},
-                  {"role": "user", "content": prompt}]
+        messages=[{"role": "system", "content": system_message}, {"role": "user", "content": user_input}],
+        tools=tmdb_functions,
+        tool_choice="auto"
     )
 
-    return json.loads(response.choices[0].message.content)
+    if response.choices[0].message.tool_calls:
+        tool_call = response.choices[0].message.tool_calls[0]
+        parameters = json.loads(tool_call.function.arguments)
+
+        return handle_tmdb_dispatcher(parameters)
+
+    return {"error": "❌ No valid tool call was made."}
 
 
-def execute_tmdb_api_call(api_call_details, user_query):
-    """
-    Constructs the full TMDB API call dynamically and fetches the data.
-    """
-    base_url = "https://api.themoviedb.org/3"
+# API Response Formatter
+def format_tmdb_response(response):
+    """Dynamically formats any TMDB API response based on available fields."""
+    
+    if not response or "results" not in response or not response["results"]:
+        return "❌ No results found."
 
-    # Handle dynamic parameters for "/trending/{media_type}/{time_window}"
-    if "/trending/{media_type}/{time_window}" in api_call_details["endpoint"]:
-        media_type = determine_media_type(user_query)
-        time_window = determine_time_window(user_query)
-        endpoint = f"/trending/{media_type}/{time_window}"
-    else:
-        endpoint = api_call_details["endpoint"]
+    output = "📌 **Results:**\n"
 
-    # Construct full API URL
-    api_url = f"{base_url}{endpoint}?api_key={TMDB_API_KEY}"
+    # Automatically detect relevant fields for each result item
+    for item in response["results"][:10]:  # Show top 10 results dynamically
+        item_data = []
 
-    print(f"\n🛠️ Constructed API URL: {endpoint}")
-    print(f"🔗 Fetching Data from: {api_url}")
+        for key, value in item.items():
+            if value and key not in ["id", "adult", "video", "backdrop_path", "poster_path", "original_language"]:
+                item_data.append(f"**{key.replace('_', ' ').title()}**: {value}")
 
-    # Fetch data
-    response = requests.get(api_url)
-    if response.status_code == 200:
-        data = response.json()
-        print("\n📊 API Response:", json.dumps(data, indent=2))
-    else:
-        print(f"❌ API Request Failed: {response.status_code} - {response.text}")
+        output += "\n🎬 " + "\n".join(item_data) + "\n"
+
+    return output
 
 
-if __name__ == "__main__":
+# Main Interactive Chatbot Loop
+def main():
+    """Main interactive loop for TMDB chatbot."""
+    print("🎬 TMDB Chatbot: Ask me about movies, actors, or trending films!")
+
     while True:
-        user_query = input("\n🔎 Enter a movie-related query (or 'exit' to quit): ")
-        if user_query.lower() in ["exit", "quit"]:
+        user_input = input("\nYou: ")
+        if user_input.lower() in ["exit", "quit"]:
+            print("Goodbye! 🎬")
             break
 
-        best_api_call = retrieve_best_tmdb_api_call(user_query)
+        response = handle_user_query(user_input)
 
-        if "error" in best_api_call:
-            print(f"❌ Error: {best_api_call['error']}")
-        else:
-            execute_tmdb_api_call(best_api_call, user_query)
+        # Dynamically format the API response
+        print(format_tmdb_response(response))
+
+
+# Run chatbot
+if __name__ == "__main__":
+    main()
