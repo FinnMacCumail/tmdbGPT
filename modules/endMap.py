@@ -141,7 +141,15 @@ You are a TMDB assistant that determines the correct API category and request ty
 
 # User Query Handling
 def handle_user_query(user_input):
-    """Dynamically selects the correct API call based on user input."""
+    """Determines the correct API call dynamically from ChromaDB or OpenAI."""
+
+    best_api_call, match_score = retrieve_best_tmdb_api_call(user_input)
+
+    if best_api_call and match_score > 0.7:
+        print(f"🛠️ Debug: Using Cached API Call - Match Score: {match_score}")
+        return handle_tmdb_dispatcher(best_api_call)
+
+    print("🛠️ Debug: No match in ChromaDB. Using OpenAI to generate API call.")
 
     response = client.chat.completions.create(
         model="gpt-4-turbo",
