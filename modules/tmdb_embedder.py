@@ -2,68 +2,45 @@ import json
 import chromadb
 from sentence_transformers import SentenceTransformer
 import os
-import re
+import openai
+from dotenv import load_dotenv
+from endMap import TMDB_API_MAP
+import sys
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("tmdb_embedder")
+
+# Ensure the correct module path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# Load API keys
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Paths
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DATA_PATH = os.path.join(BASE_DIR, "data", "tmdb.json")
-CHROMA_DB_PATH = os.path.join(BASE_DIR, "embeddings", "chroma_db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "../data/tmdb.json")
+CHROMA_DB_PATH = os.path.join(BASE_DIR, "..", "embeddings", "chroma_db")  # Store ChromaDB above "modules"
 
 # Initialize ChromaDB client (persistent storage)
 chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-
-# Create or get a collection for TMDB queries
 collection = chroma_client.get_or_create_collection(name="tmdb_queries")
 
+# Load embedding model
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# OpenAI client
+client = openai.Client(api_key=OPENAI_API_KEY)
+
 def normalize_path(path):
-    """Keep TMDB path parameters in curly braces instead of replacing with 'id'."""
-    return path  # Don't replace parameters!
+    """Normalize TMDB path parameters to maintain consistency."""
+    return path
 
 def extract_parameters_from_list(param_list):
-    """Given a list of parameter definitions, combine them into a dictionary."""
-    combined = {}
-    for item in param_list:
-        if isinstance(item, dict):
-            name = item.get("name")
-            desc = item.get("description", "No description available")
-            if name:
-                combined[name] = desc
-    return combined
-
-def generate_fallback_query(path):
-    """Generate a human-readable fallback query for endpoints that lack a summary."""
-    norm_path = normalize_path(path).replace("_", " ")
-    if "/movie/id/credits" in norm_path:
-        return "Retrieve the cast and crew for a movie"
-    elif "/movie/id/recommendations" in norm_path:
-        return "Get movie recommendations similar to a given movie"
-    elif "/movie/id/similar" in norm_path:
-        return "Find movies similar to a specific movie"
-    elif "/movie/id/reviews" in norm_path:
-        return "Get user reviews for a movie"
-    elif "/movie/id/release_dates" in norm_path:
-        return "Retrieve the release dates for a movie"
-    elif "/tv/id/credits" in norm_path:
-        return "Retrieve the cast and crew for a TV show"
-    elif "/tv/id/similar" in norm_path:
-        return "Find TV shows similar to a given show"
-    elif "/tv/id/recommendations" in norm_path:
-        return "Get TV show recommendations"
-    elif "/person/id/movie_credits" in norm_path:
-        return "Get all movie credits for a person"
-    elif "/person/id/tv_credits" in norm_path:
-        return "Get all TV credits for a person"
-    elif "/person/id/images" in norm_path:
-        return "Retrieve images for a person"
-    elif "/collection/id" in norm_path:
-        return "Retrieve information about a movie collection"
-    elif "/company/id" in norm_path:
-        return "Retrieve details about a production company"
-    elif "/network/id" in norm_path:
-        return "Retrieve details about a TV network"
-    elif "trending" in norm_path:
-        return "Retrieve trending media"
-    return f"What is {norm_path}?"
+    """Extract parameters from the API schema for embedding purposes."""
+    return {item["name"]: item.get("description", "No description") for item in param_list if isinstance(item, dict)}
 
 def load_tmdb_schema():
     """Load TMDB OpenAPI schema and extract query-based information."""
@@ -72,93 +49,129 @@ def load_tmdb_schema():
 
     query_mappings = []
     
-    # Iterate over each endpoint path in the schema
     for path, methods in api_schema.get("paths", {}).items():
         for method, details in methods.items():
-            if isinstance(details, list):
-                details = {"parameters": extract_parameters_from_list(details)}
-            elif not isinstance(details, dict):
-                print(f"⚠️ Warning: Skipping malformed entry at {path} - {details}")
+            if not isinstance(details, dict):
+                logger.warning(f"⚠️ Skipping malformed entry at {path} - {details}")
                 continue
 
-            # Extract parameters if present
-            parameters = {}
-            if "parameters" in details:
-                if isinstance(details["parameters"], list):
-                    parameters = extract_parameters_from_list(details["parameters"])
-                elif isinstance(details["parameters"], dict):
-                    parameters = details["parameters"]
-            
-            # Normalize the endpoint path
+            parameters = extract_parameters_from_list(details.get("parameters", []))
             normalized_path = normalize_path(path)
+            description = details.get("summary", f"Query for {normalized_path}")
 
-            # Use the summary if available; otherwise, generate a fallback description
-            query_text = details.get("summary", generate_fallback_query(path))
+            # ✅ Generate queries dynamically using OpenAI function calling
+            semantic_queries = generate_semantic_queries(normalized_path, description)
 
-            query_mappings.append({
-                "query": query_text,
-                "solution": {
-                    "endpoint": normalized_path,
-                    "method": method.upper(),
-                    "parameters": parameters
-                }
-            })
+            # ✅ Debugging: Print generated queries to verify correctness
+            logger.debug(f"Generated Queries for {normalized_path}: {semantic_queries}")
+
+            if not semantic_queries:
+                logger.error(f"🚨 ERROR: No valid queries generated for {normalized_path}")
+                continue
+
+            for query_text in semantic_queries:
+                query_mappings.append({
+                    "query": query_text,
+                    "solution": {
+                        "endpoint": normalized_path,
+                        "method": method.upper(),
+                        "parameters": parameters
+                    }
+                })
 
     return query_mappings
 
-def embed_tmdb_queries():
-    """Embed TMDB queries into ChromaDB."""
-    print("🛠️ Debug: Checking existing collections...")
-
-    existing_collections = chroma_client.list_collections()
-    print("✅ Available collections:", existing_collections)
-
-    print("🔍 Extracting TMDB API mappings from OpenAPI schema...")
-
-    # Load the TMDB API schema and extract relevant data
-    query_mappings = load_tmdb_schema()
-
-    # Load embedding model
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-
-    # **Fix: Properly delete old embeddings**
-    print("🗑️ Checking existing embeddings...")
-
-    existing_items = collection.get()  # Get all stored IDs
-    if existing_items and "ids" in existing_items:
-        stored_ids = existing_items["ids"]
-        if stored_ids:
-            print(f"🗑️ Deleting {len(stored_ids)} old embeddings...")
-            collection.delete(ids=stored_ids)  # Delete by IDs
-        else:
-            print("✅ No old embeddings found. Proceeding with new embeddings.")
-    else:
-        print("✅ No old embeddings found. Proceeding with new embeddings.")
-
-    queries = []
-    metadata = []
-    embeddings = []
-
-    for i, entry in enumerate(query_mappings):
-        query_text = entry.get("query", "").strip()
-        solution = entry.get("solution", {})
-
-        if query_text and solution:
-            queries.append(query_text)
-            metadata.append({"solution": json.dumps(solution)})  # Store as JSON string
-
-    # Convert queries into embeddings
-    print("🔄 Generating new embeddings...")
-    query_vectors = model.encode(queries).tolist()
-
-    # Store in ChromaDB
-    collection.add(
-        ids=[str(i) for i in range(len(queries))],  # Ensure unique IDs
-        embeddings=query_vectors,
-        metadatas=metadata
+def generate_semantic_queries(endpoint_path, description):
+    """
+    Use OpenAI function calling to enforce correct response format for TMDB API query generation.
+    """
+    system_prompt = (
+        "You are an AI that generates human-friendly queries for The Movie Database (TMDB) API. "
+        "Your goal is to create diverse, user-friendly queries that match API endpoints "
+        "without explicit rule-based mappings.\n"
+        "Ensure queries are natural, relevant, and correctly formatted."
     )
 
-    print(f"✅ {len(queries)} TMDB queries embedded successfully in ChromaDB!")
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "generate_queries",
+                "description": "Generate 5 diverse queries for a given API endpoint.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "queries": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "A list of five natural language queries for the API endpoint."
+                        }
+                    },
+                    "required": ["queries"]
+                }
+            }
+        }
+    ]
+
+    logger.info(f"\n🚀 Calling OpenAI to generate queries for: {endpoint_path}")
+
+    response = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Generate queries for: {endpoint_path} - {description}"}
+        ],
+        tools=tools,
+        tool_choice="auto",
+        max_tokens=200
+    )
+
+    tool_calls = response.choices[0].message.tool_calls
+    if not tool_calls:
+        logger.warning(f"⚠️ Warning: OpenAI returned no tool calls for {endpoint_path}.")
+        return ["MISSING_QUERY"]  # ✅ Prevents `None` values
+
+    tool_response = json.loads(tool_calls[0].function.arguments)
+    queries = tool_response.get("queries", [])
+
+    # ✅ Ensure all queries are valid strings
+    queries = [q if isinstance(q, str) and q.strip() != "" else "MISSING_QUERY" for q in queries]
+
+    logger.debug(f"📝 OpenAI Generated Queries for {endpoint_path}: {queries}")
+
+    return queries
+
+def embed_tmdb_queries():
+    """Embed TMDB queries into ChromaDB with debugging."""
+    query_mappings = load_tmdb_schema()
+
+    if not query_mappings or all(entry["query"] is None or entry["query"] == "" for entry in query_mappings):
+        logger.error("🚨 ERROR: No valid queries found in query_mappings! Fix before embedding.")
+        return
+
+    existing_items = collection.get()
+    stored_ids = existing_items.get("ids", []) if existing_items else []
+
+    # Delete old embeddings only if new ones are available
+    if stored_ids:
+        collection.delete(ids=stored_ids)
+
+    queries = [entry["query"] for entry in query_mappings]
+    metadata = [{"solution": json.dumps(entry["solution"])} for entry in query_mappings]
+
+    # ✅ Debugging: Print queries before storing in ChromaDB
+    logger.info("\n📝 Storing the following queries in ChromaDB:")
+    for i, q in enumerate(queries[:10]):  # Print the first 10 queries for verification
+        logger.info(f"   {i+1}. Query: {q}")
+
+    queries = [q if q is not None else "MISSING_QUERY" for q in queries]  # Prevents storing None values
+
+    query_vectors = model.encode(queries).tolist()
+    collection.add(ids=[str(i) for i in range(len(queries))], embeddings=query_vectors, metadatas=metadata)
+
+    logger.info(f"✅ {len(queries)} TMDB queries embedded successfully!")
 
 if __name__ == "__main__":
     embed_tmdb_queries()
