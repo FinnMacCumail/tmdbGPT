@@ -143,6 +143,19 @@ def generate_semantic_queries(endpoint_path, description):
 
     return queries
 
+LOG_DIR = os.path.join(BASE_DIR, "../logs")  # Create a logs directory
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the directory exists
+QUERY_MAPPING_LOG_FILE = os.path.join(LOG_DIR, "query_mappings.json")
+
+def log_query_mappings(query_mappings):
+    """Writes query mappings to a JSON file for inspection."""
+    try:
+        with open(QUERY_MAPPING_LOG_FILE, "w", encoding="utf-8") as f:
+            json.dump(query_mappings, f, indent=4, ensure_ascii=False)
+        logger.info(f"✅ Query mappings logged to {QUERY_MAPPING_LOG_FILE}")
+    except Exception as e:
+        logger.error(f"❌ Failed to log query mappings: {e}", exc_info=True)
+
 def embed_tmdb_queries():
     """Embed TMDB queries into ChromaDB with debugging."""
     try:
@@ -152,6 +165,9 @@ def embed_tmdb_queries():
             logger.error("🚨 ERROR: No valid queries found in query_mappings! Fix before embedding.")
             return
 
+        # Log query mappings to file
+        log_query_mappings(query_mappings)
+        
         # Fetch existing stored queries from ChromaDB
         existing_data = collection.get()
         stored_ids = existing_data.get("ids", []) if existing_data else []
