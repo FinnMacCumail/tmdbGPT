@@ -39,43 +39,69 @@ def normalize_path(path):
     return path
 
 def extract_parameters_from_list(param_list):
-    """Extract parameters from the API schema for embedding purposes."""
-    return {item["name"]: item.get("description", "No description") for item in param_list if isinstance(item, dict)}
+    """
+    Extracts actual parameter values instead of descriptions.
+    If a parameter has a default value, it will be used.
+    If it has an enum list, the first option will be chosen.
+    Otherwise, it will be set to None.
+    """
+    extracted_params = {}
+    
+    if not param_list:
+        return extracted_params  # Return empty if no parameters exist
+
+    for param in param_list:
+        param_name = param.get("name")
+        param_location = param.get("in")  # e.g., 'query' or 'path'
+        schema = param.get("schema", {})
+
+        # Attempt to determine an actual value
+        if "default" in schema:
+            param_value = schema["default"]  # Use default value if provided
+        elif "enum" in schema and isinstance(schema["enum"], list) and schema["enum"]:
+            param_value = schema["enum"][0]  # Pick the first valid enum option
+        else:
+            param_value = None  # No predefined value
+
+        extracted_params[param_name] = param_value
+
+    return extracted_params
+
 
 def load_tmdb_schema():
-    """Load TMDB OpenAPI schema and extract query-based information."""
-    with open(DATA_PATH, "r", encoding="utf-8") as file:
-        api_schema = json.load(file)
+    """
+    Loads TMDB API schema and maps each API endpoint to a set of user-friendly queries.
+    Ensures that parameters are stored as actual values rather than descriptions.
+    """
+    schema_file = os.path.join(BASE_DIR, "../data/tmdb.json")
+
+    with open(schema_file, "r", encoding="utf-8") as f:
+        schema = json.load(f)
 
     query_mappings = []
     
-    for path, methods in api_schema.get("paths", {}).items():
+    for path, methods in schema.get("paths", {}).items():
         for method, details in methods.items():
             if not isinstance(details, dict):
-                logger.warning(f"⚠️ Skipping malformed entry at {path} - {details}")
+                continue  # Skip malformed entries
+
+            summary = details.get("summary", f"Query for {path}")  # Default if summary is missing
+            parameters = extract_parameters_from_list(details.get("parameters", []))  # Updated function call
+
+            # Generate human-friendly queries
+            queries = generate_semantic_queries(path, summary)
+            if not queries:
+                logger.warning(f"⚠️ No queries generated for endpoint: {path}")
                 continue
 
-            parameters = extract_parameters_from_list(details.get("parameters", []))
-            normalized_path = normalize_path(path)
-            description = details.get("summary", f"Query for {normalized_path}")
-
-            # ✅ Generate queries dynamically using OpenAI function calling
-            semantic_queries = generate_semantic_queries(normalized_path, description)
-
-            # ✅ Debugging: Print generated queries to verify correctness
-            logger.debug(f"Generated Queries for {normalized_path}: {semantic_queries}")
-
-            if not semantic_queries:
-                logger.error(f"🚨 ERROR: No valid queries generated for {normalized_path}")
-                continue
-
-            for query_text in semantic_queries:
+            # Store query mappings with actual values, not descriptions
+            for query in queries:
                 query_mappings.append({
-                    "query": query_text,
+                    "query": query,
                     "solution": {
-                        "endpoint": normalized_path,
+                        "endpoint": path,
                         "method": method.upper(),
-                        "parameters": parameters
+                        "parameters": parameters  # Uses actual values now
                     }
                 })
 
@@ -167,7 +193,7 @@ def embed_tmdb_queries():
 
         # Log query mappings to file
         log_query_mappings(query_mappings)
-        
+
         # Fetch existing stored queries from ChromaDB
         existing_data = collection.get()
         stored_ids = existing_data.get("ids", []) if existing_data else []
