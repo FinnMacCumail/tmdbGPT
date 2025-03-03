@@ -1,6 +1,6 @@
 [
     {
-        "query": "What are the main keywords for 'Inception'?",
+        "query": "What are the main themes for the movie with ID 550?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -8,7 +8,7 @@
         }
     },
     {
-        "query": "Can you find the keyword themes for the movie 'Avatar'?",
+        "query": "Can you show the keywords associated with movie ID 123?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -16,7 +16,7 @@
         }
     },
     {
-        "query": "List all keywords associated with the film 'The Matrix'.",
+        "query": "List the key topics of the movie with ID 990.",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -24,7 +24,7 @@
         }
     },
     {
-        "query": "Show me the key concepts for 'Joker' movie.",
+        "query": "Find the keywords for the movie with the ID 678.",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -32,7 +32,7 @@
         }
     },
     {
-        "query": "What descriptive words are linked to 'Titanic'?",
+        "query": "What keywords describe the central ideas of movie ID 450?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -40,57 +40,57 @@
         }
     },
     {
-        "query": "What are the most popular TV shows currently?",
+        "query": "What are the top trending TV shows currently?",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you list the trending TV series this week?",
+        "query": "Can you list the most popular TV series right now?",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me the top 10 popular TV shows right now.",
+        "query": "What are the current hit TV shows?",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are the trending TV shows on TV?",
+        "query": "Show me the latest popular TV shows.",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Which TV series are currently popular?",
+        "query": "Give me the list of today's trending TV series.",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What is the full profile for actor with ID 345?",
+        "query": "What are the details of this actor by their ID?",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -98,7 +98,7 @@
         }
     },
     {
-        "query": "Can you fetch the complete information for person ID 1290?",
+        "query": "Can you find the profile information for a celebrity using their unique ID?",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -106,7 +106,7 @@
         }
     },
     {
-        "query": "Show me details about the person with ID 1025.",
+        "query": "How can I access complete bio-data of a movie star through their ID?",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -114,7 +114,7 @@
         }
     },
     {
-        "query": "Retrieve the biography and career info for the person with ID 987.",
+        "query": "Show me the full information of a director based on their identification number.",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -122,7 +122,7 @@
         }
     },
     {
-        "query": "Get full details for the person identified by ID 562.",
+        "query": "Retrieve full personal and professional details of a film personality by ID.",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -130,57 +130,57 @@
         }
     },
     {
-        "query": "What are the recent reviews for the movie with ID 76341?",
+        "query": "What are the latest reviews for the movie with ID 12345?",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you show me the user reviews for movie ID 550?",
+        "query": "Can I see user opinions on movie 56789?",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "How have people rated the movie with ID 129 on TMDB?",
+        "query": "Show me the critic reviews for movie 10101.",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Let me see the reviews and ratings for movie ID 9806.",
+        "query": "How did audiences react to movie 20202?",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Are there any critical reviews available for movie ID 272?",
+        "query": "Display recent reviews for the film with ID 30303.",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "When was 'Inception' released in various countries?",
+        "query": "What are the release dates for movie ID 550?",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -188,7 +188,7 @@
         }
     },
     {
-        "query": "Can you provide the release dates for 'Avatar' across different regions?",
+        "query": "Can you show me when movie ID 1025 was released?",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -196,7 +196,7 @@
         }
     },
     {
-        "query": "What are the international release dates for 'The Matrix'?",
+        "query": "Find the global release dates for the movie with ID 300.",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -204,7 +204,7 @@
         }
     },
     {
-        "query": "Show me the release schedule for 'Frozen' in different countries.",
+        "query": "Provide the release schedule for movie ID 215.",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -212,7 +212,7 @@
         }
     },
     {
-        "query": "Find the global release dates for 'Titanic'.",
+        "query": "Show me all the release dates for movie ID 789 worldwide.",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -220,7 +220,7 @@
         }
     },
     {
-        "query": "Who are the cast members of season 3, episode 5 of 'Stranger Things'?",
+        "query": "What are the cast and crew details for episode 5 of season 3 of the TV show with ID 240?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -228,7 +228,7 @@
         }
     },
     {
-        "query": "Can you show me the crew list for episode 10, season 2 of 'The Crown'?",
+        "query": "Who worked on episode 10, season 2 of the TV series with identifier 145?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -236,7 +236,7 @@
         }
     },
     {
-        "query": "What actors appeared in episode 1 of season 4 for 'Breaking Bad'?",
+        "query": "Can you provide the credits for episode 7 of season 4 for the TV show with ID 78?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -244,7 +244,7 @@
         }
     },
     {
-        "query": "Give me the list of directors and writers for episode 8, season 1 of 'Game of Thrones'.",
+        "query": "List the cast and crew for episode 3, season 1 of the TV show identified by 67.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -252,7 +252,7 @@
         }
     },
     {
-        "query": "Who worked on episode 3, season 5 of 'The Office'?",
+        "query": "Show me the credits for episode 1, season 5 of the television series with ID 89.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -260,122 +260,122 @@
         }
     },
     {
-        "query": "What images are available for a specific movie by its ID?",
+        "query": "What are the latest images released for the movie with ID 7654?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
             "parameters": {
-                "include_image_language": "No description"
+                "include_image_language": null
             }
         }
     },
     {
-        "query": "Can you show me the photos related to this movie ID?",
+        "query": "Can you show me all the posters of the film identified by movie ID 9872?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
             "parameters": {
-                "include_image_language": "No description"
+                "include_image_language": null
             }
         }
     },
     {
-        "query": "Retrieve all images for the movie with this particular ID.",
+        "query": "I need to see the backdrops for the movie with ID 3451, can you fetch them?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
             "parameters": {
-                "include_image_language": "No description"
+                "include_image_language": null
             }
         }
     },
     {
-        "query": "Display movie images using the movie ID.",
+        "query": "How can I view the promotional pictures for the movie with ID 9321?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
             "parameters": {
-                "include_image_language": "No description"
+                "include_image_language": null
             }
         }
     },
     {
-        "query": "Fetch all pictures associated with a given movie ID.",
+        "query": "Display all available images for the movie that has the ID 1223.",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
             "parameters": {
-                "include_image_language": "No description"
+                "include_image_language": null
             }
         }
     },
     {
-        "query": "What TV shows are similar to 'Friends'?",
+        "query": "What are the most popular TV shows right now?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "first_air_date_year": "No description"
+                "page": 1,
+                "query": null,
+                "include_adult": false,
+                "first_air_date_year": null
             }
         }
     },
     {
-        "query": "Can you help me find TV series like 'Breaking Bad'?",
+        "query": "Can you find TV shows similar to 'Breaking Bad'?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "first_air_date_year": "No description"
+                "page": 1,
+                "query": null,
+                "include_adult": false,
+                "first_air_date_year": null
             }
         }
     },
     {
-        "query": "I'm looking for shows with a theme of medieval times, any suggestions?",
+        "query": "I'm looking for a TV series that started in the 90s, can you help?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "first_air_date_year": "No description"
+                "page": 1,
+                "query": null,
+                "include_adult": false,
+                "first_air_date_year": null
             }
         }
     },
     {
-        "query": "Do you know any TV series with high school settings?",
+        "query": "Which TV shows are trending this week?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "first_air_date_year": "No description"
+                "page": 1,
+                "query": null,
+                "include_adult": false,
+                "first_air_date_year": null
             }
         }
     },
     {
-        "query": "Show me TV shows that started in the 90s.",
+        "query": "Show me a list of comedy series aired in the last five years.",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "first_air_date_year": "No description"
+                "page": 1,
+                "query": null,
+                "include_adult": false,
+                "first_air_date_year": null
             }
         }
     },
     {
-        "query": "What are the details for episode 5 of season 3 in the TV series with ID 1402?",
+        "query": "What are the details for season 3 episode 5 of the TV show with ID 1293?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -383,7 +383,7 @@
         }
     },
     {
-        "query": "Can you pull up the information for episode 9 in season 1 of the show with the ID 69050?",
+        "query": "Can you give me information about episode 12 in season 5 of the series identified by 8432?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -391,7 +391,7 @@
         }
     },
     {
-        "query": "I need details about episode 6, season 4 of the TV series identified by ID 1399.",
+        "query": "Fetch data for season 2, episode 8 of the television series with ID 70523.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -399,7 +399,7 @@
         }
     },
     {
-        "query": "Show me the episode info for season 2, episode 12 of the series with ID 100.",
+        "query": "How can I find specifics for season 4 episode 20 in the TV series with ID 44217?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -407,7 +407,7 @@
         }
     },
     {
-        "query": "Retrieve the episode specifics of season 5, episode 20 for the TV series having ID 982.",
+        "query": "Provide details for episode 9 of season 7 from the TV show ID 31988.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -415,7 +415,7 @@
         }
     },
     {
-        "query": "What images are available for a particular TV network?",
+        "query": "Can you find images related to a specific network by its ID?",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -423,7 +423,7 @@
         }
     },
     {
-        "query": "Can you show me the logos and images associated with a specific network?",
+        "query": "What are the available images for a given network ID?",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -431,7 +431,7 @@
         }
     },
     {
-        "query": "How do I find pictures related to a specific TV network?",
+        "query": "How can I view images for a particular network using its ID?",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -439,7 +439,7 @@
         }
     },
     {
-        "query": "Where can I get image resources of a particular broadcasting network?",
+        "query": "Show images associated with a network ID.",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -447,7 +447,7 @@
         }
     },
     {
-        "query": "Fetch images and logos for a given TV network ID.",
+        "query": "Retrieve images for a designated network ID.",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -455,7 +455,7 @@
         }
     },
     {
-        "query": "What are the current genres available for TV shows?",
+        "query": "Can you show me a list of TV show genres?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -463,7 +463,7 @@
         }
     },
     {
-        "query": "Can you list all the TV genres?",
+        "query": "What genres are available for TV shows on TMDB?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -471,7 +471,7 @@
         }
     },
     {
-        "query": "Show me a list of genres for television series.",
+        "query": "Could you list all the genres for television series?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -479,7 +479,7 @@
         }
     },
     {
-        "query": "What types of TV show genres can I browse?",
+        "query": "I need to know the different genres of TV shows, can you provide that?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -487,7 +487,7 @@
         }
     },
     {
-        "query": "What are the different genres for TV series?",
+        "query": "What are the various TV show genres listed on TMDB?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -495,357 +495,357 @@
         }
     },
     {
-        "query": "What are the most popular movies out right now?",
+        "query": "What's the best way to find movies related to time travel?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "year": "No description",
-                "primary_release_year": "No description"
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null,
+                "year": null,
+                "primary_release_year": null
             }
         }
     },
     {
-        "query": "Can you find movies that feature dogs as main characters?",
+        "query": "How can I search for films by their titles?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "year": "No description",
-                "primary_release_year": "No description"
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null,
+                "year": null,
+                "primary_release_year": null
             }
         }
     },
     {
-        "query": "Where can I look up movies directed by Christopher Nolan?",
+        "query": "Can I look up movies featuring Tom Hanks?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "year": "No description",
-                "primary_release_year": "No description"
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null,
+                "year": null,
+                "primary_release_year": null
             }
         }
     },
     {
-        "query": "Show me a list of action movies released in the 90s.",
+        "query": "Is there a method to search movies based on keywords?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "year": "No description",
-                "primary_release_year": "No description"
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null,
+                "year": null,
+                "primary_release_year": null
             }
         }
     },
     {
-        "query": "How do I find movies similar to 'Inception'?",
+        "query": "Where can I find films directed by Christopher Nolan?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "year": "No description",
-                "primary_release_year": "No description"
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null,
+                "year": null,
+                "primary_release_year": null
             }
         }
     },
     {
-        "query": "What are the top trending movies this month?",
+        "query": "What are the top rated action movies released this year?",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
             "parameters": {
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "sort_by": "Choose from one of the many available sort options.",
-                "certification_country": "Used in conjunction with the certification filter, use this to specify a country with a valid certification.",
-                "certification": "Filter results with a valid certification from the 'certification_country' field.",
-                "certification.lte": "Filter and only include movies that have a certification that is less than or equal to the specified value.",
-                "certification.gte": "Filter and only include movies that have a certification that is greater than or equal to the specified value.",
-                "include_adult": "A filter and include or exclude adult movies.",
-                "include_video": "A filter to include or exclude videos.",
-                "page": "Specify the page of results to query.",
-                "primary_release_year": "A filter to limit the results to a specific primary release year.",
-                "primary_release_date.gte": "Filter and only include movies that have a primary release date that is greater or equal to the specified value.",
-                "primary_release_date.lte": "Filter and only include movies that have a primary release date that is less than or equal to the specified value.",
-                "release_date.gte": "Filter and only include movies that have a release date (looking at all release dates) that is greater or equal to the specified value.",
-                "release_date.lte": "Filter and only include movies that have a release date (looking at all release dates) that is less than or equal to the specified value.",
-                "with_release_type": "Specify a comma (AND) or pipe (OR) separated value to filter release types by. These release types map to the same values found on the movie release date method.",
-                "year": "A filter to limit the results to a specific year (looking at all release dates).",
-                "vote_count.gte": "Filter and only include movies that have a vote count that is greater or equal to the specified value.",
-                "vote_count.lte": "Filter and only include movies that have a vote count that is less than or equal to the specified value.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_average.lte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_cast": "A comma separated list of person ID's. Only include movies that have one of the ID's added as an actor.",
-                "with_crew": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a crew member.",
-                "with_people": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a either a actor or a crew member.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes movies that have one of the ID's added as a keyword.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "with_runtime.gte": "Filter and only include movies that have a runtime that is greater or equal to a value.",
-                "with_runtime.lte": "Filter and only include movies that have a runtime that is less than or equal to a value.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "region": null,
+                "sort_by": "popularity.desc",
+                "certification_country": null,
+                "certification": null,
+                "certification.lte": null,
+                "certification.gte": null,
+                "include_adult": false,
+                "include_video": false,
+                "page": 1,
+                "primary_release_year": null,
+                "primary_release_date.gte": null,
+                "primary_release_date.lte": null,
+                "release_date.gte": null,
+                "release_date.lte": null,
+                "with_release_type": null,
+                "year": null,
+                "vote_count.gte": null,
+                "vote_count.lte": null,
+                "vote_average.gte": null,
+                "vote_average.lte": null,
+                "with_cast": null,
+                "with_crew": null,
+                "with_people": null,
+                "with_companies": null,
+                "with_genres": null,
+                "without_genres": null,
+                "with_keywords": null,
+                "without_keywords": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "with_original_language": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Can you find movies that are similar to 'Inception'?",
+        "query": "Can you find family-friendly films from the 1990s?",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
             "parameters": {
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "sort_by": "Choose from one of the many available sort options.",
-                "certification_country": "Used in conjunction with the certification filter, use this to specify a country with a valid certification.",
-                "certification": "Filter results with a valid certification from the 'certification_country' field.",
-                "certification.lte": "Filter and only include movies that have a certification that is less than or equal to the specified value.",
-                "certification.gte": "Filter and only include movies that have a certification that is greater than or equal to the specified value.",
-                "include_adult": "A filter and include or exclude adult movies.",
-                "include_video": "A filter to include or exclude videos.",
-                "page": "Specify the page of results to query.",
-                "primary_release_year": "A filter to limit the results to a specific primary release year.",
-                "primary_release_date.gte": "Filter and only include movies that have a primary release date that is greater or equal to the specified value.",
-                "primary_release_date.lte": "Filter and only include movies that have a primary release date that is less than or equal to the specified value.",
-                "release_date.gte": "Filter and only include movies that have a release date (looking at all release dates) that is greater or equal to the specified value.",
-                "release_date.lte": "Filter and only include movies that have a release date (looking at all release dates) that is less than or equal to the specified value.",
-                "with_release_type": "Specify a comma (AND) or pipe (OR) separated value to filter release types by. These release types map to the same values found on the movie release date method.",
-                "year": "A filter to limit the results to a specific year (looking at all release dates).",
-                "vote_count.gte": "Filter and only include movies that have a vote count that is greater or equal to the specified value.",
-                "vote_count.lte": "Filter and only include movies that have a vote count that is less than or equal to the specified value.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_average.lte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_cast": "A comma separated list of person ID's. Only include movies that have one of the ID's added as an actor.",
-                "with_crew": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a crew member.",
-                "with_people": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a either a actor or a crew member.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes movies that have one of the ID's added as a keyword.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "with_runtime.gte": "Filter and only include movies that have a runtime that is greater or equal to a value.",
-                "with_runtime.lte": "Filter and only include movies that have a runtime that is less than or equal to a value.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "region": null,
+                "sort_by": "popularity.desc",
+                "certification_country": null,
+                "certification": null,
+                "certification.lte": null,
+                "certification.gte": null,
+                "include_adult": false,
+                "include_video": false,
+                "page": 1,
+                "primary_release_year": null,
+                "primary_release_date.gte": null,
+                "primary_release_date.lte": null,
+                "release_date.gte": null,
+                "release_date.lte": null,
+                "with_release_type": null,
+                "year": null,
+                "vote_count.gte": null,
+                "vote_count.lte": null,
+                "vote_average.gte": null,
+                "vote_average.lte": null,
+                "with_cast": null,
+                "with_crew": null,
+                "with_people": null,
+                "with_companies": null,
+                "with_genres": null,
+                "without_genres": null,
+                "with_keywords": null,
+                "without_keywords": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "with_original_language": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Show me a list of family-friendly films released in the last 5 years.",
+        "query": "Show me a list of romantic comedies with a high user rating.",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
             "parameters": {
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "sort_by": "Choose from one of the many available sort options.",
-                "certification_country": "Used in conjunction with the certification filter, use this to specify a country with a valid certification.",
-                "certification": "Filter results with a valid certification from the 'certification_country' field.",
-                "certification.lte": "Filter and only include movies that have a certification that is less than or equal to the specified value.",
-                "certification.gte": "Filter and only include movies that have a certification that is greater than or equal to the specified value.",
-                "include_adult": "A filter and include or exclude adult movies.",
-                "include_video": "A filter to include or exclude videos.",
-                "page": "Specify the page of results to query.",
-                "primary_release_year": "A filter to limit the results to a specific primary release year.",
-                "primary_release_date.gte": "Filter and only include movies that have a primary release date that is greater or equal to the specified value.",
-                "primary_release_date.lte": "Filter and only include movies that have a primary release date that is less than or equal to the specified value.",
-                "release_date.gte": "Filter and only include movies that have a release date (looking at all release dates) that is greater or equal to the specified value.",
-                "release_date.lte": "Filter and only include movies that have a release date (looking at all release dates) that is less than or equal to the specified value.",
-                "with_release_type": "Specify a comma (AND) or pipe (OR) separated value to filter release types by. These release types map to the same values found on the movie release date method.",
-                "year": "A filter to limit the results to a specific year (looking at all release dates).",
-                "vote_count.gte": "Filter and only include movies that have a vote count that is greater or equal to the specified value.",
-                "vote_count.lte": "Filter and only include movies that have a vote count that is less than or equal to the specified value.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_average.lte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_cast": "A comma separated list of person ID's. Only include movies that have one of the ID's added as an actor.",
-                "with_crew": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a crew member.",
-                "with_people": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a either a actor or a crew member.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes movies that have one of the ID's added as a keyword.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "with_runtime.gte": "Filter and only include movies that have a runtime that is greater or equal to a value.",
-                "with_runtime.lte": "Filter and only include movies that have a runtime that is less than or equal to a value.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "region": null,
+                "sort_by": "popularity.desc",
+                "certification_country": null,
+                "certification": null,
+                "certification.lte": null,
+                "certification.gte": null,
+                "include_adult": false,
+                "include_video": false,
+                "page": 1,
+                "primary_release_year": null,
+                "primary_release_date.gte": null,
+                "primary_release_date.lte": null,
+                "release_date.gte": null,
+                "release_date.lte": null,
+                "with_release_type": null,
+                "year": null,
+                "vote_count.gte": null,
+                "vote_count.lte": null,
+                "vote_average.gte": null,
+                "vote_average.lte": null,
+                "with_cast": null,
+                "with_crew": null,
+                "with_people": null,
+                "with_companies": null,
+                "with_genres": null,
+                "without_genres": null,
+                "with_keywords": null,
+                "without_keywords": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "with_original_language": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Find action movies that were highly rated in 2020.",
+        "query": "Which movies are trending among sci-fi enthusiasts this month?",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
             "parameters": {
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "sort_by": "Choose from one of the many available sort options.",
-                "certification_country": "Used in conjunction with the certification filter, use this to specify a country with a valid certification.",
-                "certification": "Filter results with a valid certification from the 'certification_country' field.",
-                "certification.lte": "Filter and only include movies that have a certification that is less than or equal to the specified value.",
-                "certification.gte": "Filter and only include movies that have a certification that is greater than or equal to the specified value.",
-                "include_adult": "A filter and include or exclude adult movies.",
-                "include_video": "A filter to include or exclude videos.",
-                "page": "Specify the page of results to query.",
-                "primary_release_year": "A filter to limit the results to a specific primary release year.",
-                "primary_release_date.gte": "Filter and only include movies that have a primary release date that is greater or equal to the specified value.",
-                "primary_release_date.lte": "Filter and only include movies that have a primary release date that is less than or equal to the specified value.",
-                "release_date.gte": "Filter and only include movies that have a release date (looking at all release dates) that is greater or equal to the specified value.",
-                "release_date.lte": "Filter and only include movies that have a release date (looking at all release dates) that is less than or equal to the specified value.",
-                "with_release_type": "Specify a comma (AND) or pipe (OR) separated value to filter release types by. These release types map to the same values found on the movie release date method.",
-                "year": "A filter to limit the results to a specific year (looking at all release dates).",
-                "vote_count.gte": "Filter and only include movies that have a vote count that is greater or equal to the specified value.",
-                "vote_count.lte": "Filter and only include movies that have a vote count that is less than or equal to the specified value.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_average.lte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_cast": "A comma separated list of person ID's. Only include movies that have one of the ID's added as an actor.",
-                "with_crew": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a crew member.",
-                "with_people": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a either a actor or a crew member.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes movies that have one of the ID's added as a keyword.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "with_runtime.gte": "Filter and only include movies that have a runtime that is greater or equal to a value.",
-                "with_runtime.lte": "Filter and only include movies that have a runtime that is less than or equal to a value.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "region": null,
+                "sort_by": "popularity.desc",
+                "certification_country": null,
+                "certification": null,
+                "certification.lte": null,
+                "certification.gte": null,
+                "include_adult": false,
+                "include_video": false,
+                "page": 1,
+                "primary_release_year": null,
+                "primary_release_date.gte": null,
+                "primary_release_date.lte": null,
+                "release_date.gte": null,
+                "release_date.lte": null,
+                "with_release_type": null,
+                "year": null,
+                "vote_count.gte": null,
+                "vote_count.lte": null,
+                "vote_average.gte": null,
+                "vote_average.lte": null,
+                "with_cast": null,
+                "with_crew": null,
+                "with_people": null,
+                "with_companies": null,
+                "with_genres": null,
+                "without_genres": null,
+                "with_keywords": null,
+                "without_keywords": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "with_original_language": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Discover romantic comedies released in the 1990s.",
+        "query": "Discover new horror movies that have been released recently.",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
             "parameters": {
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase.",
-                "sort_by": "Choose from one of the many available sort options.",
-                "certification_country": "Used in conjunction with the certification filter, use this to specify a country with a valid certification.",
-                "certification": "Filter results with a valid certification from the 'certification_country' field.",
-                "certification.lte": "Filter and only include movies that have a certification that is less than or equal to the specified value.",
-                "certification.gte": "Filter and only include movies that have a certification that is greater than or equal to the specified value.",
-                "include_adult": "A filter and include or exclude adult movies.",
-                "include_video": "A filter to include or exclude videos.",
-                "page": "Specify the page of results to query.",
-                "primary_release_year": "A filter to limit the results to a specific primary release year.",
-                "primary_release_date.gte": "Filter and only include movies that have a primary release date that is greater or equal to the specified value.",
-                "primary_release_date.lte": "Filter and only include movies that have a primary release date that is less than or equal to the specified value.",
-                "release_date.gte": "Filter and only include movies that have a release date (looking at all release dates) that is greater or equal to the specified value.",
-                "release_date.lte": "Filter and only include movies that have a release date (looking at all release dates) that is less than or equal to the specified value.",
-                "with_release_type": "Specify a comma (AND) or pipe (OR) separated value to filter release types by. These release types map to the same values found on the movie release date method.",
-                "year": "A filter to limit the results to a specific year (looking at all release dates).",
-                "vote_count.gte": "Filter and only include movies that have a vote count that is greater or equal to the specified value.",
-                "vote_count.lte": "Filter and only include movies that have a vote count that is less than or equal to the specified value.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_average.lte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_cast": "A comma separated list of person ID's. Only include movies that have one of the ID's added as an actor.",
-                "with_crew": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a crew member.",
-                "with_people": "A comma separated list of person ID's. Only include movies that have one of the ID's added as a either a actor or a crew member.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes movies that have one of the ID's added as a keyword.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "with_runtime.gte": "Filter and only include movies that have a runtime that is greater or equal to a value.",
-                "with_runtime.lte": "Filter and only include movies that have a runtime that is less than or equal to a value.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "region": null,
+                "sort_by": "popularity.desc",
+                "certification_country": null,
+                "certification": null,
+                "certification.lte": null,
+                "certification.gte": null,
+                "include_adult": false,
+                "include_video": false,
+                "page": 1,
+                "primary_release_year": null,
+                "primary_release_date.gte": null,
+                "primary_release_date.lte": null,
+                "release_date.gte": null,
+                "release_date.lte": null,
+                "with_release_type": null,
+                "year": null,
+                "vote_count.gte": null,
+                "vote_count.lte": null,
+                "vote_average.gte": null,
+                "vote_average.lte": null,
+                "with_cast": null,
+                "with_crew": null,
+                "with_people": null,
+                "with_companies": null,
+                "with_genres": null,
+                "without_genres": null,
+                "with_keywords": null,
+                "without_keywords": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "with_original_language": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "without_companies": null
             }
         }
     },
     {
-        "query": "What are the upcoming movies releasing soon?",
+        "query": "What are the upcoming movie releases?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Can you list the latest movies that are about to be released?",
+        "query": "Show me movies that are releasing soon.",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "What new movies are scheduled for release in the near future?",
+        "query": "Can you list the soon-to-be-released films?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Show me a list of movies that are coming out soon.",
+        "query": "Which movies are coming out in the near future?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Which new films are expected to premiere shortly?",
+        "query": "Find upcoming movies that are about to release.",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "What details can I find using a credit ID in TMDB?",
+        "query": "What information can I get about a specific credit ID?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -853,7 +853,7 @@
         }
     },
     {
-        "query": "How do I retrieve information for a specific credit ID on TMDB?",
+        "query": "Retrieve details using a credit ID in the TMDB database.",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -861,7 +861,7 @@
         }
     },
     {
-        "query": "Can I see the details associated with a particular credit ID?",
+        "query": "How do I find details for a particular credit ID on TMDB?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -869,7 +869,7 @@
         }
     },
     {
-        "query": "What information is provided by TMDB for a given credit ID?",
+        "query": "Show me the data available for a credit ID on TMDB.",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -877,7 +877,7 @@
         }
     },
     {
-        "query": "How to access details of a credit ID from TMDB?",
+        "query": "Can you provide the details obtained from a credit ID in TMDB?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -885,7 +885,7 @@
         }
     },
     {
-        "query": "What TV shows has this actor appeared in?",
+        "query": "What TV shows has actor X starred in?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -893,7 +893,7 @@
         }
     },
     {
-        "query": "Can you list the television series credits for this actress?",
+        "query": "Can you list the television series appearances for a specific actor?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -901,7 +901,7 @@
         }
     },
     {
-        "query": "Show me all the TV roles the person with this ID has had.",
+        "query": "What are the TV credits for this celebrity?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -909,7 +909,7 @@
         }
     },
     {
-        "query": "What are the career television credits of this actor?",
+        "query": "What roles has this actor played on television?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -917,7 +917,7 @@
         }
     },
     {
-        "query": "Which TV series has this celebrity been a part of?",
+        "query": "Find the TV show appearances for a specific actor.",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -925,7 +925,7 @@
         }
     },
     {
-        "query": "What is the most recent TV show added to the database?",
+        "query": "What's the latest TV show added to the database?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -933,7 +933,7 @@
         }
     },
     {
-        "query": "Show me the latest TV series release.",
+        "query": "Can you find the most recent TV series released?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -941,7 +941,7 @@
         }
     },
     {
-        "query": "Can you find the newest TV show on TMDB?",
+        "query": "Show me the newest TV show that was added to the platform.",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -949,7 +949,7 @@
         }
     },
     {
-        "query": "What's the latest TV show added?",
+        "query": "What is the latest television series available?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -957,7 +957,7 @@
         }
     },
     {
-        "query": "Fetch the most recently added TV series.",
+        "query": "Fetch the most recently launched TV show information.",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -965,7 +965,7 @@
         }
     },
     {
-        "query": "What is the latest information about a specific movie production company?",
+        "query": "What are the key details for a specific movie production company?",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -973,7 +973,7 @@
         }
     },
     {
-        "query": "Can you provide details on a film company using its ID?",
+        "query": "Can you show me more information about this film company?",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -981,7 +981,7 @@
         }
     },
     {
-        "query": "How do I look up the profile of a certain film production entity?",
+        "query": "Please provide the detailed profile for this movie production company.",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -989,7 +989,7 @@
         }
     },
     {
-        "query": "Fetch the business details for a movie company by ID.",
+        "query": "I want to know about the structure and background of a certain film company.",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -997,7 +997,7 @@
         }
     },
     {
-        "query": "What are the full details of a particular film production company?",
+        "query": "Could you give me the full rundown on this movie production house?",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -1005,7 +1005,7 @@
         }
     },
     {
-        "query": "What images are available for this TV show?",
+        "query": "What images are available for this TV show by its ID?",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -1013,7 +1013,7 @@
         }
     },
     {
-        "query": "Can I see the gallery of images for this series?",
+        "query": "Can you display all the photos related to a specific television series using its ID?",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -1021,7 +1021,7 @@
         }
     },
     {
-        "query": "Show me pictures from this television show.",
+        "query": "Fetch all the pictures from a TV series identified by its unique ID.",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -1029,7 +1029,7 @@
         }
     },
     {
-        "query": "Where can I find photos related to this TV series?",
+        "query": "Show me the gallery of images linked to the TV ID provided.",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -1037,7 +1037,7 @@
         }
     },
     {
-        "query": "Display images from the specified TV show.",
+        "query": "Retrieve the image collection for a television series using its ID.",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -1045,7 +1045,7 @@
         }
     },
     {
-        "query": "Who are the cast and crew members for season 3 of Friends?",
+        "query": "What are the cast and crew details for season 3 of the TV show with ID 456?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -1053,7 +1053,7 @@
         }
     },
     {
-        "query": "Can you show me the credits for season 2 of Breaking Bad?",
+        "query": "Who are the actors in season 1 of the series with TV ID 789?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -1061,7 +1061,7 @@
         }
     },
     {
-        "query": "List all actors and production team from season 5 of The Office.",
+        "query": "Get the crew list for season 2 of the television series identified by TV ID 123.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -1069,7 +1069,7 @@
         }
     },
     {
-        "query": "Fetch the complete credits for season 1 of Game of Thrones.",
+        "query": "Find out all the actors and their roles for season 4 of the TV series with ID 654.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -1077,7 +1077,7 @@
         }
     },
     {
-        "query": "What is the full list of crew and cast for season 4 of Stranger Things?",
+        "query": "List all crew members working in season 5 of the TV show with ID 321.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -1090,57 +1090,57 @@
             "endpoint": "/movie/now_playing",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Show me a list of movies now playing.",
+        "query": "Show me the list of movies now playing.",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Which films are on the big screen right now?",
+        "query": "Can you find movies that are in theaters right now?",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Can you tell me what's currently in cinemas?",
+        "query": "Which movies are showing in cinemas today?",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "List current movies in theaters.",
+        "query": "List the current films playing in cinemas.",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "What is the detailed information for a movie review with ID 123?",
+        "query": "What are the details of review ID R12345?",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1148,7 +1148,7 @@
         }
     },
     {
-        "query": "Can you find the full details of a review using its ID?",
+        "query": "Can you find the information for review ID R67890?",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1156,7 +1156,7 @@
         }
     },
     {
-        "query": "Show me the complete details of a review based on its ID.",
+        "query": "Show me the specifics of review ID R23456.",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1164,7 +1164,7 @@
         }
     },
     {
-        "query": "How can I access the detailed review data for review ID ABC?",
+        "query": "Retrieve data for review ID R34567.",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1172,7 +1172,7 @@
         }
     },
     {
-        "query": "Retrieve detailed information for a movie review with its unique ID.",
+        "query": "Please provide the details for review ID R45678.",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1180,107 +1180,107 @@
         }
     },
     {
-        "query": "What are the current TV shows airing now?",
+        "query": "What TV shows are currently broadcasting?",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me a list of TV series that are on the air currently.",
+        "query": "Which series are on air right now?",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What television programs are currently broadcasting?",
+        "query": "List of TV shows currently on the air",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you find TV shows that are on air right now?",
+        "query": "Can you find TV series that are currently broadcasting?",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Which TV shows are being aired at the moment?",
+        "query": "Show me the list of on-air television series.",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are the full details of the movie with ID 2345?",
+        "query": "What are the full details for the movie with ID 2453?",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
             "parameters": {
-                "append_to_response": "Append requests within the same namespace to the response."
+                "append_to_response": null
             }
         }
     },
     {
-        "query": "Can you fetch the information for the movie having the ID 3876?",
+        "query": "Can I get all the information about the movie with the ID 8327?",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
             "parameters": {
-                "append_to_response": "Append requests within the same namespace to the response."
+                "append_to_response": null
             }
         }
     },
     {
-        "query": "Show me all details for the movie ID 1520.",
+        "query": "Retrieve the complete details for the movie using its ID 4671.",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
             "parameters": {
-                "append_to_response": "Append requests within the same namespace to the response."
+                "append_to_response": null
             }
         }
     },
     {
-        "query": "Retrieve complete information for the movie with the ID 9001.",
+        "query": "Show full movie details for the ID 1296.",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
             "parameters": {
-                "append_to_response": "Append requests within the same namespace to the response."
+                "append_to_response": null
             }
         }
     },
     {
-        "query": "Provide all the specifics for the movie identified by ID 4628.",
+        "query": "Please provide the comprehensive details for the movie with ID 5329.",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
             "parameters": {
-                "append_to_response": "Append requests within the same namespace to the response."
+                "append_to_response": null
             }
         }
     },
     {
-        "query": "What images are available for season 3 of the TV series with id 456?",
+        "query": "What images are available for season 3 of 'Stranger Things'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1288,7 +1288,7 @@
         }
     },
     {
-        "query": "Can you show me the images for season 2 of the TV show identified by 789?",
+        "query": "Show me pictures from season 2 of 'The Crown'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1296,7 +1296,7 @@
         }
     },
     {
-        "query": "Display photos from season 1 of the TV series with the ID 123.",
+        "query": "Can I see the promotional photos for season 5 of 'Breaking Bad'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1304,7 +1304,7 @@
         }
     },
     {
-        "query": "Fetch all the images for season 4 of the television show with ID 234.",
+        "query": "Display the stills from season 1 of 'Friends'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1312,7 +1312,7 @@
         }
     },
     {
-        "query": "Load pictures from season 5 for the TV series ID 345.",
+        "query": "Retrieve all images from season 4 of 'Game of Thrones'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1320,7 +1320,7 @@
         }
     },
     {
-        "query": "What images are available for a specific film production company?",
+        "query": "Which images are available for this production company?",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1328,7 +1328,7 @@
         }
     },
     {
-        "query": "Can you show me the logo images of a particular movie company?",
+        "query": "Show me logos and images of a specific movie company.",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1336,7 +1336,7 @@
         }
     },
     {
-        "query": "How can I find gallery images for a certain film company?",
+        "query": "Can I see the visual assets for a film production studio?",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1344,7 +1344,7 @@
         }
     },
     {
-        "query": "Where can I get image assets related to a movie production company?",
+        "query": "What are the images linked with this movie company?",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1352,7 +1352,7 @@
         }
     },
     {
-        "query": "Fetch images associated with a specific cinema production firm.",
+        "query": "Display images and logos for a cinema company.",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1360,107 +1360,107 @@
         }
     },
     {
-        "query": "What are the latest reviews for the TV show with ID 1234?",
+        "query": "What are the user reviews for The Crown TV series?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you show me user reviews for the series identified by ID 5678?",
+        "query": "Can I see the reviews for Season 3 of Stranger Things?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Find all the reviews for TV series ID 9012.",
+        "query": "Show me the latest reviews for the Game of Thrones series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "How are people reacting to the TV show with ID 3456? Get the reviews.",
+        "query": "How do viewers rate the Friends TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Fetch viewer feedback on the television series with ID 7890.",
+        "query": "Fetch reviews for the Breaking Bad series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are some TV shows similar to 'Stranger Things'?",
+        "query": "What TV shows are similar to 'Stranger Things'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you suggest TV series similar to 'The Crown'?",
+        "query": "Can you recommend shows like 'Game of Thrones'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What TV shows are like 'Game of Thrones'?",
+        "query": "Find TV series similar to 'Breaking Bad'",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Give me a list of shows similar to 'Breaking Bad'.",
+        "query": "What are some shows similar to 'Friends'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Find TV series similar to 'Friends'.",
+        "query": "List TV shows like 'The Office'",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What is the detailed information for network ID 1012?",
+        "query": "What are the details for network ID 1234?",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1468,7 +1468,7 @@
         }
     },
     {
-        "query": "Can you find details about the network with ID 204?",
+        "query": "Can I get information on the network with ID 5678?",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1476,7 +1476,7 @@
         }
     },
     {
-        "query": "Show me the complete profile for network ID 320.",
+        "query": "Please provide the details of the network identified by ID 300.",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1484,7 +1484,7 @@
         }
     },
     {
-        "query": "Provide the full details for the network identified by ID 780.",
+        "query": "Show me the info for the network with ID 999.",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1492,7 +1492,7 @@
         }
     },
     {
-        "query": "I need the entire set of details for the network with ID 950.",
+        "query": "Could you fetch the details for network ID 100?",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1500,57 +1500,57 @@
         }
     },
     {
-        "query": "What TV shows are recommended based on Game of Thrones?",
+        "query": "What are some recommended TV shows similar to this one?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you suggest similar series to Stranger Things?",
+        "query": "Can you suggest any TV series related to this one for me to watch next?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Which series might I like if I enjoy Breaking Bad?",
+        "query": "What are the top recommended shows like this on TV right now?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Find TV series recommendations related to The Witcher.",
+        "query": "Show me TV series recommendations based on this one.",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me similar TV shows to Friends.",
+        "query": "List some TV shows that viewers also liked if they enjoyed this one.",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are some images from season 3 episode 7 of 'The Witcher'?",
+        "query": "What images are available for season 2, episode 5 of 'The Witcher'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1558,7 +1558,7 @@
         }
     },
     {
-        "query": "Can you display episode photos for season 5 episode 2 of 'Breaking Bad'?",
+        "query": "Can you show me episode 10, season 4 photos from 'Friends'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1566,7 +1566,7 @@
         }
     },
     {
-        "query": "Show pictures from episode 9 of season 1 in 'Stranger Things'.",
+        "query": "I need pictures from season 3, episode 7 of 'Breaking Bad'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1574,7 +1574,7 @@
         }
     },
     {
-        "query": "Get episode stills for season 2 episode 4 of 'Game of Thrones'.",
+        "query": "Display images for episode 1 of season 1 from 'Game of Thrones'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1582,7 +1582,7 @@
         }
     },
     {
-        "query": "Retrieve image gallery for season 8 episode 3 of 'Friends'.",
+        "query": "Find images from episode 3, season 5 of 'Stranger Things'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1590,57 +1590,57 @@
         }
     },
     {
-        "query": "What are the current popular movies?",
+        "query": "What are the top trending movies right now?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Can you list the trendy movies now?",
+        "query": "Show me a list of popular movies currently.",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Which films are trending in popularity today?",
+        "query": "Can you list the most watched movies this week?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Show me the latest popular movie list.",
+        "query": "Which movies are people watching the most these days?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "What are the top movies being watched right now?",
+        "query": "Find the current popular movies for me.",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
@@ -1650,52 +1650,52 @@
             "endpoint": "/tv/airing_today",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Which series are on TV right now?",
+        "query": "List of television series broadcasting today.",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you list today's television broadcasts?",
+        "query": "Which TV series can I watch today?",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are today's TV schedules?",
+        "query": "Show me the TV shows airing on this day.",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me the TV programs airing today.",
+        "query": "Find today's airing TV programs.",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are the keywords associated with a specific TV show ID?",
+        "query": "What are the keywords associated with this TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1703,7 +1703,7 @@
         }
     },
     {
-        "query": "Can you provide the keywords for a TV show using its ID?",
+        "query": "Can you list the keywords for a specific TV series?",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1711,7 +1711,7 @@
         }
     },
     {
-        "query": "List all keywords for a given TV show by its ID.",
+        "query": "What tags are linked to this television show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1719,7 +1719,7 @@
         }
     },
     {
-        "query": "How do I find the keywords linked to a TV series ID?",
+        "query": "Show me the keywords related to this TV series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1727,7 +1727,7 @@
         }
     },
     {
-        "query": "Show me the keywords related to a particular TV show ID.",
+        "query": "Find the keywords for this TV program.",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1735,362 +1735,362 @@
         }
     },
     {
-        "query": "Which actors are named Chris?",
+        "query": "Who are popular actors from Hollywood in 2023?",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null
             }
         }
     },
     {
-        "query": "Find information on actresses with the last name Smith",
+        "query": "Can you find information about Scarlett Johansson?",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null
             }
         }
     },
     {
-        "query": "Search for directors by the name Steven",
+        "query": "Look up British directors active in the last five years.",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null
             }
         }
     },
     {
-        "query": "List all Hollywood personalities named Emma",
+        "query": "How many awards has Leonardo DiCaprio won?",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null
             }
         }
     },
     {
-        "query": "Who are the producers with the surname Johnson?",
+        "query": "Search for new upcoming actresses in 2022.",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query.",
-                "include_adult": "Choose whether to inlcude adult (pornography) content in the results.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "query": null,
+                "page": 1,
+                "include_adult": false,
+                "region": null
             }
         }
     },
     {
-        "query": "What companies have 'Disney' in their name?",
+        "query": "What are some details about the production company Warner Bros?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Search for film production companies starting with 'Paramount'",
+        "query": "How can I find information on film companies based in Japan?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Find companies related to 'Warner Bros'",
+        "query": "Can I search for movie studios with 'Disney' in their name?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me movie companies with 'Fox' in their name",
+        "query": "Show me a list of movie production companies that started in the 2020s.",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Look up film distributors named 'Sony'",
+        "query": "Is there a way to look up details about independent film producers in Canada?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "What are the latest TV shows recommended for me?",
+        "query": "What new TV shows can I discover?",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
             "parameters": {
-                "sort_by": "Choose from one of the many available sort options.",
-                "air_date.gte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.",
-                "air_date.lte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.",
-                "first_air_date.gte": "Filter and only include TV shows that have a original air date that is greater or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date.lte": "Filter and only include TV shows that have a original air date that is less than or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date_year": "Filter and only include TV shows that have a original air date year that equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "page": "Specify the page of results to query.",
-                "timezone": "Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_count.gte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "with_networks": "Comma separated value of network ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_runtime.gte": "Filter and only include TV shows with an episode runtime that is greater than or equal to a value.",
-                "with_runtime.lte": "Filter and only include TV shows with an episode runtime that is less than or equal to a value.",
-                "include_null_first_air_dates": "Use this filter to include TV shows that don't have an air date while using any of the \"first_air_date\" filters.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "screened_theatrically": "Filter results to include items that have been screened theatrically.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes TV shows that have one of the ID's added as a keyword.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "with_status": "Filter TV shows by their status.\n\nReturning Series: 0\nPlanned: 1\nIn Production: 2\nEnded: 3\nCancelled: 4\nPilot: 5",
-                "with_type": "Filter TV shows by their type.\n\nDocumentary: 0\nNews: 1\nMiniseries: 2\nReality: 3\nScripted: 4\nTalk Show: 5\nVideo: 6",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "sort_by": "popularity.desc",
+                "air_date.gte": null,
+                "air_date.lte": null,
+                "first_air_date.gte": null,
+                "first_air_date.lte": null,
+                "first_air_date_year": null,
+                "page": 1,
+                "timezone": "America/New_York",
+                "vote_average.gte": null,
+                "vote_count.gte": null,
+                "with_genres": null,
+                "with_networks": null,
+                "without_genres": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "include_null_first_air_dates": false,
+                "with_original_language": null,
+                "without_keywords": null,
+                "screened_theatrically": null,
+                "with_companies": null,
+                "with_keywords": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "with_status": 0,
+                "with_type": 0,
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Find trending TV series this month.",
+        "query": "Show me trending TV series this season.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
             "parameters": {
-                "sort_by": "Choose from one of the many available sort options.",
-                "air_date.gte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.",
-                "air_date.lte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.",
-                "first_air_date.gte": "Filter and only include TV shows that have a original air date that is greater or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date.lte": "Filter and only include TV shows that have a original air date that is less than or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date_year": "Filter and only include TV shows that have a original air date year that equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "page": "Specify the page of results to query.",
-                "timezone": "Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_count.gte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "with_networks": "Comma separated value of network ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_runtime.gte": "Filter and only include TV shows with an episode runtime that is greater than or equal to a value.",
-                "with_runtime.lte": "Filter and only include TV shows with an episode runtime that is less than or equal to a value.",
-                "include_null_first_air_dates": "Use this filter to include TV shows that don't have an air date while using any of the \"first_air_date\" filters.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "screened_theatrically": "Filter results to include items that have been screened theatrically.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes TV shows that have one of the ID's added as a keyword.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "with_status": "Filter TV shows by their status.\n\nReturning Series: 0\nPlanned: 1\nIn Production: 2\nEnded: 3\nCancelled: 4\nPilot: 5",
-                "with_type": "Filter TV shows by their type.\n\nDocumentary: 0\nNews: 1\nMiniseries: 2\nReality: 3\nScripted: 4\nTalk Show: 5\nVideo: 6",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "sort_by": "popularity.desc",
+                "air_date.gte": null,
+                "air_date.lte": null,
+                "first_air_date.gte": null,
+                "first_air_date.lte": null,
+                "first_air_date_year": null,
+                "page": 1,
+                "timezone": "America/New_York",
+                "vote_average.gte": null,
+                "vote_count.gte": null,
+                "with_genres": null,
+                "with_networks": null,
+                "without_genres": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "include_null_first_air_dates": false,
+                "with_original_language": null,
+                "without_keywords": null,
+                "screened_theatrically": null,
+                "with_companies": null,
+                "with_keywords": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "with_status": 0,
+                "with_type": 0,
+                "without_companies": null
             }
         }
     },
     {
-        "query": "List newly released TV shows on streaming.",
+        "query": "Find TV shows that match my favorite genres.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
             "parameters": {
-                "sort_by": "Choose from one of the many available sort options.",
-                "air_date.gte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.",
-                "air_date.lte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.",
-                "first_air_date.gte": "Filter and only include TV shows that have a original air date that is greater or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date.lte": "Filter and only include TV shows that have a original air date that is less than or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date_year": "Filter and only include TV shows that have a original air date year that equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "page": "Specify the page of results to query.",
-                "timezone": "Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_count.gte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "with_networks": "Comma separated value of network ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_runtime.gte": "Filter and only include TV shows with an episode runtime that is greater than or equal to a value.",
-                "with_runtime.lte": "Filter and only include TV shows with an episode runtime that is less than or equal to a value.",
-                "include_null_first_air_dates": "Use this filter to include TV shows that don't have an air date while using any of the \"first_air_date\" filters.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "screened_theatrically": "Filter results to include items that have been screened theatrically.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes TV shows that have one of the ID's added as a keyword.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "with_status": "Filter TV shows by their status.\n\nReturning Series: 0\nPlanned: 1\nIn Production: 2\nEnded: 3\nCancelled: 4\nPilot: 5",
-                "with_type": "Filter TV shows by their type.\n\nDocumentary: 0\nNews: 1\nMiniseries: 2\nReality: 3\nScripted: 4\nTalk Show: 5\nVideo: 6",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "sort_by": "popularity.desc",
+                "air_date.gte": null,
+                "air_date.lte": null,
+                "first_air_date.gte": null,
+                "first_air_date.lte": null,
+                "first_air_date_year": null,
+                "page": 1,
+                "timezone": "America/New_York",
+                "vote_average.gte": null,
+                "vote_count.gte": null,
+                "with_genres": null,
+                "with_networks": null,
+                "without_genres": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "include_null_first_air_dates": false,
+                "with_original_language": null,
+                "without_keywords": null,
+                "screened_theatrically": null,
+                "with_companies": null,
+                "with_keywords": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "with_status": 0,
+                "with_type": 0,
+                "without_companies": null
             }
         }
     },
     {
-        "query": "What are the top-rated TV series currently?",
+        "query": "Explore upcoming television series.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
             "parameters": {
-                "sort_by": "Choose from one of the many available sort options.",
-                "air_date.gte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.",
-                "air_date.lte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.",
-                "first_air_date.gte": "Filter and only include TV shows that have a original air date that is greater or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date.lte": "Filter and only include TV shows that have a original air date that is less than or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date_year": "Filter and only include TV shows that have a original air date year that equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "page": "Specify the page of results to query.",
-                "timezone": "Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_count.gte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "with_networks": "Comma separated value of network ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_runtime.gte": "Filter and only include TV shows with an episode runtime that is greater than or equal to a value.",
-                "with_runtime.lte": "Filter and only include TV shows with an episode runtime that is less than or equal to a value.",
-                "include_null_first_air_dates": "Use this filter to include TV shows that don't have an air date while using any of the \"first_air_date\" filters.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "screened_theatrically": "Filter results to include items that have been screened theatrically.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes TV shows that have one of the ID's added as a keyword.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "with_status": "Filter TV shows by their status.\n\nReturning Series: 0\nPlanned: 1\nIn Production: 2\nEnded: 3\nCancelled: 4\nPilot: 5",
-                "with_type": "Filter TV shows by their type.\n\nDocumentary: 0\nNews: 1\nMiniseries: 2\nReality: 3\nScripted: 4\nTalk Show: 5\nVideo: 6",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "sort_by": "popularity.desc",
+                "air_date.gte": null,
+                "air_date.lte": null,
+                "first_air_date.gte": null,
+                "first_air_date.lte": null,
+                "first_air_date_year": null,
+                "page": 1,
+                "timezone": "America/New_York",
+                "vote_average.gte": null,
+                "vote_count.gte": null,
+                "with_genres": null,
+                "with_networks": null,
+                "without_genres": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "include_null_first_air_dates": false,
+                "with_original_language": null,
+                "without_keywords": null,
+                "screened_theatrically": null,
+                "with_companies": null,
+                "with_keywords": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "with_status": 0,
+                "with_type": 0,
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Discover new TV shows by genre.",
+        "query": "Discover top-rated TV shows currently airing.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
             "parameters": {
-                "sort_by": "Choose from one of the many available sort options.",
-                "air_date.gte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.",
-                "air_date.lte": "Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.",
-                "first_air_date.gte": "Filter and only include TV shows that have a original air date that is greater or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date.lte": "Filter and only include TV shows that have a original air date that is less than or equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "first_air_date_year": "Filter and only include TV shows that have a original air date year that equal to the specified value. Can be used in conjunction with the \"include_null_first_air_dates\" filter if you want to include items with no air date.",
-                "page": "Specify the page of results to query.",
-                "timezone": "Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.",
-                "vote_average.gte": "Filter and only include movies that have a rating that is greater or equal to the specified value.",
-                "vote_count.gte": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
-                "with_genres": "Comma separated value of genre ids that you want to include in the results.",
-                "with_networks": "Comma separated value of network ids that you want to include in the results.",
-                "without_genres": "Comma separated value of genre ids that you want to exclude from the results.",
-                "with_runtime.gte": "Filter and only include TV shows with an episode runtime that is greater than or equal to a value.",
-                "with_runtime.lte": "Filter and only include TV shows with an episode runtime that is less than or equal to a value.",
-                "include_null_first_air_dates": "Use this filter to include TV shows that don't have an air date while using any of the \"first_air_date\" filters.",
-                "with_original_language": "Specify an ISO 639-1 string to filter results by their original language value.",
-                "without_keywords": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
-                "screened_theatrically": "Filter results to include items that have been screened theatrically.",
-                "with_companies": "A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.",
-                "with_keywords": "A comma separated list of keyword ID's. Only includes TV shows that have one of the ID's added as a keyword.",
-                "with_watch_providers": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
-                "watch_region": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
-                "with_watch_monetization_types": "In combination with `watch_region`, you can filter by monetization type.",
-                "with_status": "Filter TV shows by their status.\n\nReturning Series: 0\nPlanned: 1\nIn Production: 2\nEnded: 3\nCancelled: 4\nPilot: 5",
-                "with_type": "Filter TV shows by their type.\n\nDocumentary: 0\nNews: 1\nMiniseries: 2\nReality: 3\nScripted: 4\nTalk Show: 5\nVideo: 6",
-                "without_companies": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported."
+                "sort_by": "popularity.desc",
+                "air_date.gte": null,
+                "air_date.lte": null,
+                "first_air_date.gte": null,
+                "first_air_date.lte": null,
+                "first_air_date_year": null,
+                "page": 1,
+                "timezone": "America/New_York",
+                "vote_average.gte": null,
+                "vote_count.gte": null,
+                "with_genres": null,
+                "with_networks": null,
+                "without_genres": null,
+                "with_runtime.gte": null,
+                "with_runtime.lte": null,
+                "include_null_first_air_dates": false,
+                "with_original_language": null,
+                "without_keywords": null,
+                "screened_theatrically": null,
+                "with_companies": null,
+                "with_keywords": null,
+                "with_watch_providers": null,
+                "watch_region": null,
+                "with_watch_monetization_types": "flatrate",
+                "with_status": 0,
+                "with_type": 0,
+                "without_companies": null
             }
         }
     },
     {
-        "query": "Which movies are currently the highest rated?",
+        "query": "What are the top-rated movies all time on TMDB?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Can you show me the top rated movies of this year?",
+        "query": "Can I see the best movies ever according to TMDB ratings?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "What are the best rated films available now?",
+        "query": "Show me the highest rated movies on The Movie Database.",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "Show top rated movies on the charts today.",
+        "query": "List all-time top-rated movies on TMDB.",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "List the most highly rated movies recently.",
+        "query": "What movies have the highest ratings on TMDB?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query.",
-                "region": "Specify a ISO 3166-1 code to filter release dates. Must be uppercase."
+                "page": 1,
+                "region": null
             }
         }
     },
     {
-        "query": "What is the most recently released movie?",
+        "query": "What is the latest movie released?",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -2098,7 +2098,7 @@
         }
     },
     {
-        "query": "Show me the latest movie details.",
+        "query": "Can you find the most recent movie added?",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -2106,7 +2106,7 @@
         }
     },
     {
-        "query": "Can you find the newest movie added to the database?",
+        "query": "Show me the newest movie available.",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -2114,7 +2114,7 @@
         }
     },
     {
-        "query": "What's the latest movie available now?",
+        "query": "Which movie was released most recently?",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -2122,7 +2122,7 @@
         }
     },
     {
-        "query": "Fetch the most recent movie information.",
+        "query": "Tell me about the latest movie addition.",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -2130,57 +2130,57 @@
         }
     },
     {
-        "query": "What are the top-rated TV shows right now?",
+        "query": "What are the highest rated TV shows right now?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you list the highest-rated television series?",
+        "query": "Can you list the top-rated TV series currently?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me the best TV series of all time based on ratings.",
+        "query": "Which television shows have the best ratings currently?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Which TV shows have the highest ratings currently?",
+        "query": "Show me the top rated TV shows on air.",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Find the top-rated TV series available.",
+        "query": "What TV shows are currently rated the highest?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What's trending in movies this week?",
+        "query": "What is currently trending in movies this week?",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -2188,7 +2188,7 @@
         }
     },
     {
-        "query": "Show me the top trending TV series of today",
+        "query": "Can you show me popular TV shows from today?",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -2196,7 +2196,7 @@
         }
     },
     {
-        "query": "Which documentaries are popular this month?",
+        "query": "Which actors are trending this month?",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -2204,7 +2204,7 @@
         }
     },
     {
-        "query": "List the trending people in Hollywood this week",
+        "query": "List the top trending movies and shows of today.",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -2212,7 +2212,7 @@
         }
     },
     {
-        "query": "Can you display the trending movies and TV shows from the past day?",
+        "query": "Find out the trending media this week.",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -2228,7 +2228,7 @@
         }
     },
     {
-        "query": "Can you show me a list of all movie genres?",
+        "query": "Can you list all movie genres?",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2236,7 +2236,7 @@
         }
     },
     {
-        "query": "What types of genres can I find in movies now?",
+        "query": "Show me the different types of movie genres.",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2244,7 +2244,7 @@
         }
     },
     {
-        "query": "List all the movie genres that are currently recognized.",
+        "query": "What types of genres can movies have?",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2252,7 +2252,7 @@
         }
     },
     {
-        "query": "Provide a detailed list of genres for movies.",
+        "query": "Give me a rundown of available movie genres.",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2260,7 +2260,7 @@
         }
     },
     {
-        "query": "What are the details of season 3 for the TV show with ID 456?",
+        "query": "What are the details of season 2 of the TV show with ID 12345?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2268,7 +2268,7 @@
         }
     },
     {
-        "query": "Can you fetch the information for season 1 of the TV series identified by ID 789?",
+        "query": "Show me information for season 5 of the television series with ID 67890.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2276,7 +2276,7 @@
         }
     },
     {
-        "query": "Show me the details for season 2 of the television series with the identification number 123.",
+        "query": "Can I get the overview and cast details for season 3 of the TV series designated by ID 13579?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2284,7 +2284,7 @@
         }
     },
     {
-        "query": "I need information on season 4 for the TV show with ID 234, can you retrieve it?",
+        "query": "Provide the episode list and release dates for season 4 of the TV show with ID 24680.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2292,7 +2292,7 @@
         }
     },
     {
-        "query": "Could you provide the specifics of season 5 for the TV series with ID 345?",
+        "query": "Fetch the detailed information for season 1 of the TV show having ID 11223.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2300,7 +2300,7 @@
         }
     },
     {
-        "query": "What are the details of the movie collection with this ID?",
+        "query": "What are the details of the movie collection with ID 1234?",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2308,7 +2308,7 @@
         }
     },
     {
-        "query": "Can you provide information on the movie collection identified by this ID?",
+        "query": "Can you show me information about the film collection whose ID is 5678?",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2316,7 +2316,7 @@
         }
     },
     {
-        "query": "Show me the specifics for the movie collection with this specific ID.",
+        "query": "I need details for the movie series with collection ID 91011.",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2324,7 +2324,7 @@
         }
     },
     {
-        "query": "Retrieve the details for this movie collection ID, please.",
+        "query": "Please retrieve data for the film collection identified by ID 1213.",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2332,7 +2332,7 @@
         }
     },
     {
-        "query": "Could you fetch the full details of the movie collection corresponding to this ID?",
+        "query": "Access details of the movie anthology with collection ID 1415.",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2340,7 +2340,7 @@
         }
     },
     {
-        "query": "What images are available for this actor?",
+        "query": "What images are available for actor with ID 7624?",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2348,7 +2348,7 @@
         }
     },
     {
-        "query": "Can you display photos from this actress's career?",
+        "query": "Can I see photos related to the person identified by ID 134?",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2356,7 +2356,7 @@
         }
     },
     {
-        "query": "Show me all the pictures associated with this film director.",
+        "query": "Are there any pictures linked to this director’s profile with ID 3201?",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2364,7 +2364,7 @@
         }
     },
     {
-        "query": "Find all images related to this movie producer.",
+        "query": "Show all the images stored under the actress's ID 10562.",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2372,7 +2372,7 @@
         }
     },
     {
-        "query": "Retrieve photographs for this screenwriter from the database.",
+        "query": "Fetch the gallery pictures of the celebrity with ID 9503.",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2380,7 +2380,7 @@
         }
     },
     {
-        "query": "What are the full details of the TV show with ID 12345?",
+        "query": "What are the details of the TV show with ID 1234?",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2388,7 +2388,7 @@
         }
     },
     {
-        "query": "Can you fetch the comprehensive information for the series identified by ID 67890?",
+        "query": "Can you fetch the information for the television series identified by the ID 5678?",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2396,7 +2396,7 @@
         }
     },
     {
-        "query": "I need complete details about the television program with ID 101112.",
+        "query": "Show me the full details for the TV show that has an ID of 91011.",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2404,7 +2404,7 @@
         }
     },
     {
-        "query": "Show me everything about the TV series that has the ID 131415.",
+        "query": "Retrieve the comprehensive info for the TV series with the ID 1213.",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2412,7 +2412,7 @@
         }
     },
     {
-        "query": "Please provide all the specifics for the TV show corresponding to ID 161718.",
+        "query": "I need the complete profile of the TV show corresponding to ID 1415.",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2420,57 +2420,57 @@
         }
     },
     {
-        "query": "What are the current popular celebrities?",
+        "query": "Which actors are currently popular?",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Could you list the trending actors right now?",
+        "query": "Can you list the current popular personalities in film?",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Who are the most famous people at the moment?",
+        "query": "Show me the most popular celebrities now.",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me the list of popular figures in the entertainment industry currently.",
+        "query": "Who are the trending people in the entertainment industry?",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Which celebrities are in the spotlight currently?",
+        "query": "Find out which actors are popular right now.",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are the latest pictures in the Spider-Man movie collection?",
+        "query": "What are the images available in the collection with ID 1234?",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2478,7 +2478,7 @@
         }
     },
     {
-        "query": "Can you display all images associated with the James Bond film series?",
+        "query": "Can you fetch the photos for the collection identified by ID 5678?",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2486,7 +2486,7 @@
         }
     },
     {
-        "query": "Show me the posters and images from the Star Wars saga collection.",
+        "query": "Show me all the pictures from the collection ID 91011.",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2494,7 +2494,7 @@
         }
     },
     {
-        "query": "Find images for the Harry Potter movie collection.",
+        "query": "How can I view the images from the movie collection with ID 1213?",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2502,7 +2502,7 @@
         }
     },
     {
-        "query": "Return gallery images from The Lord of the Rings collection.",
+        "query": "Retrieve images for the specified collection ID 1415.",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2510,7 +2510,7 @@
         }
     },
     {
-        "query": "What are the cast and crew members of a specific TV show?",
+        "query": "Who are the actors in the TV show with ID 1200?",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2518,7 +2518,7 @@
         }
     },
     {
-        "query": "Who are the actors in this TV series?",
+        "query": "Can you find the full cast and crew details for the series identified by ID 2345?",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2526,7 +2526,7 @@
         }
     },
     {
-        "query": "List all the crew involved in the production of a TV show.",
+        "query": "What are the credits for the television show with ID 4567?",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2534,7 +2534,7 @@
         }
     },
     {
-        "query": "Can you show me the full credits for a particular television series?",
+        "query": "List all the members involved in the production of the TV series with ID 5678.",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2542,7 +2542,7 @@
         }
     },
     {
-        "query": "Who worked behind the scenes in making this TV series?",
+        "query": "Show the complete credits for the TV show with ID 6789.",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2550,7 +2550,7 @@
         }
     },
     {
-        "query": "What movies has this actor starred in?",
+        "query": "Which movies has actor with ID 1234 played in?",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2558,7 +2558,7 @@
         }
     },
     {
-        "query": "Can you list the films where this actress played a role?",
+        "query": "What are the film credits for the person with ID 5678?",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2566,7 +2566,7 @@
         }
     },
     {
-        "query": "Show me the cinematic works involving this director.",
+        "query": "Can you list all movies involving person ID 3456?",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2574,7 +2574,7 @@
         }
     },
     {
-        "query": "Which movies feature this producer in the credits?",
+        "query": "Show the acting roles for person with ID 7890.",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2582,7 +2582,7 @@
         }
     },
     {
-        "query": "What are the movie credits for this screenplay writer?",
+        "query": "What films feature the actor with ID 2345?",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2590,112 +2590,112 @@
         }
     },
     {
-        "query": "What are some movie recommendations based on a specific movie ID?",
+        "query": "What movies are similar to Inception?",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you recommend movies similar to a certain title?",
+        "query": "Can you recommend movies like The Godfather?",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What are the top recommended movies similar to one I just watched?",
+        "query": "Which films are recommended based on The Matrix?",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show movies recommended based on a movie ID.",
+        "query": "Recommendations for movies similar to Titanic",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Find movies that are recommended as similar to a particular film.",
+        "query": "Find movies related to Jaws",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What movie collections can I find with the keyword 'adventure'?",
+        "query": "What is the latest collection related to Star Wars?",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you find collections related to romantic films?",
+        "query": "Can you find collections that include Harry Potter movies?",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "How do I search for film collections featuring space themes?",
+        "query": "How many collections are there featuring superhero themes?",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Search for collections that include James Bond movies.",
+        "query": "Show me collections that have romantic comedy films.",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me movie collections that focus on high school comedies.",
+        "query": "List collections that include the James Bond series.",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
             "parameters": {
-                "query": "Pass a text query to search. This value should be URI encoded.",
-                "page": "Specify which page to query."
+                "query": null,
+                "page": 1
             }
         }
     },
     {
-        "query": "What actors are in the movie with ID 123?",
+        "query": "Who starred in the movie with ID 550?",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2703,7 +2703,7 @@
         }
     },
     {
-        "query": "Who was the director of the movie ID 456?",
+        "query": "Can you list the cast and crew for movie ID 120?",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2711,7 +2711,7 @@
         }
     },
     {
-        "query": "Get the full cast and crew list for the movie with ID 789.",
+        "query": "Show me the credits for the movie with ID 789.",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2719,7 +2719,7 @@
         }
     },
     {
-        "query": "Who composed the music for the movie with ID 101?",
+        "query": "What actors and production team worked on movie ID 345?",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2727,7 +2727,7 @@
         }
     },
     {
-        "query": "List all the producers for the movie with ID 102.",
+        "query": "Give me the full list of credits for movie ID 1010.",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2735,52 +2735,52 @@
         }
     },
     {
-        "query": "What are some movies similar to Inception?",
+        "query": "What movies are similar to Inception?",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Can you suggest movies like The Godfather?",
+        "query": "Can you find movies like Titanic?",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Find movies similar to Titanic.",
+        "query": "Show movies related to The Matrix.",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "What movies are similar to Jurassic Park?",
+        "query": "Suggest films similar to Jurassic Park.",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     },
     {
-        "query": "Show me movies like The Matrix.",
+        "query": "Find movies akin to Avatar.",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
             "parameters": {
-                "page": "Specify which page to query."
+                "page": 1
             }
         }
     }
