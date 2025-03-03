@@ -1,0 +1,3328 @@
+2025-03-03 22:57:24,056 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-03 22:57:24,201 - INFO - 🔍 **ChromaDB Stored Mappings:**
+
+2025-03-03 22:57:24,201 - INFO - 
+🆔 **ID:** 0
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,201 - INFO - 
+🆔 **ID:** 1
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 10
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 100
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/now_playing",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 101
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/now_playing",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 102
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/now_playing",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 103
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/now_playing",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 104
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/now_playing",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,202 - INFO - 
+🆔 **ID:** 105
+📌 **Stored Mapping:**
+{
+  "endpoint": "/review/{review_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 106
+📌 **Stored Mapping:**
+{
+  "endpoint": "/review/{review_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 107
+📌 **Stored Mapping:**
+{
+  "endpoint": "/review/{review_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 108
+📌 **Stored Mapping:**
+{
+  "endpoint": "/review/{review_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 109
+📌 **Stored Mapping:**
+{
+  "endpoint": "/review/{review_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 11
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 110
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/on_the_air",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,203 - INFO - 
+🆔 **ID:** 111
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/on_the_air",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 112
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/on_the_air",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 113
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/on_the_air",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 114
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/on_the_air",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 115
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}",
+  "method": "GET",
+  "parameters": {
+    "append_to_response": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 116
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}",
+  "method": "GET",
+  "parameters": {
+    "append_to_response": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 117
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}",
+  "method": "GET",
+  "parameters": {
+    "append_to_response": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 118
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}",
+  "method": "GET",
+  "parameters": {
+    "append_to_response": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 119
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}",
+  "method": "GET",
+  "parameters": {
+    "append_to_response": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,204 - INFO - 
+🆔 **ID:** 12
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 120
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 121
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 122
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 123
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 124
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 125
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 126
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 127
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 128
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,205 - INFO - 
+🆔 **ID:** 129
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,206 - INFO - 
+🆔 **ID:** 13
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,206 - INFO - 
+🆔 **ID:** 130
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,206 - INFO - 
+🆔 **ID:** 131
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,206 - INFO - 
+🆔 **ID:** 132
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,206 - INFO - 
+🆔 **ID:** 133
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 134
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 135
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 136
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 137
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 138
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 139
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 14
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,209 - INFO - 
+🆔 **ID:** 140
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 141
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 142
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 143
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 144
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 145
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 146
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 147
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 148
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,210 - INFO - 
+🆔 **ID:** 149
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 15
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 150
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 151
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 152
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 153
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 154
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 155
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,211 - INFO - 
+🆔 **ID:** 156
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 157
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 158
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 159
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 16
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 160
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/airing_today",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 161
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/airing_today",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 162
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/airing_today",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 163
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/airing_today",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 164
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/airing_today",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 165
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 166
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 167
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 168
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,212 - INFO - 
+🆔 **ID:** 169
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 17
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 170
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/person",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 171
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/person",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 172
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/person",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 173
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/person",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 174
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/person",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 175
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/company",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 176
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/company",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 177
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/company",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 178
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/company",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,213 - INFO - 
+🆔 **ID:** 179
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/company",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 18
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 180
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/tv",
+  "method": "GET",
+  "parameters": {
+    "sort_by": "popularity.desc",
+    "air_date.gte": null,
+    "air_date.lte": null,
+    "first_air_date.gte": null,
+    "first_air_date.lte": null,
+    "first_air_date_year": null,
+    "page": 1,
+    "timezone": "America/New_York",
+    "vote_average.gte": null,
+    "vote_count.gte": null,
+    "with_genres": null,
+    "with_networks": null,
+    "without_genres": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "include_null_first_air_dates": false,
+    "with_original_language": null,
+    "without_keywords": null,
+    "screened_theatrically": null,
+    "with_companies": null,
+    "with_keywords": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "with_status": 0,
+    "with_type": 0,
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 181
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/tv",
+  "method": "GET",
+  "parameters": {
+    "sort_by": "popularity.desc",
+    "air_date.gte": null,
+    "air_date.lte": null,
+    "first_air_date.gte": null,
+    "first_air_date.lte": null,
+    "first_air_date_year": null,
+    "page": 1,
+    "timezone": "America/New_York",
+    "vote_average.gte": null,
+    "vote_count.gte": null,
+    "with_genres": null,
+    "with_networks": null,
+    "without_genres": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "include_null_first_air_dates": false,
+    "with_original_language": null,
+    "without_keywords": null,
+    "screened_theatrically": null,
+    "with_companies": null,
+    "with_keywords": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "with_status": 0,
+    "with_type": 0,
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 182
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/tv",
+  "method": "GET",
+  "parameters": {
+    "sort_by": "popularity.desc",
+    "air_date.gte": null,
+    "air_date.lte": null,
+    "first_air_date.gte": null,
+    "first_air_date.lte": null,
+    "first_air_date_year": null,
+    "page": 1,
+    "timezone": "America/New_York",
+    "vote_average.gte": null,
+    "vote_count.gte": null,
+    "with_genres": null,
+    "with_networks": null,
+    "without_genres": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "include_null_first_air_dates": false,
+    "with_original_language": null,
+    "without_keywords": null,
+    "screened_theatrically": null,
+    "with_companies": null,
+    "with_keywords": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "with_status": 0,
+    "with_type": 0,
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 183
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/tv",
+  "method": "GET",
+  "parameters": {
+    "sort_by": "popularity.desc",
+    "air_date.gte": null,
+    "air_date.lte": null,
+    "first_air_date.gte": null,
+    "first_air_date.lte": null,
+    "first_air_date_year": null,
+    "page": 1,
+    "timezone": "America/New_York",
+    "vote_average.gte": null,
+    "vote_count.gte": null,
+    "with_genres": null,
+    "with_networks": null,
+    "without_genres": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "include_null_first_air_dates": false,
+    "with_original_language": null,
+    "without_keywords": null,
+    "screened_theatrically": null,
+    "with_companies": null,
+    "with_keywords": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "with_status": 0,
+    "with_type": 0,
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 184
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/tv",
+  "method": "GET",
+  "parameters": {
+    "sort_by": "popularity.desc",
+    "air_date.gte": null,
+    "air_date.lte": null,
+    "first_air_date.gte": null,
+    "first_air_date.lte": null,
+    "first_air_date_year": null,
+    "page": 1,
+    "timezone": "America/New_York",
+    "vote_average.gte": null,
+    "vote_count.gte": null,
+    "with_genres": null,
+    "with_networks": null,
+    "without_genres": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "include_null_first_air_dates": false,
+    "with_original_language": null,
+    "without_keywords": null,
+    "screened_theatrically": null,
+    "with_companies": null,
+    "with_keywords": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "with_status": 0,
+    "with_type": 0,
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 185
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 186
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 187
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 188
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,214 - INFO - 
+🆔 **ID:** 189
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 19
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/reviews",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 190
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 191
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 192
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 193
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 194
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 195
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 196
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 197
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 198
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 199
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/top_rated",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,215 - INFO - 
+🆔 **ID:** 2
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 20
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/release_dates",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 200
+📌 **Stored Mapping:**
+{
+  "endpoint": "/trending/{media_type}/{time_window}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 201
+📌 **Stored Mapping:**
+{
+  "endpoint": "/trending/{media_type}/{time_window}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 202
+📌 **Stored Mapping:**
+{
+  "endpoint": "/trending/{media_type}/{time_window}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 203
+📌 **Stored Mapping:**
+{
+  "endpoint": "/trending/{media_type}/{time_window}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 204
+📌 **Stored Mapping:**
+{
+  "endpoint": "/trending/{media_type}/{time_window}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 205
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/movie/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 206
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/movie/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 207
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/movie/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 208
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/movie/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 209
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/movie/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 21
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/release_dates",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 210
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 211
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,216 - INFO - 
+🆔 **ID:** 212
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 213
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 214
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 215
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 216
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 217
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 218
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 219
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 22
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/release_dates",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 220
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 221
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 222
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 223
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,217 - INFO - 
+🆔 **ID:** 224
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 225
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 226
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 227
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 228
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 229
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 23
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/release_dates",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 230
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 231
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 232
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 233
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 234
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 235
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 236
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,218 - INFO - 
+🆔 **ID:** 237
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 238
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 239
+📌 **Stored Mapping:**
+{
+  "endpoint": "/collection/{collection_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 24
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/release_dates",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 240
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 241
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 242
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 243
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 244
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 245
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/movie_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 246
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/movie_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 247
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/movie_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 248
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/movie_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,219 - INFO - 
+🆔 **ID:** 249
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/movie_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 25
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 250
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 251
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 252
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 253
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 254
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/recommendations",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 255
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/collection",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 256
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/collection",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 257
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/collection",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 258
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/collection",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 259
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/collection",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 26
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,220 - INFO - 
+🆔 **ID:** 260
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 261
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 262
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 263
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 264
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 265
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 266
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 267
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 268
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 269
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/similar",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 27
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 28
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 29
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 3
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,221 - INFO - 
+🆔 **ID:** 30
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/images",
+  "method": "GET",
+  "parameters": {
+    "include_image_language": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 31
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/images",
+  "method": "GET",
+  "parameters": {
+    "include_image_language": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 32
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/images",
+  "method": "GET",
+  "parameters": {
+    "include_image_language": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 33
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/images",
+  "method": "GET",
+  "parameters": {
+    "include_image_language": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 34
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/images",
+  "method": "GET",
+  "parameters": {
+    "include_image_language": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 35
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/tv",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "query": null,
+    "include_adult": false,
+    "first_air_date_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 36
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/tv",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "query": null,
+    "include_adult": false,
+    "first_air_date_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 37
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/tv",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "query": null,
+    "include_adult": false,
+    "first_air_date_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 38
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/tv",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "query": null,
+    "include_adult": false,
+    "first_air_date_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 39
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/tv",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "query": null,
+    "include_adult": false,
+    "first_air_date_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 4
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/{movie_id}/keywords",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 40
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 41
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 42
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 43
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 44
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 45
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 46
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 47
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,222 - INFO - 
+🆔 **ID:** 48
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 49
+📌 **Stored Mapping:**
+{
+  "endpoint": "/network/{network_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 5
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 50
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/tv/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 51
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/tv/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 52
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/tv/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 53
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/tv/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 54
+📌 **Stored Mapping:**
+{
+  "endpoint": "/genre/tv/list",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 55
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/movie",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null,
+    "year": null,
+    "primary_release_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 56
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/movie",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null,
+    "year": null,
+    "primary_release_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 57
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/movie",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null,
+    "year": null,
+    "primary_release_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 58
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/movie",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null,
+    "year": null,
+    "primary_release_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 59
+📌 **Stored Mapping:**
+{
+  "endpoint": "/search/movie",
+  "method": "GET",
+  "parameters": {
+    "query": null,
+    "page": 1,
+    "include_adult": false,
+    "region": null,
+    "year": null,
+    "primary_release_year": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 6
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 60
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/movie",
+  "method": "GET",
+  "parameters": {
+    "region": null,
+    "sort_by": "popularity.desc",
+    "certification_country": null,
+    "certification": null,
+    "certification.lte": null,
+    "certification.gte": null,
+    "include_adult": false,
+    "include_video": false,
+    "page": 1,
+    "primary_release_year": null,
+    "primary_release_date.gte": null,
+    "primary_release_date.lte": null,
+    "release_date.gte": null,
+    "release_date.lte": null,
+    "with_release_type": null,
+    "year": null,
+    "vote_count.gte": null,
+    "vote_count.lte": null,
+    "vote_average.gte": null,
+    "vote_average.lte": null,
+    "with_cast": null,
+    "with_crew": null,
+    "with_people": null,
+    "with_companies": null,
+    "with_genres": null,
+    "without_genres": null,
+    "with_keywords": null,
+    "without_keywords": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "with_original_language": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 61
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/movie",
+  "method": "GET",
+  "parameters": {
+    "region": null,
+    "sort_by": "popularity.desc",
+    "certification_country": null,
+    "certification": null,
+    "certification.lte": null,
+    "certification.gte": null,
+    "include_adult": false,
+    "include_video": false,
+    "page": 1,
+    "primary_release_year": null,
+    "primary_release_date.gte": null,
+    "primary_release_date.lte": null,
+    "release_date.gte": null,
+    "release_date.lte": null,
+    "with_release_type": null,
+    "year": null,
+    "vote_count.gte": null,
+    "vote_count.lte": null,
+    "vote_average.gte": null,
+    "vote_average.lte": null,
+    "with_cast": null,
+    "with_crew": null,
+    "with_people": null,
+    "with_companies": null,
+    "with_genres": null,
+    "without_genres": null,
+    "with_keywords": null,
+    "without_keywords": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "with_original_language": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 62
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/movie",
+  "method": "GET",
+  "parameters": {
+    "region": null,
+    "sort_by": "popularity.desc",
+    "certification_country": null,
+    "certification": null,
+    "certification.lte": null,
+    "certification.gte": null,
+    "include_adult": false,
+    "include_video": false,
+    "page": 1,
+    "primary_release_year": null,
+    "primary_release_date.gte": null,
+    "primary_release_date.lte": null,
+    "release_date.gte": null,
+    "release_date.lte": null,
+    "with_release_type": null,
+    "year": null,
+    "vote_count.gte": null,
+    "vote_count.lte": null,
+    "vote_average.gte": null,
+    "vote_average.lte": null,
+    "with_cast": null,
+    "with_crew": null,
+    "with_people": null,
+    "with_companies": null,
+    "with_genres": null,
+    "without_genres": null,
+    "with_keywords": null,
+    "without_keywords": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "with_original_language": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,223 - INFO - 
+🆔 **ID:** 63
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/movie",
+  "method": "GET",
+  "parameters": {
+    "region": null,
+    "sort_by": "popularity.desc",
+    "certification_country": null,
+    "certification": null,
+    "certification.lte": null,
+    "certification.gte": null,
+    "include_adult": false,
+    "include_video": false,
+    "page": 1,
+    "primary_release_year": null,
+    "primary_release_date.gte": null,
+    "primary_release_date.lte": null,
+    "release_date.gte": null,
+    "release_date.lte": null,
+    "with_release_type": null,
+    "year": null,
+    "vote_count.gte": null,
+    "vote_count.lte": null,
+    "vote_average.gte": null,
+    "vote_average.lte": null,
+    "with_cast": null,
+    "with_crew": null,
+    "with_people": null,
+    "with_companies": null,
+    "with_genres": null,
+    "without_genres": null,
+    "with_keywords": null,
+    "without_keywords": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "with_original_language": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 64
+📌 **Stored Mapping:**
+{
+  "endpoint": "/discover/movie",
+  "method": "GET",
+  "parameters": {
+    "region": null,
+    "sort_by": "popularity.desc",
+    "certification_country": null,
+    "certification": null,
+    "certification.lte": null,
+    "certification.gte": null,
+    "include_adult": false,
+    "include_video": false,
+    "page": 1,
+    "primary_release_year": null,
+    "primary_release_date.gte": null,
+    "primary_release_date.lte": null,
+    "release_date.gte": null,
+    "release_date.lte": null,
+    "with_release_type": null,
+    "year": null,
+    "vote_count.gte": null,
+    "vote_count.lte": null,
+    "vote_average.gte": null,
+    "vote_average.lte": null,
+    "with_cast": null,
+    "with_crew": null,
+    "with_people": null,
+    "with_companies": null,
+    "with_genres": null,
+    "without_genres": null,
+    "with_keywords": null,
+    "without_keywords": null,
+    "with_runtime.gte": null,
+    "with_runtime.lte": null,
+    "with_original_language": null,
+    "with_watch_providers": null,
+    "watch_region": null,
+    "with_watch_monetization_types": "flatrate",
+    "without_companies": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 65
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/upcoming",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 66
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/upcoming",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 67
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/upcoming",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 68
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/upcoming",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 69
+📌 **Stored Mapping:**
+{
+  "endpoint": "/movie/upcoming",
+  "method": "GET",
+  "parameters": {
+    "page": 1,
+    "region": null
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 7
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 70
+📌 **Stored Mapping:**
+{
+  "endpoint": "/credit/{credit_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 71
+📌 **Stored Mapping:**
+{
+  "endpoint": "/credit/{credit_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 72
+📌 **Stored Mapping:**
+{
+  "endpoint": "/credit/{credit_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 73
+📌 **Stored Mapping:**
+{
+  "endpoint": "/credit/{credit_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 74
+📌 **Stored Mapping:**
+{
+  "endpoint": "/credit/{credit_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 75
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/tv_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 76
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/tv_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 77
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/tv_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 78
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/tv_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 79
+📌 **Stored Mapping:**
+{
+  "endpoint": "/person/{person_id}/tv_credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,224 - INFO - 
+🆔 **ID:** 8
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 80
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 81
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 82
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 83
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 84
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/latest",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 85
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 86
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 87
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 88
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 89
+📌 **Stored Mapping:**
+{
+  "endpoint": "/company/{company_id}",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 9
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/popular",
+  "method": "GET",
+  "parameters": {
+    "page": 1
+  }
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 90
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 91
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 92
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 93
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 94
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/images",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 95
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 96
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 97
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 98
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
+2025-03-03 22:57:24,225 - INFO - 
+🆔 **ID:** 99
+📌 **Stored Mapping:**
+{
+  "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
+  "method": "GET",
+  "parameters": {}
+}
+==================================================
+
