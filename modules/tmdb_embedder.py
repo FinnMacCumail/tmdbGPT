@@ -145,33 +145,57 @@ def generate_semantic_queries(endpoint_path, description):
 
 def embed_tmdb_queries():
     """Embed TMDB queries into ChromaDB with debugging."""
-    query_mappings = load_tmdb_schema()
+    try:
+        query_mappings = load_tmdb_schema()
 
-    if not query_mappings or all(entry["query"] is None or entry["query"] == "" for entry in query_mappings):
-        logger.error("🚨 ERROR: No valid queries found in query_mappings! Fix before embedding.")
-        return
+        if not query_mappings or all(entry["query"] is None or entry["query"] == "" for entry in query_mappings):
+            logger.error("🚨 ERROR: No valid queries found in query_mappings! Fix before embedding.")
+            return
 
-    existing_items = collection.get()
-    stored_ids = existing_items.get("ids", []) if existing_items else []
+        # Fetch existing stored queries from ChromaDB
+        existing_data = collection.get()
+        stored_ids = existing_data.get("ids", []) if existing_data else []
 
-    # Delete old embeddings only if new ones are available
-    if stored_ids:
-        collection.delete(ids=stored_ids)
+        logger.info(f"🔎 Before embedding: {len(stored_ids)} existing items in ChromaDB.")
 
-    queries = [entry["query"] for entry in query_mappings]
-    metadata = [{"solution": json.dumps(entry["solution"])} for entry in query_mappings]
+        # Ensure old embeddings are only deleted if necessary
+        if stored_ids:
+            collection.delete(ids=stored_ids)
+            logger.info(f"⚠️ Deleted {len(stored_ids)} old embeddings before inserting new ones.")
 
-    # ✅ Debugging: Print queries before storing in ChromaDB
-    logger.info("\n📝 Storing the following queries in ChromaDB:")
-    for i, q in enumerate(queries[:10]):  # Print the first 10 queries for verification
-        logger.info(f"   {i+1}. Query: {q}")
+        queries = [entry["query"] if entry["query"] else "MISSING_QUERY" for entry in query_mappings]
+        metadata = [{"solution": json.dumps(entry["solution"])} for entry in query_mappings]
 
-    queries = [q if q is not None else "MISSING_QUERY" for q in queries]  # Prevents storing None values
+        # ✅ Debugging: Print the first 10 queries before storing
+        logger.info("\n📝 Storing the following queries in ChromaDB:")
+        for i, q in enumerate(queries[:10]):
+            logger.info(f"   {i+1}. Query: {q}")
 
-    query_vectors = model.encode(queries).tolist()
-    collection.add(ids=[str(i) for i in range(len(queries))], embeddings=query_vectors, metadatas=metadata)
+        # Convert text queries into vector embeddings
+        query_vectors = model.encode(queries).tolist()
 
-    logger.info(f"✅ {len(queries)} TMDB queries embedded successfully!")
+        # Store in ChromaDB
+        collection.add(
+            ids=[str(i) for i in range(len(queries))],
+            embeddings=query_vectors,
+            metadatas=metadata,
+            documents=queries  # Ensures text is retrievable in searches
+        )
+
+        logger.info(f"✅ {len(queries)} TMDB queries embedded successfully!")
+
+        # Verify data persistence
+        stored_data = collection.get()
+        stored_count = len(stored_data.get("ids", []))
+
+        if stored_count > 0:
+            logger.info(f"✅ ChromaDB After Insert - Total IDs: {stored_count}")
+        else:
+            logger.error("❌ ChromaDB After Insert: No queries found! Possible persistence issue.")
+
+    except Exception as e:
+        logger.error(f"❌ Error embedding TMDB queries: {e}", exc_info=True)
+
 
 if __name__ == "__main__":
     embed_tmdb_queries()
