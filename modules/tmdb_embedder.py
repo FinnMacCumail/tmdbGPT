@@ -41,32 +41,43 @@ def normalize_path(path):
 def extract_parameters_from_list(param_list):
     """
     Extracts actual parameter values instead of descriptions.
-    If a parameter has a default value, it will be used.
-    If it has an enum list, the first option will be chosen.
-    Otherwise, it will be set to None.
+    - Uses default values if available.
+    - Selects the first value from enum options if applicable.
+    - Removes null values for non-required parameters.
+    - Ensures search queries (like /search/person) have a default empty string ("").
     """
     extracted_params = {}
-    
+
     if not param_list:
         return extracted_params  # Return empty if no parameters exist
 
     for param in param_list:
         param_name = param.get("name")
-        param_location = param.get("in")  # e.g., 'query' or 'path'
         schema = param.get("schema", {})
 
-        # Attempt to determine an actual value
+        # Determine an actual value
         if "default" in schema:
-            param_value = schema["default"]  # Use default value if provided
+            param_value = schema["default"]  # Use default value
         elif "enum" in schema and isinstance(schema["enum"], list) and schema["enum"]:
-            param_value = schema["enum"][0]  # Pick the first valid enum option
+            param_value = schema["enum"][0]  # Pick the first valid option
+        elif schema.get("type") == "integer":
+            param_value = 1  # Default integer to 1
+        elif schema.get("type") == "boolean":
+            param_value = False  # Default to False
+        elif param_name == "query":
+            param_value = ""  # ✅ Ensure queries are always initialized with an empty string
         else:
             param_value = None  # No predefined value
 
         extracted_params[param_name] = param_value
 
-    return extracted_params
+    # Remove null values for optional parameters (except "query")
+    extracted_params = {
+        k: v for k, v in extracted_params.items()
+        if v is not None or k == "query"  # ✅ Keep "query" even if it's empty
+    }
 
+    return extracted_params
 
 def load_tmdb_schema():
     """

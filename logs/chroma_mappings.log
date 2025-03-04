@@ -1,7 +1,7 @@
-2025-03-03 23:06:25,572 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
-2025-03-03 23:06:25,705 - INFO - 🔍 **ChromaDB Stored Mappings and Associated Queries:**
+2025-03-03 23:27:56,601 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-03 23:27:56,754 - INFO - 🔍 **ChromaDB Stored Mappings and Associated Queries:**
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,755 - INFO - 
 🆔 **ID:** 0
 📌 **Stored Mapping:**
 {
@@ -9,10 +9,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the main themes for the movie with ID 550?
+📝 **Associated Query:** What are the keywords for the movie with ID 550?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,755 - INFO - 
 🆔 **ID:** 1
 📌 **Stored Mapping:**
 {
@@ -20,10 +20,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show the keywords associated with movie ID 123?
+📝 **Associated Query:** Can you list the keywords associated with movie ID 768?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,755 - INFO - 
 🆔 **ID:** 10
 📌 **Stored Mapping:**
 {
@@ -31,80 +31,75 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the details of this actor by their ID?
+📝 **Associated Query:** What are the complete details of actor with ID 54321?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,755 - INFO - 
 🆔 **ID:** 100
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/now_playing",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** What movies are currently playing in theaters?
+📝 **Associated Query:** Which movies are currently in theaters?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,755 - INFO - 
 🆔 **ID:** 101
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/now_playing",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Show me the list of movies now playing.
+📝 **Associated Query:** Show me the latest movies playing now.
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,755 - INFO - 
 🆔 **ID:** 102
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/now_playing",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Can you find movies that are in theaters right now?
+📝 **Associated Query:** What are the best movies playing in cinemas right now?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 103
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/now_playing",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Which movies are showing in cinemas today?
+📝 **Associated Query:** List current movies showing in theaters.
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 104
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/now_playing",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** List the current films playing in cinemas.
+📝 **Associated Query:** What's now playing at the local cinemas?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 105
 📌 **Stored Mapping:**
 {
@@ -112,10 +107,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the details of review ID R12345?
+📝 **Associated Query:** What details can I find about this specific movie review?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 106
 📌 **Stored Mapping:**
 {
@@ -123,10 +118,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you find the information for review ID R67890?
+📝 **Associated Query:** Can you show me the full content of a review identified by this ID?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 107
 📌 **Stored Mapping:**
 {
@@ -134,10 +129,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the specifics of review ID R23456.
+📝 **Associated Query:** I need to see the author and details of this particular review, can you pull that up?
 ==================================================
 
-2025-03-03 23:06:25,705 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 108
 📌 **Stored Mapping:**
 {
@@ -145,10 +140,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve data for review ID R34567.
+📝 **Associated Query:** What does the review with this ID mention about the movie?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 109
 📌 **Stored Mapping:**
 {
@@ -156,10 +151,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Please provide the details for review ID R45678.
+📝 **Associated Query:** Fetch the detailed view of this review using its unique ID.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 11
 📌 **Stored Mapping:**
 {
@@ -167,10 +162,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you find the profile information for a celebrity using their unique ID?
+📝 **Associated Query:** Can you provide information for actress with ID 98765?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,756 - INFO - 
 🆔 **ID:** 110
 📌 **Stored Mapping:**
 {
@@ -183,7 +178,7 @@
 📝 **Associated Query:** What TV shows are currently broadcasting?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 111
 📌 **Stored Mapping:**
 {
@@ -193,10 +188,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Which series are on air right now?
+📝 **Associated Query:** Show me a list of TV series that are on air right now.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 112
 📌 **Stored Mapping:**
 {
@@ -206,10 +201,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** List of TV shows currently on the air
+📝 **Associated Query:** Which television programs are currently on the air?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 113
 📌 **Stored Mapping:**
 {
@@ -219,10 +214,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you find TV series that are currently broadcasting?
+📝 **Associated Query:** Can you find TV shows that are airing this week?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 114
 📌 **Stored Mapping:**
 {
@@ -232,75 +227,65 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the list of on-air television series.
+📝 **Associated Query:** List current TV series that are being broadcasted.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 115
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}",
   "method": "GET",
-  "parameters": {
-    "append_to_response": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** What are the full details for the movie with ID 2453?
+📝 **Associated Query:** What are the details of the movie with ID 12456?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 116
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}",
   "method": "GET",
-  "parameters": {
-    "append_to_response": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** Can I get all the information about the movie with the ID 8327?
+📝 **Associated Query:** Can you fetch the information for the film numbered 99877?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,757 - INFO - 
 🆔 **ID:** 117
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}",
   "method": "GET",
-  "parameters": {
-    "append_to_response": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** Retrieve the complete details for the movie using its ID 4671.
+📝 **Associated Query:** I need specifics about the movie with ID 30333, please.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 118
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}",
   "method": "GET",
-  "parameters": {
-    "append_to_response": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** Show full movie details for the ID 1296.
+📝 **Associated Query:** Show me the full details for the movie that has the ID 8675309.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 119
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}",
   "method": "GET",
-  "parameters": {
-    "append_to_response": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** Please provide the comprehensive details for the movie with ID 5329.
+📝 **Associated Query:** Could you provide the details for the movie identified by ID 22118?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 12
 📌 **Stored Mapping:**
 {
@@ -308,10 +293,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** How can I access complete bio-data of a movie star through their ID?
+📝 **Associated Query:** Show me the full profile of the director identified by ID 12345.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 120
 📌 **Stored Mapping:**
 {
@@ -319,10 +304,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What images are available for season 3 of 'Stranger Things'?
+📝 **Associated Query:** What images are available for season 2 of the TV show with ID 345?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 121
 📌 **Stored Mapping:**
 {
@@ -330,10 +315,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me pictures from season 2 of 'The Crown'.
+📝 **Associated Query:** Show me pictures from the third season of the series identified by ID 129.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 122
 📌 **Stored Mapping:**
 {
@@ -341,10 +326,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can I see the promotional photos for season 5 of 'Breaking Bad'?
+📝 **Associated Query:** Can I see images from season 5 of the television show with ID 674?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 123
 📌 **Stored Mapping:**
 {
@@ -352,10 +337,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Display the stills from season 1 of 'Friends'.
+📝 **Associated Query:** Display all images for the first season of the TV series using ID 892.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 124
 📌 **Stored Mapping:**
 {
@@ -363,10 +348,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve all images from season 4 of 'Game of Thrones'.
+📝 **Associated Query:** Find all photos from season 4 of the TV show with the ID 310.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,758 - INFO - 
 🆔 **ID:** 125
 📌 **Stored Mapping:**
 {
@@ -374,10 +359,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Which images are available for this production company?
+📝 **Associated Query:** What images are available for a specific company by ID?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 126
 📌 **Stored Mapping:**
 {
@@ -385,10 +370,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me logos and images of a specific movie company.
+📝 **Associated Query:** Can I see the logo and images associated with a film company?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 127
 📌 **Stored Mapping:**
 {
@@ -396,10 +381,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can I see the visual assets for a film production studio?
+📝 **Associated Query:** Show me all the images linked to a particular movie production company.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 128
 📌 **Stored Mapping:**
 {
@@ -407,10 +392,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the images linked with this movie company?
+📝 **Associated Query:** Retrieve all graphics and images for a given company ID in the movie database.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 129
 📌 **Stored Mapping:**
 {
@@ -418,10 +403,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Display images and logos for a cinema company.
+📝 **Associated Query:** How can I find the images and logos for a specific film production company?
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 13
 📌 **Stored Mapping:**
 {
@@ -429,10 +414,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the full information of a director based on their identification number.
+📝 **Associated Query:** Fetch the data for the producer with ID 67890.
 ==================================================
 
-2025-03-03 23:06:25,706 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 130
 📌 **Stored Mapping:**
 {
@@ -442,10 +427,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are the user reviews for The Crown TV series?
+📝 **Associated Query:** Which reviews are available for this TV show?
 ==================================================
 
-2025-03-03 23:06:25,707 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 131
 📌 **Stored Mapping:**
 {
@@ -455,10 +440,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can I see the reviews for Season 3 of Stranger Things?
+📝 **Associated Query:** Can I see what people are saying about this series?
 ==================================================
 
-2025-03-03 23:06:25,707 - INFO - 
+2025-03-03 23:27:56,759 - INFO - 
 🆔 **ID:** 132
 📌 **Stored Mapping:**
 {
@@ -468,10 +453,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the latest reviews for the Game of Thrones series.
+📝 **Associated Query:** Show me the user reviews for this television series.
 ==================================================
 
-2025-03-03 23:06:25,707 - INFO - 
+2025-03-03 23:27:56,760 - INFO - 
 🆔 **ID:** 133
 📌 **Stored Mapping:**
 {
@@ -481,10 +466,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** How do viewers rate the Friends TV show?
+📝 **Associated Query:** What are the critics saying about this TV show?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,762 - INFO - 
 🆔 **ID:** 134
 📌 **Stored Mapping:**
 {
@@ -494,10 +479,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Fetch reviews for the Breaking Bad series.
+📝 **Associated Query:** Get reviews for this TV series.
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,762 - INFO - 
 🆔 **ID:** 135
 📌 **Stored Mapping:**
 {
@@ -507,10 +492,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What TV shows are similar to 'Stranger Things'?
+📝 **Associated Query:** What shows are similar to Breaking Bad?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,762 - INFO - 
 🆔 **ID:** 136
 📌 **Stored Mapping:**
 {
@@ -520,10 +505,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you recommend shows like 'Game of Thrones'?
+📝 **Associated Query:** Can you suggest TV series like 'Stranger Things'?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 137
 📌 **Stored Mapping:**
 {
@@ -533,10 +518,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Find TV series similar to 'Breaking Bad'
+📝 **Associated Query:** Find TV shows similar to 'Game of Thrones'
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 138
 📌 **Stored Mapping:**
 {
@@ -546,10 +531,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are some shows similar to 'Friends'?
+📝 **Associated Query:** List shows similar to 'The Office'
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 139
 📌 **Stored Mapping:**
 {
@@ -559,10 +544,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** List TV shows like 'The Office'
+📝 **Associated Query:** Recommend similar series to 'Friends'
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 14
 📌 **Stored Mapping:**
 {
@@ -570,10 +555,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve full personal and professional details of a film personality by ID.
+📝 **Associated Query:** Retrieve complete information for the screenwriter with ID 13579.
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 140
 📌 **Stored Mapping:**
 {
@@ -581,10 +566,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the details for network ID 1234?
+📝 **Associated Query:** What are the details of a specific TV network by its ID?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 141
 📌 **Stored Mapping:**
 {
@@ -592,10 +577,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can I get information on the network with ID 5678?
+📝 **Associated Query:** Can I get information about a TV network using its ID?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 142
 📌 **Stored Mapping:**
 {
@@ -603,10 +588,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Please provide the details of the network identified by ID 300.
+📝 **Associated Query:** How do I find out more about a television network if I have its network ID?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,763 - INFO - 
 🆔 **ID:** 143
 📌 **Stored Mapping:**
 {
@@ -614,10 +599,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the info for the network with ID 999.
+📝 **Associated Query:** What information can I retrieve about a network with its unique ID?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 144
 📌 **Stored Mapping:**
 {
@@ -625,10 +610,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Could you fetch the details for network ID 100?
+📝 **Associated Query:** Is it possible to get the profile of a TV network by entering its ID?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 145
 📌 **Stored Mapping:**
 {
@@ -638,10 +623,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are some recommended TV shows similar to this one?
+📝 **Associated Query:** What are some recommended TV shows related to this one?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 146
 📌 **Stored Mapping:**
 {
@@ -651,10 +636,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you suggest any TV series related to this one for me to watch next?
+📝 **Associated Query:** Can you suggest similar TV series to watch next?
 ==================================================
 
-2025-03-03 23:06:25,708 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 147
 📌 **Stored Mapping:**
 {
@@ -664,10 +649,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are the top recommended shows like this on TV right now?
+📝 **Associated Query:** What TV shows are typically recommended when watching this series?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 148
 📌 **Stored Mapping:**
 {
@@ -677,10 +662,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me TV series recommendations based on this one.
+📝 **Associated Query:** What are the top suggested series after watching this TV show?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 149
 📌 **Stored Mapping:**
 {
@@ -690,10 +675,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** List some TV shows that viewers also liked if they enjoyed this one.
+📝 **Associated Query:** Find TV series recommendations connected to this title.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 15
 📌 **Stored Mapping:**
 {
@@ -703,10 +688,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are the latest reviews for the movie with ID 12345?
+📝 **Associated Query:** What are the reviews for the movie with ID 550?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 150
 📌 **Stored Mapping:**
 {
@@ -714,10 +699,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What images are available for season 2, episode 5 of 'The Witcher'?
+📝 **Associated Query:** What images are available for episode 5 of season 3 of 'Stranger Things'?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,764 - INFO - 
 🆔 **ID:** 151
 📌 **Stored Mapping:**
 {
@@ -725,10 +710,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show me episode 10, season 4 photos from 'Friends'?
+📝 **Associated Query:** Can you show me the photos from the first episode of the latest season of 'Game of Thrones'?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 152
 📌 **Stored Mapping:**
 {
@@ -736,10 +721,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** I need pictures from season 3, episode 7 of 'Breaking Bad'.
+📝 **Associated Query:** Display all the pictures from season 4, episode 10 of 'Breaking Bad'.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 153
 📌 **Stored Mapping:**
 {
@@ -747,10 +732,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Display images for episode 1 of season 1 from 'Game of Thrones'.
+📝 **Associated Query:** Fetch imagery from episode 7 in season 2 of 'The Crown'.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 154
 📌 **Stored Mapping:**
 {
@@ -758,80 +743,75 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find images from episode 3, season 5 of 'Stranger Things'.
+📝 **Associated Query:** Provide the stills for episode 9 in season 5 of 'Friends'.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 155
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/popular",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** What are the top trending movies right now?
+📝 **Associated Query:** What are the current popular movies?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 156
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/popular",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Show me a list of popular movies currently.
+📝 **Associated Query:** Show me the list of trending movies right now.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 157
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/popular",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Can you list the most watched movies this week?
+📝 **Associated Query:** Can you find the most popular films at the moment?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,765 - INFO - 
 🆔 **ID:** 158
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/popular",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Which movies are people watching the most these days?
+📝 **Associated Query:** Which movies are everyone watching today?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 159
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/popular",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Find the current popular movies for me.
+📝 **Associated Query:** List the top trending movies currently.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 16
 📌 **Stored Mapping:**
 {
@@ -841,10 +821,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can I see user opinions on movie 56789?
+📝 **Associated Query:** Can I see user reviews for movie ID 12345?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 160
 📌 **Stored Mapping:**
 {
@@ -857,7 +837,7 @@
 📝 **Associated Query:** What TV shows are airing today?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 161
 📌 **Stored Mapping:**
 {
@@ -867,10 +847,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** List of television series broadcasting today.
+📝 **Associated Query:** Can you list today's TV schedule?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 162
 📌 **Stored Mapping:**
 {
@@ -880,10 +860,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Which TV series can I watch today?
+📝 **Associated Query:** Which series will be broadcasted today?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 163
 📌 **Stored Mapping:**
 {
@@ -893,10 +873,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the TV shows airing on this day.
+📝 **Associated Query:** Show me the TV lineup for today.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 164
 📌 **Stored Mapping:**
 {
@@ -906,10 +886,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Find today's airing TV programs.
+📝 **Associated Query:** What's on TV today?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,766 - INFO - 
 🆔 **ID:** 165
 📌 **Stored Mapping:**
 {
@@ -920,7 +900,7 @@
 📝 **Associated Query:** What are the keywords associated with this TV show?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 166
 📌 **Stored Mapping:**
 {
@@ -931,7 +911,7 @@
 📝 **Associated Query:** Can you list the keywords for a specific TV series?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 167
 📌 **Stored Mapping:**
 {
@@ -939,10 +919,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What tags are linked to this television show?
+📝 **Associated Query:** Show me the key themes for this television series.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 168
 📌 **Stored Mapping:**
 {
@@ -950,10 +930,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the keywords related to this TV series.
+📝 **Associated Query:** What are the main topics covered in this TV show?
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 169
 📌 **Stored Mapping:**
 {
@@ -961,10 +941,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find the keywords for this TV program.
+📝 **Associated Query:** Find the keywords related to a certain TV program.
 ==================================================
 
-2025-03-03 23:06:25,709 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 17
 📌 **Stored Mapping:**
 {
@@ -974,160 +954,155 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the critic reviews for movie 10101.
+📝 **Associated Query:** Show me the reviews for the movie corresponding to ID 300.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 170
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/person",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
-    "include_adult": false,
-    "region": null
+    "include_adult": false
   }
 }
-📝 **Associated Query:** Who are popular actors from Hollywood in 2023?
+📝 **Associated Query:** Which actors are associated with the name 'Tim Burton'?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 171
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/person",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
-    "include_adult": false,
-    "region": null
+    "include_adult": false
   }
 }
-📝 **Associated Query:** Can you find information about Scarlett Johansson?
+📝 **Associated Query:** Find information about actresses named 'Emma'.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,767 - INFO - 
 🆔 **ID:** 172
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/person",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
-    "include_adult": false,
-    "region": null
+    "include_adult": false
   }
 }
-📝 **Associated Query:** Look up British directors active in the last five years.
+📝 **Associated Query:** Can you search for directors with the last name 'Nolan'?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,768 - INFO - 
 🆔 **ID:** 173
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/person",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
-    "include_adult": false,
-    "region": null
+    "include_adult": false
   }
 }
-📝 **Associated Query:** How many awards has Leonardo DiCaprio won?
+📝 **Associated Query:** What are the details for filmmakers named 'Lee'?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,768 - INFO - 
 🆔 **ID:** 174
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/person",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
-    "include_adult": false,
-    "region": null
+    "include_adult": false
   }
 }
-📝 **Associated Query:** Search for new upcoming actresses in 2022.
+📝 **Associated Query:** Look up profiles for celebrities with the name 'Smith'.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,768 - INFO - 
 🆔 **ID:** 175
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/company",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** What are some details about the production company Warner Bros?
+📝 **Associated Query:** Find a film production company by name
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,768 - INFO - 
 🆔 **ID:** 176
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/company",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** How can I find information on film companies based in Japan?
+📝 **Associated Query:** Search for a movie studio based on keyword
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,768 - INFO - 
 🆔 **ID:** 177
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/company",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** Can I search for movie studios with 'Disney' in their name?
+📝 **Associated Query:** Look up details of a cinema production house
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,768 - INFO - 
 🆔 **ID:** 178
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/company",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** Show me a list of movie production companies that started in the 2020s.
+📝 **Associated Query:** Query for a movie company using a specific term
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 179
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/company",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** Is there a way to look up details about independent film producers in Canada?
+📝 **Associated Query:** Discover media companies relevant to a search keyword
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 18
 📌 **Stored Mapping:**
 {
@@ -1137,10 +1112,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** How did audiences react to movie 20202?
+📝 **Associated Query:** How can I read reviews for a movie if I have the movie ID 6789?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 180
 📌 **Stored Mapping:**
 {
@@ -1148,38 +1123,23 @@
   "method": "GET",
   "parameters": {
     "sort_by": "popularity.desc",
-    "air_date.gte": null,
-    "air_date.lte": null,
-    "first_air_date.gte": null,
-    "first_air_date.lte": null,
-    "first_air_date_year": null,
+    "first_air_date_year": 1,
     "page": 1,
     "timezone": "America/New_York",
-    "vote_average.gte": null,
-    "vote_count.gte": null,
-    "with_genres": null,
-    "with_networks": null,
-    "without_genres": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
+    "vote_count.gte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
     "include_null_first_air_dates": false,
-    "with_original_language": null,
-    "without_keywords": null,
-    "screened_theatrically": null,
-    "with_companies": null,
-    "with_keywords": null,
-    "with_watch_providers": null,
-    "watch_region": null,
+    "screened_theatrically": false,
     "with_watch_monetization_types": "flatrate",
     "with_status": 0,
-    "with_type": 0,
-    "without_companies": null
+    "with_type": 0
   }
 }
-📝 **Associated Query:** What new TV shows can I discover?
+📝 **Associated Query:** What are the top-rated TV shows available now?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 181
 📌 **Stored Mapping:**
 {
@@ -1187,38 +1147,23 @@
   "method": "GET",
   "parameters": {
     "sort_by": "popularity.desc",
-    "air_date.gte": null,
-    "air_date.lte": null,
-    "first_air_date.gte": null,
-    "first_air_date.lte": null,
-    "first_air_date_year": null,
+    "first_air_date_year": 1,
     "page": 1,
     "timezone": "America/New_York",
-    "vote_average.gte": null,
-    "vote_count.gte": null,
-    "with_genres": null,
-    "with_networks": null,
-    "without_genres": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
+    "vote_count.gte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
     "include_null_first_air_dates": false,
-    "with_original_language": null,
-    "without_keywords": null,
-    "screened_theatrically": null,
-    "with_companies": null,
-    "with_keywords": null,
-    "with_watch_providers": null,
-    "watch_region": null,
+    "screened_theatrically": false,
     "with_watch_monetization_types": "flatrate",
     "with_status": 0,
-    "with_type": 0,
-    "without_companies": null
+    "with_type": 0
   }
 }
-📝 **Associated Query:** Show me trending TV series this season.
+📝 **Associated Query:** Discover popular TV series airing this week.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 182
 📌 **Stored Mapping:**
 {
@@ -1226,38 +1171,23 @@
   "method": "GET",
   "parameters": {
     "sort_by": "popularity.desc",
-    "air_date.gte": null,
-    "air_date.lte": null,
-    "first_air_date.gte": null,
-    "first_air_date.lte": null,
-    "first_air_date_year": null,
+    "first_air_date_year": 1,
     "page": 1,
     "timezone": "America/New_York",
-    "vote_average.gte": null,
-    "vote_count.gte": null,
-    "with_genres": null,
-    "with_networks": null,
-    "without_genres": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
+    "vote_count.gte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
     "include_null_first_air_dates": false,
-    "with_original_language": null,
-    "without_keywords": null,
-    "screened_theatrically": null,
-    "with_companies": null,
-    "with_keywords": null,
-    "with_watch_providers": null,
-    "watch_region": null,
+    "screened_theatrically": false,
     "with_watch_monetization_types": "flatrate",
     "with_status": 0,
-    "with_type": 0,
-    "without_companies": null
+    "with_type": 0
   }
 }
-📝 **Associated Query:** Find TV shows that match my favorite genres.
+📝 **Associated Query:** Can you list new TV series that debuted this year?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 183
 📌 **Stored Mapping:**
 {
@@ -1265,38 +1195,23 @@
   "method": "GET",
   "parameters": {
     "sort_by": "popularity.desc",
-    "air_date.gte": null,
-    "air_date.lte": null,
-    "first_air_date.gte": null,
-    "first_air_date.lte": null,
-    "first_air_date_year": null,
+    "first_air_date_year": 1,
     "page": 1,
     "timezone": "America/New_York",
-    "vote_average.gte": null,
-    "vote_count.gte": null,
-    "with_genres": null,
-    "with_networks": null,
-    "without_genres": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
+    "vote_count.gte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
     "include_null_first_air_dates": false,
-    "with_original_language": null,
-    "without_keywords": null,
-    "screened_theatrically": null,
-    "with_companies": null,
-    "with_keywords": null,
-    "with_watch_providers": null,
-    "watch_region": null,
+    "screened_theatrically": false,
     "with_watch_monetization_types": "flatrate",
     "with_status": 0,
-    "with_type": 0,
-    "without_companies": null
+    "with_type": 0
   }
 }
-📝 **Associated Query:** Explore upcoming television series.
+📝 **Associated Query:** Find trending TV shows for me to watch.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,769 - INFO - 
 🆔 **ID:** 184
 📌 **Stored Mapping:**
 {
@@ -1304,108 +1219,88 @@
   "method": "GET",
   "parameters": {
     "sort_by": "popularity.desc",
-    "air_date.gte": null,
-    "air_date.lte": null,
-    "first_air_date.gte": null,
-    "first_air_date.lte": null,
-    "first_air_date_year": null,
+    "first_air_date_year": 1,
     "page": 1,
     "timezone": "America/New_York",
-    "vote_average.gte": null,
-    "vote_count.gte": null,
-    "with_genres": null,
-    "with_networks": null,
-    "without_genres": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
+    "vote_count.gte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
     "include_null_first_air_dates": false,
-    "with_original_language": null,
-    "without_keywords": null,
-    "screened_theatrically": null,
-    "with_companies": null,
-    "with_keywords": null,
-    "with_watch_providers": null,
-    "watch_region": null,
+    "screened_theatrically": false,
     "with_watch_monetization_types": "flatrate",
     "with_status": 0,
-    "with_type": 0,
-    "without_companies": null
+    "with_type": 0
   }
 }
-📝 **Associated Query:** Discover top-rated TV shows currently airing.
+📝 **Associated Query:** Explore recently added TV shows by genre.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 185
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/top_rated",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** What are the top-rated movies all time on TMDB?
+📝 **Associated Query:** What are the highest-rated movies right now?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 186
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/top_rated",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Can I see the best movies ever according to TMDB ratings?
+📝 **Associated Query:** Show me the top-rated movies according to critics.
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 187
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/top_rated",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Show me the highest rated movies on The Movie Database.
+📝 **Associated Query:** Can you list the current top-rated movies on TMDB?
 ==================================================
 
-2025-03-03 23:06:25,710 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 188
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/top_rated",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** List all-time top-rated movies on TMDB.
+📝 **Associated Query:** What movies have the highest ratings globally?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 189
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/top_rated",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** What movies have the highest ratings on TMDB?
+📝 **Associated Query:** Give me the top 10 movies with the best ratings.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 19
 📌 **Stored Mapping:**
 {
@@ -1415,10 +1310,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Display recent reviews for the film with ID 30303.
+📝 **Associated Query:** Is there a way to view the reviews for a movie using its ID, say ID 9876?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 190
 📌 **Stored Mapping:**
 {
@@ -1429,7 +1324,7 @@
 📝 **Associated Query:** What is the latest movie released?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 191
 📌 **Stored Mapping:**
 {
@@ -1437,10 +1332,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you find the most recent movie added?
+📝 **Associated Query:** Can you show me the most recent movie added to the database?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,770 - INFO - 
 🆔 **ID:** 192
 📌 **Stored Mapping:**
 {
@@ -1448,10 +1343,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the newest movie available.
+📝 **Associated Query:** What's the newest film available now?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 193
 📌 **Stored Mapping:**
 {
@@ -1462,7 +1357,7 @@
 📝 **Associated Query:** Which movie was released most recently?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 194
 📌 **Stored Mapping:**
 {
@@ -1470,10 +1365,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Tell me about the latest movie addition.
+📝 **Associated Query:** Tell me about the latest movie that was added.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 195
 📌 **Stored Mapping:**
 {
@@ -1483,10 +1378,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are the highest rated TV shows right now?
+📝 **Associated Query:** What are the highest rated TV shows currently?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 196
 📌 **Stored Mapping:**
 {
@@ -1496,10 +1391,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you list the top-rated TV series currently?
+📝 **Associated Query:** Can you list the top-rated TV series available?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 197
 📌 **Stored Mapping:**
 {
@@ -1509,10 +1404,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Which television shows have the best ratings currently?
+📝 **Associated Query:** Show me the best TV shows based on ratings.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 198
 📌 **Stored Mapping:**
 {
@@ -1522,10 +1417,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the top rated TV shows on air.
+📝 **Associated Query:** What TV shows have the highest ratings?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 199
 📌 **Stored Mapping:**
 {
@@ -1535,10 +1430,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What TV shows are currently rated the highest?
+📝 **Associated Query:** Which television series are top-rated right now?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 2
 📌 **Stored Mapping:**
 {
@@ -1546,10 +1441,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** List the key topics of the movie with ID 990.
+📝 **Associated Query:** Find keywords related to movie ID 1028.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 20
 📌 **Stored Mapping:**
 {
@@ -1557,10 +1452,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the release dates for movie ID 550?
+📝 **Associated Query:** When did the movie with the ID '123' get released?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 200
 📌 **Stored Mapping:**
 {
@@ -1568,10 +1463,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What is currently trending in movies this week?
+📝 **Associated Query:** What's trending in movies this week?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 201
 📌 **Stored Mapping:**
 {
@@ -1579,10 +1474,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show me popular TV shows from today?
+📝 **Associated Query:** Show me this month's trending TV shows.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 202
 📌 **Stored Mapping:**
 {
@@ -1590,10 +1485,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Which actors are trending this month?
+📝 **Associated Query:** Which documentaries are trending today?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,771 - INFO - 
 🆔 **ID:** 203
 📌 **Stored Mapping:**
 {
@@ -1601,10 +1496,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** List the top trending movies and shows of today.
+📝 **Associated Query:** Can you list the trending music videos for the week?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 204
 📌 **Stored Mapping:**
 {
@@ -1612,10 +1507,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find out the trending media this week.
+📝 **Associated Query:** What are the top movies and TV shows trending this month?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 205
 📌 **Stored Mapping:**
 {
@@ -1626,7 +1521,7 @@
 📝 **Associated Query:** What are the current movie genres available?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 206
 📌 **Stored Mapping:**
 {
@@ -1634,10 +1529,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you list all movie genres?
+📝 **Associated Query:** Can you list all the genres for movies?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 207
 📌 **Stored Mapping:**
 {
@@ -1645,10 +1540,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the different types of movie genres.
+📝 **Associated Query:** Show me a list of movie genres.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 208
 📌 **Stored Mapping:**
 {
@@ -1656,10 +1551,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What types of genres can movies have?
+📝 **Associated Query:** What genres can I find in the movie database?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 209
 📌 **Stored Mapping:**
 {
@@ -1667,10 +1562,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Give me a rundown of available movie genres.
+📝 **Associated Query:** Provide a list of movie genres.
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 21
 📌 **Stored Mapping:**
 {
@@ -1678,10 +1573,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show me when movie ID 1025 was released?
+📝 **Associated Query:** Can you provide the release dates for the movie with ID '456'?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 210
 📌 **Stored Mapping:**
 {
@@ -1689,10 +1584,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the details of season 2 of the TV show with ID 12345?
+📝 **Associated Query:** What are the details of season 3 for the TV show with ID 1402?
 ==================================================
 
-2025-03-03 23:06:25,711 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 211
 📌 **Stored Mapping:**
 {
@@ -1700,10 +1595,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me information for season 5 of the television series with ID 67890.
+📝 **Associated Query:** Can you fetch information about season 2 of the series with ID 6548?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 212
 📌 **Stored Mapping:**
 {
@@ -1711,10 +1606,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can I get the overview and cast details for season 3 of the TV series designated by ID 13579?
+📝 **Associated Query:** Get all details for season 5 of the TV show with ID 8910.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 213
 📌 **Stored Mapping:**
 {
@@ -1722,10 +1617,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Provide the episode list and release dates for season 4 of the TV show with ID 24680.
+📝 **Associated Query:** Show me the full information for season 1 of the TV series with ID 10020.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 214
 📌 **Stored Mapping:**
 {
@@ -1733,10 +1628,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Fetch the detailed information for season 1 of the TV show having ID 11223.
+📝 **Associated Query:** Provide the entire details for season 4 of the television show with ID 7850.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 215
 📌 **Stored Mapping:**
 {
@@ -1747,7 +1642,7 @@
 📝 **Associated Query:** What are the details of the movie collection with ID 1234?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 216
 📌 **Stored Mapping:**
 {
@@ -1755,10 +1650,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show me information about the film collection whose ID is 5678?
+📝 **Associated Query:** Can you find information about a film series using collection ID 9876?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,772 - INFO - 
 🆔 **ID:** 217
 📌 **Stored Mapping:**
 {
@@ -1766,10 +1661,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** I need details for the movie series with collection ID 91011.
+📝 **Associated Query:** Show me the full details for the movie collection identified by ID 4321.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 218
 📌 **Stored Mapping:**
 {
@@ -1777,10 +1672,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Please retrieve data for the film collection identified by ID 1213.
+📝 **Associated Query:** Retrieve comprehensive details about the collection with ID 5678.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 219
 📌 **Stored Mapping:**
 {
@@ -1788,10 +1683,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Access details of the movie anthology with collection ID 1415.
+📝 **Associated Query:** How can I get information on a specific movie collection by its ID 2468?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 22
 📌 **Stored Mapping:**
 {
@@ -1799,10 +1694,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find the global release dates for the movie with ID 300.
+📝 **Associated Query:** What are the worldwide release dates for the movie ID '789'?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 220
 📌 **Stored Mapping:**
 {
@@ -1810,10 +1705,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What images are available for actor with ID 7624?
+📝 **Associated Query:** Show me all photos of actor with ID 12345
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 221
 📌 **Stored Mapping:**
 {
@@ -1821,10 +1716,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can I see photos related to the person identified by ID 134?
+📝 **Associated Query:** Can I see the image gallery for the director with ID 67890?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 222
 📌 **Stored Mapping:**
 {
@@ -1832,10 +1727,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Are there any pictures linked to this director’s profile with ID 3201?
+📝 **Associated Query:** Retrieve all available pictures for the artist with ID 101112
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 223
 📌 **Stored Mapping:**
 {
@@ -1843,10 +1738,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show all the images stored under the actress's ID 10562.
+📝 **Associated Query:** I need to see all images associated with the celebrity identified by ID 131415
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 224
 📌 **Stored Mapping:**
 {
@@ -1854,10 +1749,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Fetch the gallery pictures of the celebrity with ID 9503.
+📝 **Associated Query:** Fetch the complete image collection for the performer with ID 161718
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 225
 📌 **Stored Mapping:**
 {
@@ -1865,10 +1760,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the details of the TV show with ID 1234?
+📝 **Associated Query:** What is the detailed information for Friends TV show?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 226
 📌 **Stored Mapping:**
 {
@@ -1876,10 +1771,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you fetch the information for the television series identified by the ID 5678?
+📝 **Associated Query:** Can you retrieve the full details of the Breaking Bad series?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 227
 📌 **Stored Mapping:**
 {
@@ -1887,10 +1782,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the full details for the TV show that has an ID of 91011.
+📝 **Associated Query:** Show me the complete overview and cast details of The Crown.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 228
 📌 **Stored Mapping:**
 {
@@ -1898,10 +1793,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve the comprehensive info for the TV series with the ID 1213.
+📝 **Associated Query:** Provide the in-depth details of the Game of Thrones series.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,773 - INFO - 
 🆔 **ID:** 229
 📌 **Stored Mapping:**
 {
@@ -1909,10 +1804,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** I need the complete profile of the TV show corresponding to ID 1415.
+📝 **Associated Query:** Fetch the entire details including episodes and seasons for Stranger Things.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 23
 📌 **Stored Mapping:**
 {
@@ -1920,10 +1815,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Provide the release schedule for movie ID 215.
+📝 **Associated Query:** Check the official release dates for the movie with ID '1011' please.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 230
 📌 **Stored Mapping:**
 {
@@ -1933,10 +1828,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Which actors are currently popular?
+📝 **Associated Query:** what are the most popular actors right now?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 231
 📌 **Stored Mapping:**
 {
@@ -1946,10 +1841,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you list the current popular personalities in film?
+📝 **Associated Query:** who are the current trending celebrities?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 232
 📌 **Stored Mapping:**
 {
@@ -1959,10 +1854,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the most popular celebrities now.
+📝 **Associated Query:** show me a list of popular personalities in the film industry today
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 233
 📌 **Stored Mapping:**
 {
@@ -1972,10 +1867,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Who are the trending people in the entertainment industry?
+📝 **Associated Query:** can you find out which actors are popular this week?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 234
 📌 **Stored Mapping:**
 {
@@ -1985,10 +1880,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Find out which actors are popular right now.
+📝 **Associated Query:** which movie stars are currently in the spotlight?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 235
 📌 **Stored Mapping:**
 {
@@ -1996,10 +1891,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the images available in the collection with ID 1234?
+📝 **Associated Query:** Can I see all the images from the Star Wars collection?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 236
 📌 **Stored Mapping:**
 {
@@ -2007,10 +1902,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you fetch the photos for the collection identified by ID 5678?
+📝 **Associated Query:** Show me the gallery for the Harry Potter film collection.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 237
 📌 **Stored Mapping:**
 {
@@ -2018,10 +1913,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me all the pictures from the collection ID 91011.
+📝 **Associated Query:** What images are available for the James Bond movie collection?
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 238
 📌 **Stored Mapping:**
 {
@@ -2029,10 +1924,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** How can I view the images from the movie collection with ID 1213?
+📝 **Associated Query:** Display all pictures of the Lord of the Rings collection.
 ==================================================
 
-2025-03-03 23:06:25,712 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 239
 📌 **Stored Mapping:**
 {
@@ -2040,10 +1935,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve images for the specified collection ID 1415.
+📝 **Associated Query:** Retrieve photos from the Pixar movie collection.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 24
 📌 **Stored Mapping:**
 {
@@ -2051,10 +1946,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me all the release dates for movie ID 789 worldwide.
+📝 **Associated Query:** Show me all the release dates for the movie identified by ID '1213'.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 240
 📌 **Stored Mapping:**
 {
@@ -2062,10 +1957,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Who are the actors in the TV show with ID 1200?
+📝 **Associated Query:** Can you show me the cast and crew list for a specific TV show by its ID?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,774 - INFO - 
 🆔 **ID:** 241
 📌 **Stored Mapping:**
 {
@@ -2073,10 +1968,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you find the full cast and crew details for the series identified by ID 2345?
+📝 **Associated Query:** What are the full credits for a TV series given its ID?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 242
 📌 **Stored Mapping:**
 {
@@ -2084,10 +1979,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the credits for the television show with ID 4567?
+📝 **Associated Query:** Who are the actors and behind-the-scenes personnel for a television series from its ID?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 243
 📌 **Stored Mapping:**
 {
@@ -2095,10 +1990,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** List all the members involved in the production of the TV series with ID 5678.
+📝 **Associated Query:** List all the people involved in producing a TV show based on its TV ID.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 244
 📌 **Stored Mapping:**
 {
@@ -2106,10 +2001,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show the complete credits for the TV show with ID 6789.
+📝 **Associated Query:** Provide the complete credits for a TV show using its unique identifier.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 245
 📌 **Stored Mapping:**
 {
@@ -2117,10 +2012,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Which movies has actor with ID 1234 played in?
+📝 **Associated Query:** What movies has actor ID 123 appeared in?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 246
 📌 **Stored Mapping:**
 {
@@ -2128,10 +2023,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the film credits for the person with ID 5678?
+📝 **Associated Query:** Can you list the filmography for person ID 456?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 247
 📌 **Stored Mapping:**
 {
@@ -2139,10 +2034,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you list all movies involving person ID 3456?
+📝 **Associated Query:** Show all movie credits for person with ID 789.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 248
 📌 **Stored Mapping:**
 {
@@ -2150,10 +2045,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show the acting roles for person with ID 7890.
+📝 **Associated Query:** Which movies feature person ID 1011 on their cast list?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 249
 📌 **Stored Mapping:**
 {
@@ -2161,10 +2056,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What films feature the actor with ID 2345?
+📝 **Associated Query:** Give me the list of films involving person ID 1213.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 25
 📌 **Stored Mapping:**
 {
@@ -2172,10 +2067,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the cast and crew details for episode 5 of season 3 of the TV show with ID 240?
+📝 **Associated Query:** Who are the cast and crew members for episode 5 of season 3 of 'Stranger Things'?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 250
 📌 **Stored Mapping:**
 {
@@ -2185,10 +2080,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What movies are similar to Inception?
+📝 **Associated Query:** What movies would you recommend based on movie ID 150?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 251
 📌 **Stored Mapping:**
 {
@@ -2198,10 +2093,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you recommend movies like The Godfather?
+📝 **Associated Query:** Can you suggest similar movies to The Dark Knight?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 252
 📌 **Stored Mapping:**
 {
@@ -2211,10 +2106,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Which films are recommended based on The Matrix?
+📝 **Associated Query:** Show me movies related to Titanic.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 253
 📌 **Stored Mapping:**
 {
@@ -2224,10 +2119,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Recommendations for movies similar to Titanic
+📝 **Associated Query:** Find recommended movies for Avengers: Infinity War.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,775 - INFO - 
 🆔 **ID:** 254
 📌 **Stored Mapping:**
 {
@@ -2237,80 +2132,80 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Find movies related to Jaws
+📝 **Associated Query:** List some movies that are similar to Inception.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 255
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/collection",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** What is the latest collection related to Star Wars?
+📝 **Associated Query:** What are the popular movie collections on TMDB?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 256
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/collection",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** Can you find collections that include Harry Potter movies?
+📝 **Associated Query:** Show collections that include the Star Wars movies.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 257
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/collection",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** How many collections are there featuring superhero themes?
+📝 **Associated Query:** Find film collections containing 'Harry Potter'.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 258
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/collection",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** Show me collections that have romantic comedy films.
+📝 **Associated Query:** Can I get a list of collections for superhero movies?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 259
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/collection",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1
   }
 }
-📝 **Associated Query:** List collections that include the James Bond series.
+📝 **Associated Query:** Search for collections that feature James Bond films.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 26
 📌 **Stored Mapping:**
 {
@@ -2318,10 +2213,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Who worked on episode 10, season 2 of the TV series with identifier 145?
+📝 **Associated Query:** Can you list the actors and production team for the third episode in the fourth season of 'The Crown'?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 260
 📌 **Stored Mapping:**
 {
@@ -2329,10 +2224,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Who starred in the movie with ID 550?
+📝 **Associated Query:** What are the cast and crew details for a specific movie?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 261
 📌 **Stored Mapping:**
 {
@@ -2340,10 +2235,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you list the cast and crew for movie ID 120?
+📝 **Associated Query:** Can I get the list of actors and their roles in a movie?
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 262
 📌 **Stored Mapping:**
 {
@@ -2351,10 +2246,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the credits for the movie with ID 789.
+📝 **Associated Query:** Show me the full credit list for a chosen movie.
 ==================================================
 
-2025-03-03 23:06:25,713 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 263
 📌 **Stored Mapping:**
 {
@@ -2362,10 +2257,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What actors and production team worked on movie ID 345?
+📝 **Associated Query:** Who are the key crew members involved in a particular movie?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 264
 📌 **Stored Mapping:**
 {
@@ -2373,10 +2268,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Give me the full list of credits for movie ID 1010.
+📝 **Associated Query:** Fetch me the details of all cast and crew for a movie.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,776 - INFO - 
 🆔 **ID:** 265
 📌 **Stored Mapping:**
 {
@@ -2386,10 +2281,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What movies are similar to Inception?
+📝 **Associated Query:** What movies are similar to the one with ID 512?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 266
 📌 **Stored Mapping:**
 {
@@ -2399,10 +2294,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you find movies like Titanic?
+📝 **Associated Query:** Can you find movies like the one with ID 300?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 267
 📌 **Stored Mapping:**
 {
@@ -2412,10 +2307,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show movies related to The Matrix.
+📝 **Associated Query:** Show movies similar to the movie with ID 1024.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 268
 📌 **Stored Mapping:**
 {
@@ -2425,10 +2320,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Suggest films similar to Jurassic Park.
+📝 **Associated Query:** Which movies resemble the movie with ID 2048?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 269
 📌 **Stored Mapping:**
 {
@@ -2438,10 +2333,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Find movies akin to Avatar.
+📝 **Associated Query:** Recommend movies that are similar to the movie ID 4096.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 27
 📌 **Stored Mapping:**
 {
@@ -2449,10 +2344,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you provide the credits for episode 7 of season 4 for the TV show with ID 78?
+📝 **Associated Query:** Show me the credits for episode 7, season 2 of 'Game of Thrones'.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 28
 📌 **Stored Mapping:**
 {
@@ -2460,10 +2355,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** List the cast and crew for episode 3, season 1 of the TV show identified by 67.
+📝 **Associated Query:** Provide the cast and crew details for episode 1, season 1 of 'Breaking Bad'.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 29
 📌 **Stored Mapping:**
 {
@@ -2471,10 +2366,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the credits for episode 1, season 5 of the television series with ID 89.
+📝 **Associated Query:** What is the full list of credits for the tenth episode of the fifth season of 'Friends'?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 3
 📌 **Stored Mapping:**
 {
@@ -2482,75 +2377,65 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find the keywords for the movie with the ID 678.
+📝 **Associated Query:** Show me the keywords for the movie with ID 402.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 30
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}/images",
   "method": "GET",
-  "parameters": {
-    "include_image_language": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** What are the latest images released for the movie with ID 7654?
+📝 **Associated Query:** What images are available for a specific movie ID?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 31
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}/images",
   "method": "GET",
-  "parameters": {
-    "include_image_language": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** Can you show me all the posters of the film identified by movie ID 9872?
+📝 **Associated Query:** Can you show me the photos related to this movie by its ID?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 32
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}/images",
   "method": "GET",
-  "parameters": {
-    "include_image_language": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** I need to see the backdrops for the movie with ID 3451, can you fetch them?
+📝 **Associated Query:** Retrieve all images associated with a given movie ID.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 33
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}/images",
   "method": "GET",
-  "parameters": {
-    "include_image_language": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** How can I view the promotional pictures for the movie with ID 9321?
+📝 **Associated Query:** Load the gallery for a movie based on its unique ID.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 34
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/{movie_id}/images",
   "method": "GET",
-  "parameters": {
-    "include_image_language": null
-  }
+  "parameters": {}
 }
-📝 **Associated Query:** Display all available images for the movie that has the ID 1223.
+📝 **Associated Query:** Fetch movie stills and behind-the-scenes photos using the movie ID.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,777 - INFO - 
 🆔 **ID:** 35
 📌 **Stored Mapping:**
 {
@@ -2558,15 +2443,15 @@
   "method": "GET",
   "parameters": {
     "page": 1,
-    "query": null,
+    "query": "",
     "include_adult": false,
-    "first_air_date_year": null
+    "first_air_date_year": 1
   }
 }
-📝 **Associated Query:** What are the most popular TV shows right now?
+📝 **Associated Query:** What are the top results for 'Stranger Things' on TV show search?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 36
 📌 **Stored Mapping:**
 {
@@ -2574,15 +2459,15 @@
   "method": "GET",
   "parameters": {
     "page": 1,
-    "query": null,
+    "query": "",
     "include_adult": false,
-    "first_air_date_year": null
+    "first_air_date_year": 1
   }
 }
-📝 **Associated Query:** Can you find TV shows similar to 'Breaking Bad'?
+📝 **Associated Query:** Can you find TV series similar to 'Game of Thrones'?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 37
 📌 **Stored Mapping:**
 {
@@ -2590,15 +2475,15 @@
   "method": "GET",
   "parameters": {
     "page": 1,
-    "query": null,
+    "query": "",
     "include_adult": false,
-    "first_air_date_year": null
+    "first_air_date_year": 1
   }
 }
-📝 **Associated Query:** I'm looking for a TV series that started in the 90s, can you help?
+📝 **Associated Query:** How do I search for new TV shows that premiered in 2023?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 38
 📌 **Stored Mapping:**
 {
@@ -2606,15 +2491,15 @@
   "method": "GET",
   "parameters": {
     "page": 1,
-    "query": null,
+    "query": "",
     "include_adult": false,
-    "first_air_date_year": null
+    "first_air_date_year": 1
   }
 }
-📝 **Associated Query:** Which TV shows are trending this week?
+📝 **Associated Query:** Show me TV series that include the keyword 'mystery'.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 39
 📌 **Stored Mapping:**
 {
@@ -2622,15 +2507,15 @@
   "method": "GET",
   "parameters": {
     "page": 1,
-    "query": null,
+    "query": "",
     "include_adult": false,
-    "first_air_date_year": null
+    "first_air_date_year": 1
   }
 }
-📝 **Associated Query:** Show me a list of comedy series aired in the last five years.
+📝 **Associated Query:** Search for TV shows by the name 'Breaking Bad'.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 4
 📌 **Stored Mapping:**
 {
@@ -2638,10 +2523,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What keywords describe the central ideas of movie ID 450?
+📝 **Associated Query:** Retrieve keywords for the movie identified by ID 305.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 40
 📌 **Stored Mapping:**
 {
@@ -2649,10 +2534,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the details for season 3 episode 5 of the TV show with ID 1293?
+📝 **Associated Query:** What details are available for episode 5 of season 3 for the TV show with ID 123?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 41
 📌 **Stored Mapping:**
 {
@@ -2660,10 +2545,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you give me information about episode 12 in season 5 of the series identified by 8432?
+📝 **Associated Query:** Can I get information on the third episode of the first season for the series with ID 321?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 42
 📌 **Stored Mapping:**
 {
@@ -2671,10 +2556,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Fetch data for season 2, episode 8 of the television series with ID 70523.
+📝 **Associated Query:** Show me the details for episode 10 in season 2 of the TV series identified by 456.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 43
 📌 **Stored Mapping:**
 {
@@ -2682,10 +2567,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** How can I find specifics for season 4 episode 20 in the TV series with ID 44217?
+📝 **Associated Query:** Tell me about episode 1 in season 4 of the television series with the ID 654.
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 44
 📌 **Stored Mapping:**
 {
@@ -2693,10 +2578,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Provide details for episode 9 of season 7 from the TV show ID 31988.
+📝 **Associated Query:** How can I find out more about episode 7, season 5 of the TV show with ID 987?
 ==================================================
 
-2025-03-03 23:06:25,714 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 45
 📌 **Stored Mapping:**
 {
@@ -2704,10 +2589,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you find images related to a specific network by its ID?
+📝 **Associated Query:** What images are available for this TV network?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,778 - INFO - 
 🆔 **ID:** 46
 📌 **Stored Mapping:**
 {
@@ -2715,10 +2600,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the available images for a given network ID?
+📝 **Associated Query:** Show me the latest images from this network.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 47
 📌 **Stored Mapping:**
 {
@@ -2726,10 +2611,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** How can I view images for a particular network using its ID?
+📝 **Associated Query:** Can I see the logo and other images of this network?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 48
 📌 **Stored Mapping:**
 {
@@ -2737,10 +2622,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show images associated with a network ID.
+📝 **Associated Query:** Find images associated with this network.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 49
 📌 **Stored Mapping:**
 {
@@ -2748,10 +2633,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve images for a designated network ID.
+📝 **Associated Query:** Display gallery of this network's branding and promotional images.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 5
 📌 **Stored Mapping:**
 {
@@ -2761,10 +2646,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are the top trending TV shows currently?
+📝 **Associated Query:** What are the most popular TV shows right now?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 50
 📌 **Stored Mapping:**
 {
@@ -2772,10 +2657,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show me a list of TV show genres?
+📝 **Associated Query:** What genres are available for TV shows?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 51
 📌 **Stored Mapping:**
 {
@@ -2783,10 +2668,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What genres are available for TV shows on TMDB?
+📝 **Associated Query:** Can you list the different TV show genres?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 52
 📌 **Stored Mapping:**
 {
@@ -2794,10 +2679,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Could you list all the genres for television series?
+📝 **Associated Query:** Show me a list of genres for television series.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 53
 📌 **Stored Mapping:**
 {
@@ -2805,10 +2690,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** I need to know the different genres of TV shows, can you provide that?
+📝 **Associated Query:** Which genres can I find in TV shows?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 54
 📌 **Stored Mapping:**
 {
@@ -2816,100 +2701,95 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the various TV show genres listed on TMDB?
+📝 **Associated Query:** Explore various TV show genres available.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 55
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/movie",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
     "include_adult": false,
-    "region": null,
-    "year": null,
-    "primary_release_year": null
+    "year": 1,
+    "primary_release_year": 1
   }
 }
-📝 **Associated Query:** What's the best way to find movies related to time travel?
+📝 **Associated Query:** What are some recent movies similar to Inception?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 56
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/movie",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
     "include_adult": false,
-    "region": null,
-    "year": null,
-    "primary_release_year": null
+    "year": 1,
+    "primary_release_year": 1
   }
 }
-📝 **Associated Query:** How can I search for films by their titles?
+📝 **Associated Query:** Can you find movies directed by Steven Spielberg released after 2010?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 57
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/movie",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
     "include_adult": false,
-    "region": null,
-    "year": null,
-    "primary_release_year": null
+    "year": 1,
+    "primary_release_year": 1
   }
 }
-📝 **Associated Query:** Can I look up movies featuring Tom Hanks?
+📝 **Associated Query:** I want to search for action movies with a high rating released in the last 5 years.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 58
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/movie",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
     "include_adult": false,
-    "region": null,
-    "year": null,
-    "primary_release_year": null
+    "year": 1,
+    "primary_release_year": 1
   }
 }
-📝 **Associated Query:** Is there a method to search movies based on keywords?
+📝 **Associated Query:** Show me a list of comedy films from the 90s with a female lead.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,779 - INFO - 
 🆔 **ID:** 59
 📌 **Stored Mapping:**
 {
   "endpoint": "/search/movie",
   "method": "GET",
   "parameters": {
-    "query": null,
+    "query": "",
     "page": 1,
     "include_adult": false,
-    "region": null,
-    "year": null,
-    "primary_release_year": null
+    "year": 1,
+    "primary_release_year": 1
   }
 }
-📝 **Associated Query:** Where can I find films directed by Christopher Nolan?
+📝 **Associated Query:** Find movies that are similar to 'The Matrix' in terms of storyline and special effects.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 6
 📌 **Stored Mapping:**
 {
@@ -2919,315 +2799,195 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Can you list the most popular TV series right now?
+📝 **Associated Query:** Can you list the current popular TV series?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 60
 📌 **Stored Mapping:**
 {
   "endpoint": "/discover/movie",
   "method": "GET",
   "parameters": {
-    "region": null,
     "sort_by": "popularity.desc",
-    "certification_country": null,
-    "certification": null,
-    "certification.lte": null,
-    "certification.gte": null,
     "include_adult": false,
     "include_video": false,
     "page": 1,
-    "primary_release_year": null,
-    "primary_release_date.gte": null,
-    "primary_release_date.lte": null,
-    "release_date.gte": null,
-    "release_date.lte": null,
-    "with_release_type": null,
-    "year": null,
-    "vote_count.gte": null,
-    "vote_count.lte": null,
-    "vote_average.gte": null,
-    "vote_average.lte": null,
-    "with_cast": null,
-    "with_crew": null,
-    "with_people": null,
-    "with_companies": null,
-    "with_genres": null,
-    "without_genres": null,
-    "with_keywords": null,
-    "without_keywords": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
-    "with_original_language": null,
-    "with_watch_providers": null,
-    "watch_region": null,
-    "with_watch_monetization_types": "flatrate",
-    "without_companies": null
+    "primary_release_year": 1,
+    "with_release_type": 1,
+    "year": 1,
+    "vote_count.gte": 1,
+    "vote_count.lte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
+    "with_watch_monetization_types": "flatrate"
   }
 }
-📝 **Associated Query:** What are the top rated action movies released this year?
+📝 **Associated Query:** What are the top trending movies this month?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 61
 📌 **Stored Mapping:**
 {
   "endpoint": "/discover/movie",
   "method": "GET",
   "parameters": {
-    "region": null,
     "sort_by": "popularity.desc",
-    "certification_country": null,
-    "certification": null,
-    "certification.lte": null,
-    "certification.gte": null,
     "include_adult": false,
     "include_video": false,
     "page": 1,
-    "primary_release_year": null,
-    "primary_release_date.gte": null,
-    "primary_release_date.lte": null,
-    "release_date.gte": null,
-    "release_date.lte": null,
-    "with_release_type": null,
-    "year": null,
-    "vote_count.gte": null,
-    "vote_count.lte": null,
-    "vote_average.gte": null,
-    "vote_average.lte": null,
-    "with_cast": null,
-    "with_crew": null,
-    "with_people": null,
-    "with_companies": null,
-    "with_genres": null,
-    "without_genres": null,
-    "with_keywords": null,
-    "without_keywords": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
-    "with_original_language": null,
-    "with_watch_providers": null,
-    "watch_region": null,
-    "with_watch_monetization_types": "flatrate",
-    "without_companies": null
+    "primary_release_year": 1,
+    "with_release_type": 1,
+    "year": 1,
+    "vote_count.gte": 1,
+    "vote_count.lte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
+    "with_watch_monetization_types": "flatrate"
   }
 }
-📝 **Associated Query:** Can you find family-friendly films from the 1990s?
+📝 **Associated Query:** Can you suggest some movies that are popular right now?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 62
 📌 **Stored Mapping:**
 {
   "endpoint": "/discover/movie",
   "method": "GET",
   "parameters": {
-    "region": null,
     "sort_by": "popularity.desc",
-    "certification_country": null,
-    "certification": null,
-    "certification.lte": null,
-    "certification.gte": null,
     "include_adult": false,
     "include_video": false,
     "page": 1,
-    "primary_release_year": null,
-    "primary_release_date.gte": null,
-    "primary_release_date.lte": null,
-    "release_date.gte": null,
-    "release_date.lte": null,
-    "with_release_type": null,
-    "year": null,
-    "vote_count.gte": null,
-    "vote_count.lte": null,
-    "vote_average.gte": null,
-    "vote_average.lte": null,
-    "with_cast": null,
-    "with_crew": null,
-    "with_people": null,
-    "with_companies": null,
-    "with_genres": null,
-    "without_genres": null,
-    "with_keywords": null,
-    "without_keywords": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
-    "with_original_language": null,
-    "with_watch_providers": null,
-    "watch_region": null,
-    "with_watch_monetization_types": "flatrate",
-    "without_companies": null
+    "primary_release_year": 1,
+    "with_release_type": 1,
+    "year": 1,
+    "vote_count.gte": 1,
+    "vote_count.lte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
+    "with_watch_monetization_types": "flatrate"
   }
 }
-📝 **Associated Query:** Show me a list of romantic comedies with a high user rating.
+📝 **Associated Query:** Show me a list of movies that are similar to 'Inception'.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 63
 📌 **Stored Mapping:**
 {
   "endpoint": "/discover/movie",
   "method": "GET",
   "parameters": {
-    "region": null,
     "sort_by": "popularity.desc",
-    "certification_country": null,
-    "certification": null,
-    "certification.lte": null,
-    "certification.gte": null,
     "include_adult": false,
     "include_video": false,
     "page": 1,
-    "primary_release_year": null,
-    "primary_release_date.gte": null,
-    "primary_release_date.lte": null,
-    "release_date.gte": null,
-    "release_date.lte": null,
-    "with_release_type": null,
-    "year": null,
-    "vote_count.gte": null,
-    "vote_count.lte": null,
-    "vote_average.gte": null,
-    "vote_average.lte": null,
-    "with_cast": null,
-    "with_crew": null,
-    "with_people": null,
-    "with_companies": null,
-    "with_genres": null,
-    "without_genres": null,
-    "with_keywords": null,
-    "without_keywords": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
-    "with_original_language": null,
-    "with_watch_providers": null,
-    "watch_region": null,
-    "with_watch_monetization_types": "flatrate",
-    "without_companies": null
+    "primary_release_year": 1,
+    "with_release_type": 1,
+    "year": 1,
+    "vote_count.gte": 1,
+    "vote_count.lte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
+    "with_watch_monetization_types": "flatrate"
   }
 }
-📝 **Associated Query:** Which movies are trending among sci-fi enthusiasts this month?
+📝 **Associated Query:** What are the newly released movies worth watching?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 64
 📌 **Stored Mapping:**
 {
   "endpoint": "/discover/movie",
   "method": "GET",
   "parameters": {
-    "region": null,
     "sort_by": "popularity.desc",
-    "certification_country": null,
-    "certification": null,
-    "certification.lte": null,
-    "certification.gte": null,
     "include_adult": false,
     "include_video": false,
     "page": 1,
-    "primary_release_year": null,
-    "primary_release_date.gte": null,
-    "primary_release_date.lte": null,
-    "release_date.gte": null,
-    "release_date.lte": null,
-    "with_release_type": null,
-    "year": null,
-    "vote_count.gte": null,
-    "vote_count.lte": null,
-    "vote_average.gte": null,
-    "vote_average.lte": null,
-    "with_cast": null,
-    "with_crew": null,
-    "with_people": null,
-    "with_companies": null,
-    "with_genres": null,
-    "without_genres": null,
-    "with_keywords": null,
-    "without_keywords": null,
-    "with_runtime.gte": null,
-    "with_runtime.lte": null,
-    "with_original_language": null,
-    "with_watch_providers": null,
-    "watch_region": null,
-    "with_watch_monetization_types": "flatrate",
-    "without_companies": null
+    "primary_release_year": 1,
+    "with_release_type": 1,
+    "year": 1,
+    "vote_count.gte": 1,
+    "vote_count.lte": 1,
+    "with_runtime.gte": 1,
+    "with_runtime.lte": 1,
+    "with_watch_monetization_types": "flatrate"
   }
 }
-📝 **Associated Query:** Discover new horror movies that have been released recently.
+📝 **Associated Query:** Discover movies that are highly rated by viewers this year.
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 65
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/upcoming",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** What are the upcoming movie releases?
+📝 **Associated Query:** What are the newest movies coming out soon?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 66
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/upcoming",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Show me movies that are releasing soon.
+📝 **Associated Query:** Can you list the upcoming movie releases?
 ==================================================
 
-2025-03-03 23:06:25,715 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 67
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/upcoming",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Can you list the soon-to-be-released films?
+📝 **Associated Query:** Show me the latest movies that are about to be released.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,780 - INFO - 
 🆔 **ID:** 68
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/upcoming",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Which movies are coming out in the near future?
+📝 **Associated Query:** What are the soon-to-be-released movies in the next few months?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 69
 📌 **Stored Mapping:**
 {
   "endpoint": "/movie/upcoming",
   "method": "GET",
   "parameters": {
-    "page": 1,
-    "region": null
+    "page": 1
   }
 }
-📝 **Associated Query:** Find upcoming movies that are about to release.
+📝 **Associated Query:** Which movies are scheduled for release soon?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 7
 📌 **Stored Mapping:**
 {
@@ -3237,10 +2997,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** What are the current hit TV shows?
+📝 **Associated Query:** Show me trending TV shows today.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 70
 📌 **Stored Mapping:**
 {
@@ -3248,10 +3008,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What information can I get about a specific credit ID?
+📝 **Associated Query:** What details can I find using a credit ID on TMDB?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 71
 📌 **Stored Mapping:**
 {
@@ -3259,10 +3019,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve details using a credit ID in the TMDB database.
+📝 **Associated Query:** Show me the information available for a specific credit ID.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 72
 📌 **Stored Mapping:**
 {
@@ -3270,10 +3030,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** How do I find details for a particular credit ID on TMDB?
+📝 **Associated Query:** Can you retrieve data for a particular credit ID from TMDB?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 73
 📌 **Stored Mapping:**
 {
@@ -3281,10 +3041,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the data available for a credit ID on TMDB.
+📝 **Associated Query:** I need the details for a credit ID, how can I get that?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 74
 📌 **Stored Mapping:**
 {
@@ -3292,10 +3052,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you provide the details obtained from a credit ID in TMDB?
+📝 **Associated Query:** Fetch the complete information for a given credit ID on TMDB.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 75
 📌 **Stored Mapping:**
 {
@@ -3303,10 +3063,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What TV shows has actor X starred in?
+📝 **Associated Query:** What TV shows has the actor with ID 123 appeared in?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 76
 📌 **Stored Mapping:**
 {
@@ -3314,10 +3074,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you list the television series appearances for a specific actor?
+📝 **Associated Query:** Can you list the television series involving person ID 456?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 77
 📌 **Stored Mapping:**
 {
@@ -3325,10 +3085,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the TV credits for this celebrity?
+📝 **Associated Query:** Show me the TV roles for the artist specified by ID 789.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 78
 📌 **Stored Mapping:**
 {
@@ -3336,10 +3096,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What roles has this actor played on television?
+📝 **Associated Query:** Which TV projects has the person with ID 101112 been a part of?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 79
 📌 **Stored Mapping:**
 {
@@ -3347,10 +3107,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find the TV show appearances for a specific actor.
+📝 **Associated Query:** Retrieve the television credits for the individual corresponding to ID 131415.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 8
 📌 **Stored Mapping:**
 {
@@ -3360,10 +3120,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Show me the latest popular TV shows.
+📝 **Associated Query:** What are the top TV shows everyone is watching?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 80
 📌 **Stored Mapping:**
 {
@@ -3371,10 +3131,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What's the latest TV show added to the database?
+📝 **Associated Query:** What is the latest TV show added to the database?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 81
 📌 **Stored Mapping:**
 {
@@ -3382,10 +3142,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you find the most recent TV series released?
+📝 **Associated Query:** Can you provide details of the most recently released series?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 82
 📌 **Stored Mapping:**
 {
@@ -3393,10 +3153,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the newest TV show that was added to the platform.
+📝 **Associated Query:** What is the newest TV series on the database?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 83
 📌 **Stored Mapping:**
 {
@@ -3404,10 +3164,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What is the latest television series available?
+📝 **Associated Query:** Show me the latest TV show that was added.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,781 - INFO - 
 🆔 **ID:** 84
 📌 **Stored Mapping:**
 {
@@ -3415,10 +3175,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Fetch the most recently launched TV show information.
+📝 **Associated Query:** Give me information on the latest series released.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 85
 📌 **Stored Mapping:**
 {
@@ -3426,10 +3186,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the key details for a specific movie production company?
+📝 **Associated Query:** What are the details of a specific company by its ID in TMDB?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 86
 📌 **Stored Mapping:**
 {
@@ -3437,10 +3197,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you show me more information about this film company?
+📝 **Associated Query:** Can I get information about a movie production company on TMDB using a company ID?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 87
 📌 **Stored Mapping:**
 {
@@ -3448,10 +3208,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Please provide the detailed profile for this movie production company.
+📝 **Associated Query:** How do I retrieve the full profile of a company from TMDB using their unique company ID?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 88
 📌 **Stored Mapping:**
 {
@@ -3459,10 +3219,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** I want to know about the structure and background of a certain film company.
+📝 **Associated Query:** What can I discover about a movie company's history and details by querying their TMDB ID?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 89
 📌 **Stored Mapping:**
 {
@@ -3470,10 +3230,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Could you give me the full rundown on this movie production house?
+📝 **Associated Query:** Could you provide the business details for a specific TMDB company when given its ID?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 9
 📌 **Stored Mapping:**
 {
@@ -3483,10 +3243,10 @@
     "page": 1
   }
 }
-📝 **Associated Query:** Give me the list of today's trending TV series.
+📝 **Associated Query:** Which TV series are currently in the limelight?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 90
 📌 **Stored Mapping:**
 {
@@ -3494,10 +3254,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What images are available for this TV show by its ID?
+📝 **Associated Query:** What images are available for this TV show?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 91
 📌 **Stored Mapping:**
 {
@@ -3505,10 +3265,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Can you display all the photos related to a specific television series using its ID?
+📝 **Associated Query:** Can you display all the pictures from the TV series?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 92
 📌 **Stored Mapping:**
 {
@@ -3516,10 +3276,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Fetch all the pictures from a TV series identified by its unique ID.
+📝 **Associated Query:** Show me the gallery for this television series.
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 93
 📌 **Stored Mapping:**
 {
@@ -3527,10 +3287,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Show me the gallery of images linked to the TV ID provided.
+📝 **Associated Query:** I want to see photos from this TV show, can you find them?
 ==================================================
 
-2025-03-03 23:06:25,716 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 94
 📌 **Stored Mapping:**
 {
@@ -3538,10 +3298,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Retrieve the image collection for a television series using its ID.
+📝 **Associated Query:** Are there any official images released for this TV series?
 ==================================================
 
-2025-03-03 23:06:25,717 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 95
 📌 **Stored Mapping:**
 {
@@ -3549,10 +3309,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** What are the cast and crew details for season 3 of the TV show with ID 456?
+📝 **Associated Query:** Who are the cast members for season 3 of 'Stranger Things'?
 ==================================================
 
-2025-03-03 23:06:25,717 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 96
 📌 **Stored Mapping:**
 {
@@ -3560,10 +3320,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Who are the actors in season 1 of the series with TV ID 789?
+📝 **Associated Query:** Can you list the crew involved in the second season of 'The Crown'?
 ==================================================
 
-2025-03-03 23:06:25,717 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 97
 📌 **Stored Mapping:**
 {
@@ -3571,10 +3331,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Get the crew list for season 2 of the television series identified by TV ID 123.
+📝 **Associated Query:** Show me the actors from season 1 of 'Game of Thrones'.
 ==================================================
 
-2025-03-03 23:06:25,717 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 98
 📌 **Stored Mapping:**
 {
@@ -3582,10 +3342,10 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** Find out all the actors and their roles for season 4 of the TV series with ID 654.
+📝 **Associated Query:** What are the credits for the fourth season of 'Breaking Bad'?
 ==================================================
 
-2025-03-03 23:06:25,717 - INFO - 
+2025-03-03 23:27:56,782 - INFO - 
 🆔 **ID:** 99
 📌 **Stored Mapping:**
 {
@@ -3593,6 +3353,6 @@
   "method": "GET",
   "parameters": {}
 }
-📝 **Associated Query:** List all crew members working in season 5 of the TV show with ID 321.
+📝 **Associated Query:** Provide details on the team behind season 5 of 'Friends'.
 ==================================================
 
