@@ -1,6 +1,6 @@
 [
     {
-        "query": "What are the keywords for the movie with ID 550?",
+        "query": "What are the keywords associated with a specific movie?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -8,7 +8,7 @@
         }
     },
     {
-        "query": "Can you list the keywords associated with movie ID 768?",
+        "query": "Can you show the keywords for movie ID 12345?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -16,7 +16,7 @@
         }
     },
     {
-        "query": "Find keywords related to movie ID 1028.",
+        "query": "How do I find the major themes and keywords of a movie based on its ID?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -24,7 +24,7 @@
         }
     },
     {
-        "query": "Show me the keywords for the movie with ID 402.",
+        "query": "What are the central topics and keywords linked to a movie?",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -32,7 +32,7 @@
         }
     },
     {
-        "query": "Retrieve keywords for the movie identified by ID 305.",
+        "query": "Fetch the list of keywords for a movie using its ID.",
         "solution": {
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
@@ -40,7 +40,7 @@
         }
     },
     {
-        "query": "What are the most popular TV shows right now?",
+        "query": "What are the popular TV shows right now?",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
@@ -50,7 +50,7 @@
         }
     },
     {
-        "query": "Can you list the current popular TV series?",
+        "query": "Show me the current trending TV series.",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
@@ -60,7 +60,7 @@
         }
     },
     {
-        "query": "Show me trending TV shows today.",
+        "query": "List the top TV shows that everyone is watching.",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
@@ -70,7 +70,7 @@
         }
     },
     {
-        "query": "What are the top TV shows everyone is watching?",
+        "query": "Can I see the most popular television shows today?",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
@@ -80,7 +80,7 @@
         }
     },
     {
-        "query": "Which TV series are currently in the limelight?",
+        "query": "What are the latest popular TV series?",
         "solution": {
             "endpoint": "/tv/popular",
             "method": "GET",
@@ -90,7 +90,7 @@
         }
     },
     {
-        "query": "What are the complete details of actor with ID 54321?",
+        "query": "What details are available for actor with ID 1234?",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -98,7 +98,7 @@
         }
     },
     {
-        "query": "Can you provide information for actress with ID 98765?",
+        "query": "Can you fetch the profile information for the director with ID 5678?",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -106,7 +106,7 @@
         }
     },
     {
-        "query": "Show me the full profile of the director identified by ID 12345.",
+        "query": "Show me the biography and career details for the celebrity with ID 2456.",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -114,7 +114,7 @@
         }
     },
     {
-        "query": "Fetch the data for the producer with ID 67890.",
+        "query": "Provide the complete professional summary for the person with ID 3721.",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -122,7 +122,7 @@
         }
     },
     {
-        "query": "Retrieve complete information for the screenwriter with ID 13579.",
+        "query": "Retrieve full personal and career details for the person ID 4888.",
         "solution": {
             "endpoint": "/person/{person_id}",
             "method": "GET",
@@ -130,7 +130,7 @@
         }
     },
     {
-        "query": "What are the reviews for the movie with ID 550?",
+        "query": "What are the latest reviews for the movie with ID 123?",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
@@ -140,7 +140,7 @@
         }
     },
     {
-        "query": "Can I see user reviews for movie ID 12345?",
+        "query": "Can you show me user reviews for the movie identified by ID 456?",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
@@ -150,7 +150,7 @@
         }
     },
     {
-        "query": "Show me the reviews for the movie corresponding to ID 300.",
+        "query": "Fetch the critic reviews for the movie with the ID 789.",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
@@ -160,7 +160,7 @@
         }
     },
     {
-        "query": "How can I read reviews for a movie if I have the movie ID 6789?",
+        "query": "I want to see the audience feedback on the movie with ID 321.",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
@@ -170,7 +170,7 @@
         }
     },
     {
-        "query": "Is there a way to view the reviews for a movie using its ID, say ID 9876?",
+        "query": "Provide the detailed reviews for the movie holding ID 654.",
         "solution": {
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
@@ -180,7 +180,7 @@
         }
     },
     {
-        "query": "When did the movie with the ID '123' get released?",
+        "query": "When was a specific movie released in different countries?",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -188,7 +188,7 @@
         }
     },
     {
-        "query": "Can you provide the release dates for the movie with ID '456'?",
+        "query": "Can you show me the international release dates for a movie?",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -196,7 +196,7 @@
         }
     },
     {
-        "query": "What are the worldwide release dates for the movie ID '789'?",
+        "query": "What are the release dates of a movie across various locations?",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -204,7 +204,7 @@
         }
     },
     {
-        "query": "Check the official release dates for the movie with ID '1011' please.",
+        "query": "Where and when did a specific movie premiere globally?",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -212,7 +212,7 @@
         }
     },
     {
-        "query": "Show me all the release dates for the movie identified by ID '1213'.",
+        "query": "List all the release dates for a particular movie in different regions.",
         "solution": {
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
@@ -220,7 +220,7 @@
         }
     },
     {
-        "query": "Who are the cast and crew members for episode 5 of season 3 of 'Stranger Things'?",
+        "query": "Who were the actors in season 2 episode 5 of 'Game of Thrones'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -228,7 +228,7 @@
         }
     },
     {
-        "query": "Can you list the actors and production team for the third episode in the fourth season of 'The Crown'?",
+        "query": "Can you list the cast and crew for episode 3 of season 1 in 'The Witcher'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -236,7 +236,7 @@
         }
     },
     {
-        "query": "Show me the credits for episode 7, season 2 of 'Game of Thrones'.",
+        "query": "What are the credits for episode 10, season 4 of 'Breaking Bad'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -244,7 +244,7 @@
         }
     },
     {
-        "query": "Provide the cast and crew details for episode 1, season 1 of 'Breaking Bad'.",
+        "query": "Show the full cast and crew for episode 8 in the first season of 'Stranger Things'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -252,7 +252,7 @@
         }
     },
     {
-        "query": "What is the full list of credits for the tenth episode of the fifth season of 'Friends'?",
+        "query": "Find out who worked on episode 1 of season 3 in 'Friends'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
@@ -260,7 +260,7 @@
         }
     },
     {
-        "query": "What images are available for a specific movie ID?",
+        "query": "What images are available for a specific movie?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
@@ -268,7 +268,7 @@
         }
     },
     {
-        "query": "Can you show me the photos related to this movie by its ID?",
+        "query": "Can I get photos related to a particular movie?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
@@ -276,7 +276,7 @@
         }
     },
     {
-        "query": "Retrieve all images associated with a given movie ID.",
+        "query": "Show me the gallery for a given film.",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
@@ -284,7 +284,7 @@
         }
     },
     {
-        "query": "Load the gallery for a movie based on its unique ID.",
+        "query": "How can I access movie stills and posters?",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
@@ -292,7 +292,7 @@
         }
     },
     {
-        "query": "Fetch movie stills and behind-the-scenes photos using the movie ID.",
+        "query": "Fetch me pictures from a specific movie's database.",
         "solution": {
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
@@ -300,7 +300,7 @@
         }
     },
     {
-        "query": "What are the top results for 'Stranger Things' on TV show search?",
+        "query": "What are some popular TV shows this season?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
@@ -313,7 +313,7 @@
         }
     },
     {
-        "query": "Can you find TV series similar to 'Game of Thrones'?",
+        "query": "Can you find TV series that include dragons in the storyline?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
@@ -326,7 +326,7 @@
         }
     },
     {
-        "query": "How do I search for new TV shows that premiered in 2023?",
+        "query": "Where can I search for TV shows with high ratings?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
@@ -339,7 +339,7 @@
         }
     },
     {
-        "query": "Show me TV series that include the keyword 'mystery'.",
+        "query": "I need to find a TV show that started in the 90s, can you help?",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
@@ -352,7 +352,7 @@
         }
     },
     {
-        "query": "Search for TV shows by the name 'Breaking Bad'.",
+        "query": "Show me any recent TV series that deals with technology.",
         "solution": {
             "endpoint": "/search/tv",
             "method": "GET",
@@ -365,7 +365,7 @@
         }
     },
     {
-        "query": "What details are available for episode 5 of season 3 for the TV show with ID 123?",
+        "query": "What are the details of episode 5, season 3 of 'Friends'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -373,7 +373,7 @@
         }
     },
     {
-        "query": "Can I get information on the third episode of the first season for the series with ID 321?",
+        "query": "Can you provide information about the first episode of the fourth season for 'Breaking Bad'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -381,7 +381,7 @@
         }
     },
     {
-        "query": "Show me the details for episode 10 in season 2 of the TV series identified by 456.",
+        "query": "Show me the summary of episode 10 in season 2 of 'The Crown'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -389,7 +389,7 @@
         }
     },
     {
-        "query": "Tell me about episode 1 in season 4 of the television series with the ID 654.",
+        "query": "Get the cast details for episode 8, season 1 of 'Game of Thrones'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -397,7 +397,7 @@
         }
     },
     {
-        "query": "How can I find out more about episode 7, season 5 of the TV show with ID 987?",
+        "query": "I need the release date and episode information for season 5, episode 13 of 'The Office'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
@@ -405,7 +405,7 @@
         }
     },
     {
-        "query": "What images are available for this TV network?",
+        "query": "What images are available for a given network id?",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -413,7 +413,7 @@
         }
     },
     {
-        "query": "Show me the latest images from this network.",
+        "query": "Can I see the logo pictures for a specific TV network?",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -421,7 +421,7 @@
         }
     },
     {
-        "query": "Can I see the logo and other images of this network?",
+        "query": "Show me all image assets for a certain network by id.",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -429,7 +429,7 @@
         }
     },
     {
-        "query": "Find images associated with this network.",
+        "query": "Where can I find promotional images for a television network?",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -437,7 +437,7 @@
         }
     },
     {
-        "query": "Display gallery of this network's branding and promotional images.",
+        "query": "Get me the gallery of logos and images for a network specified by ID.",
         "solution": {
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
@@ -445,7 +445,7 @@
         }
     },
     {
-        "query": "What genres are available for TV shows?",
+        "query": "What are all the TV genres available?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -453,7 +453,7 @@
         }
     },
     {
-        "query": "Can you list the different TV show genres?",
+        "query": "Can you list the genres for television shows?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -461,7 +461,7 @@
         }
     },
     {
-        "query": "Show me a list of genres for television series.",
+        "query": "What types of TV show genres can I browse?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -469,7 +469,7 @@
         }
     },
     {
-        "query": "Which genres can I find in TV shows?",
+        "query": "Show me a list of TV genres.",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -477,7 +477,7 @@
         }
     },
     {
-        "query": "Explore various TV show genres available.",
+        "query": "What genres are there for TV series?",
         "solution": {
             "endpoint": "/genre/tv/list",
             "method": "GET",
@@ -485,7 +485,7 @@
         }
     },
     {
-        "query": "What are some recent movies similar to Inception?",
+        "query": "What are the latest movies starring Tom Hanks?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
@@ -499,7 +499,7 @@
         }
     },
     {
-        "query": "Can you find movies directed by Steven Spielberg released after 2010?",
+        "query": "Can you find movies directed by Christopher Nolan?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
@@ -513,7 +513,7 @@
         }
     },
     {
-        "query": "I want to search for action movies with a high rating released in the last 5 years.",
+        "query": "How do I search for movies with the keyword 'adventure'?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
@@ -527,7 +527,7 @@
         }
     },
     {
-        "query": "Show me a list of comedy films from the 90s with a female lead.",
+        "query": "Is there a movie featuring both Leonardo DiCaprio and Brad Pitt?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
@@ -541,7 +541,7 @@
         }
     },
     {
-        "query": "Find movies that are similar to 'The Matrix' in terms of storyline and special effects.",
+        "query": "Where can I find movies that came out in the 1990s?",
         "solution": {
             "endpoint": "/search/movie",
             "method": "GET",
@@ -555,7 +555,7 @@
         }
     },
     {
-        "query": "What are the top trending movies this month?",
+        "query": "What are the top movies right now?",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
@@ -576,7 +576,7 @@
         }
     },
     {
-        "query": "Can you suggest some movies that are popular right now?",
+        "query": "Show me a list of popular foreign films.",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
@@ -597,7 +597,7 @@
         }
     },
     {
-        "query": "Show me a list of movies that are similar to 'Inception'.",
+        "query": "Which family-friendly movies are trending today?",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
@@ -618,7 +618,7 @@
         }
     },
     {
-        "query": "What are the newly released movies worth watching?",
+        "query": "Discover recent movies with high ratings.",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
@@ -639,7 +639,7 @@
         }
     },
     {
-        "query": "Discover movies that are highly rated by viewers this year.",
+        "query": "Find action-packed movies released this year.",
         "solution": {
             "endpoint": "/discover/movie",
             "method": "GET",
@@ -660,7 +660,7 @@
         }
     },
     {
-        "query": "What are the newest movies coming out soon?",
+        "query": "What are the upcoming movies releasing soon?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
@@ -670,7 +670,7 @@
         }
     },
     {
-        "query": "Can you list the upcoming movie releases?",
+        "query": "Can you list the latest movies that will be out in theaters next month?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
@@ -680,7 +680,7 @@
         }
     },
     {
-        "query": "Show me the latest movies that are about to be released.",
+        "query": "What's new in theaters soon?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
@@ -690,7 +690,7 @@
         }
     },
     {
-        "query": "What are the soon-to-be-released movies in the next few months?",
+        "query": "Show me a list of forthcoming movie releases.",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
@@ -700,7 +700,7 @@
         }
     },
     {
-        "query": "Which movies are scheduled for release soon?",
+        "query": "What are the latest movie announcements for upcoming releases?",
         "solution": {
             "endpoint": "/movie/upcoming",
             "method": "GET",
@@ -710,7 +710,7 @@
         }
     },
     {
-        "query": "What details can I find using a credit ID on TMDB?",
+        "query": "What details can I find using a credit ID in TMDB?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -718,7 +718,7 @@
         }
     },
     {
-        "query": "Show me the information available for a specific credit ID.",
+        "query": "Show me the information linked to a specific credit ID on TMDB.",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -726,7 +726,7 @@
         }
     },
     {
-        "query": "Can you retrieve data for a particular credit ID from TMDB?",
+        "query": "Can I retrieve full details of a credit by its ID on TMDB?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -734,7 +734,7 @@
         }
     },
     {
-        "query": "I need the details for a credit ID, how can I get that?",
+        "query": "How do I look up credit details with an ID on TMDB?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -742,7 +742,7 @@
         }
     },
     {
-        "query": "Fetch the complete information for a given credit ID on TMDB.",
+        "query": "What does a credit ID fetch me on TMDB?",
         "solution": {
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
@@ -750,7 +750,7 @@
         }
     },
     {
-        "query": "What TV shows has the actor with ID 123 appeared in?",
+        "query": "Which TV shows has this actor appeared in?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -758,7 +758,7 @@
         }
     },
     {
-        "query": "Can you list the television series involving person ID 456?",
+        "query": "Can I see the television credits for this director?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -766,7 +766,7 @@
         }
     },
     {
-        "query": "Show me the TV roles for the artist specified by ID 789.",
+        "query": "What TV series credits does this celebrity have?",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -774,7 +774,7 @@
         }
     },
     {
-        "query": "Which TV projects has the person with ID 101112 been a part of?",
+        "query": "List all TV shows where this person has held a significant role.",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -782,7 +782,7 @@
         }
     },
     {
-        "query": "Retrieve the television credits for the individual corresponding to ID 131415.",
+        "query": "Show the television appearances for this personality.",
         "solution": {
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
@@ -790,7 +790,7 @@
         }
     },
     {
-        "query": "What is the latest TV show added to the database?",
+        "query": "What's the most recent TV show added?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -798,7 +798,7 @@
         }
     },
     {
-        "query": "Can you provide details of the most recently released series?",
+        "query": "Can you show the latest TV series released?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -806,7 +806,7 @@
         }
     },
     {
-        "query": "What is the newest TV series on the database?",
+        "query": "Which TV show was last added to the database?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -814,7 +814,7 @@
         }
     },
     {
-        "query": "Show me the latest TV show that was added.",
+        "query": "What is the newest television series listed?",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -822,7 +822,7 @@
         }
     },
     {
-        "query": "Give me information on the latest series released.",
+        "query": "Show me the latest TV show that was just added.",
         "solution": {
             "endpoint": "/tv/latest",
             "method": "GET",
@@ -830,7 +830,7 @@
         }
     },
     {
-        "query": "What are the details of a specific company by its ID in TMDB?",
+        "query": "What are the details of this movie company?",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -838,7 +838,7 @@
         }
     },
     {
-        "query": "Can I get information about a movie production company on TMDB using a company ID?",
+        "query": "Can you provide the profile for this film production company?",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -846,7 +846,7 @@
         }
     },
     {
-        "query": "How do I retrieve the full profile of a company from TMDB using their unique company ID?",
+        "query": "Show me the overview of this company associated with movies.",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -854,7 +854,7 @@
         }
     },
     {
-        "query": "What can I discover about a movie company's history and details by querying their TMDB ID?",
+        "query": "I need information on this movie production company.",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -862,7 +862,7 @@
         }
     },
     {
-        "query": "Could you provide the business details for a specific TMDB company when given its ID?",
+        "query": "Give me the full details of this cinema production company.",
         "solution": {
             "endpoint": "/company/{company_id}",
             "method": "GET",
@@ -870,7 +870,7 @@
         }
     },
     {
-        "query": "What images are available for this TV show?",
+        "query": "What images are available for a specific TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -878,7 +878,7 @@
         }
     },
     {
-        "query": "Can you display all the pictures from the TV series?",
+        "query": "Can I see all the photos related to a TV series?",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -886,7 +886,7 @@
         }
     },
     {
-        "query": "Show me the gallery for this television series.",
+        "query": "How do I find gallery images for a TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -894,7 +894,7 @@
         }
     },
     {
-        "query": "I want to see photos from this TV show, can you find them?",
+        "query": "Show me all the pictures from a specific television series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -902,7 +902,7 @@
         }
     },
     {
-        "query": "Are there any official images released for this TV series?",
+        "query": "Where can I get all the images from a TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
@@ -910,7 +910,7 @@
         }
     },
     {
-        "query": "Who are the cast members for season 3 of 'Stranger Things'?",
+        "query": "Which actors are in season 4 of \"Stranger Things\"?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -918,7 +918,7 @@
         }
     },
     {
-        "query": "Can you list the crew involved in the second season of 'The Crown'?",
+        "query": "Can you list the cast and crew for season 2 of \"The Crown\"?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -926,7 +926,7 @@
         }
     },
     {
-        "query": "Show me the actors from season 1 of 'Game of Thrones'.",
+        "query": "Who worked on season 3 of \"Breaking Bad\"?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -934,7 +934,7 @@
         }
     },
     {
-        "query": "What are the credits for the fourth season of 'Breaking Bad'?",
+        "query": "Find out the main cast for season 5 of \"The Wire\".",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -942,7 +942,7 @@
         }
     },
     {
-        "query": "Provide details on the team behind season 5 of 'Friends'.",
+        "query": "Show me the crew involved in season 1 of \"Game of Thrones\".",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
@@ -950,7 +950,7 @@
         }
     },
     {
-        "query": "Which movies are currently in theaters?",
+        "query": "What movies are playing in theaters right now?",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
@@ -960,7 +960,7 @@
         }
     },
     {
-        "query": "Show me the latest movies playing now.",
+        "query": "Show me the current movies in cinemas.",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
@@ -970,7 +970,7 @@
         }
     },
     {
-        "query": "What are the best movies playing in cinemas right now?",
+        "query": "List the films now playing in theaters.",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
@@ -980,7 +980,7 @@
         }
     },
     {
-        "query": "List current movies showing in theaters.",
+        "query": "Can you find out which movies are on screens today?",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
@@ -990,7 +990,7 @@
         }
     },
     {
-        "query": "What's now playing at the local cinemas?",
+        "query": "What are the latest movies showing in theaters now?",
         "solution": {
             "endpoint": "/movie/now_playing",
             "method": "GET",
@@ -1000,7 +1000,7 @@
         }
     },
     {
-        "query": "What details can I find about this specific movie review?",
+        "query": "What details are available for a specific movie review by its ID?",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1008,7 +1008,7 @@
         }
     },
     {
-        "query": "Can you show me the full content of a review identified by this ID?",
+        "query": "Can I get the full description of a review using its ID?",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1016,7 +1016,7 @@
         }
     },
     {
-        "query": "I need to see the author and details of this particular review, can you pull that up?",
+        "query": "How can I retrieve information about a particular review using its review ID?",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1024,7 +1024,7 @@
         }
     },
     {
-        "query": "What does the review with this ID mention about the movie?",
+        "query": "What does the review with this specific ID contain?",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1032,7 +1032,7 @@
         }
     },
     {
-        "query": "Fetch the detailed view of this review using its unique ID.",
+        "query": "Show me the details for a review identified by its unique ID.",
         "solution": {
             "endpoint": "/review/{review_id}",
             "method": "GET",
@@ -1040,7 +1040,7 @@
         }
     },
     {
-        "query": "What TV shows are currently broadcasting?",
+        "query": "What TV shows are currently airing?",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
@@ -1050,7 +1050,7 @@
         }
     },
     {
-        "query": "Show me a list of TV series that are on air right now.",
+        "query": "What are the trending television series this week?",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
@@ -1060,7 +1060,7 @@
         }
     },
     {
-        "query": "Which television programs are currently on the air?",
+        "query": "Can you list TV shows currently on the air?",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
@@ -1070,7 +1070,7 @@
         }
     },
     {
-        "query": "Can you find TV shows that are airing this week?",
+        "query": "Show me which TV series are airing right now.",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
@@ -1080,7 +1080,7 @@
         }
     },
     {
-        "query": "List current TV series that are being broadcasted.",
+        "query": "Give me the latest TV shows that are currently broadcasting.",
         "solution": {
             "endpoint": "/tv/on_the_air",
             "method": "GET",
@@ -1090,7 +1090,7 @@
         }
     },
     {
-        "query": "What are the details of the movie with ID 12456?",
+        "query": "What are the details of the movie with ID 24428?",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
@@ -1098,7 +1098,7 @@
         }
     },
     {
-        "query": "Can you fetch the information for the film numbered 99877?",
+        "query": "Can you fetch the information for the movie with the ID 550?",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
@@ -1106,7 +1106,7 @@
         }
     },
     {
-        "query": "I need specifics about the movie with ID 30333, please.",
+        "query": "Show me the data for the movie identified by ID 5783.",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
@@ -1114,7 +1114,7 @@
         }
     },
     {
-        "query": "Show me the full details for the movie that has the ID 8675309.",
+        "query": "How can I find the specifics about the movie with ID 13209?",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
@@ -1122,7 +1122,7 @@
         }
     },
     {
-        "query": "Could you provide the details for the movie identified by ID 22118?",
+        "query": "Please provide the complete details for the movie with ID 300672.",
         "solution": {
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
@@ -1130,7 +1130,7 @@
         }
     },
     {
-        "query": "What images are available for season 2 of the TV show with ID 345?",
+        "query": "What images are available for season 3 of the TV series with ID 1068?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1138,7 +1138,7 @@
         }
     },
     {
-        "query": "Show me pictures from the third season of the series identified by ID 129.",
+        "query": "Show me pictures from season 1 of the TV show identified by 1123.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1146,7 +1146,7 @@
         }
     },
     {
-        "query": "Can I see images from season 5 of the television show with ID 674?",
+        "query": "Can you find the images for season 5 of the television series with an ID of 991?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1154,7 +1154,7 @@
         }
     },
     {
-        "query": "Display all images for the first season of the TV series using ID 892.",
+        "query": "Display all the photos from season 2 for the TV show with the ID 754.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1162,7 +1162,7 @@
         }
     },
     {
-        "query": "Find all photos from season 4 of the TV show with the ID 310.",
+        "query": "I need to see the image gallery for season 4 of the TV series with ID 1205.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
@@ -1170,7 +1170,7 @@
         }
     },
     {
-        "query": "What images are available for a specific company by ID?",
+        "query": "What images are available from a specific production company in TMDB?",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1178,7 +1178,7 @@
         }
     },
     {
-        "query": "Can I see the logo and images associated with a film company?",
+        "query": "Can I view logo images for a particular film company on TMDB?",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1186,7 +1186,7 @@
         }
     },
     {
-        "query": "Show me all the images linked to a particular movie production company.",
+        "query": "How can I find images for a movie production company by its ID on TMDB?",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1194,7 +1194,7 @@
         }
     },
     {
-        "query": "Retrieve all graphics and images for a given company ID in the movie database.",
+        "query": "Show me the logos and images of a certain movie company on TMDB.",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1202,7 +1202,7 @@
         }
     },
     {
-        "query": "How can I find the images and logos for a specific film production company?",
+        "query": "Retrieve images and logos associated with a film company by ID on The Movie Database.",
         "solution": {
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
@@ -1210,7 +1210,7 @@
         }
     },
     {
-        "query": "Which reviews are available for this TV show?",
+        "query": "What are the latest reviews for the TV show with ID 123?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
@@ -1220,7 +1220,7 @@
         }
     },
     {
-        "query": "Can I see what people are saying about this series?",
+        "query": "Can you show me user reviews for the TV series identified by ID 456?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
@@ -1230,7 +1230,7 @@
         }
     },
     {
-        "query": "Show me the user reviews for this television series.",
+        "query": "How are viewers responding to the television series with the ID 789?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
@@ -1240,7 +1240,7 @@
         }
     },
     {
-        "query": "What are the critics saying about this TV show?",
+        "query": "Fetch recent reviews for the TV show with the unique ID 321.",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
@@ -1250,7 +1250,7 @@
         }
     },
     {
-        "query": "Get reviews for this TV series.",
+        "query": "What did people say about the TV series that has the ID 654?",
         "solution": {
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
@@ -1260,7 +1260,7 @@
         }
     },
     {
-        "query": "What shows are similar to Breaking Bad?",
+        "query": "What TV shows are similar to 'Stranger Things'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
@@ -1270,7 +1270,7 @@
         }
     },
     {
-        "query": "Can you suggest TV series like 'Stranger Things'?",
+        "query": "Can you suggest shows like 'Game of Thrones'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
@@ -1280,7 +1280,7 @@
         }
     },
     {
-        "query": "Find TV shows similar to 'Game of Thrones'",
+        "query": "Find TV series similar to 'Breaking Bad'",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
@@ -1290,7 +1290,7 @@
         }
     },
     {
-        "query": "List shows similar to 'The Office'",
+        "query": "What are some shows related to 'The Office'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
@@ -1300,7 +1300,7 @@
         }
     },
     {
-        "query": "Recommend similar series to 'Friends'",
+        "query": "Explore similar series to 'Friends'",
         "solution": {
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
@@ -1310,7 +1310,7 @@
         }
     },
     {
-        "query": "What are the details of a specific TV network by its ID?",
+        "query": "What information is available for network ID 550?",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1318,7 +1318,7 @@
         }
     },
     {
-        "query": "Can I get information about a TV network using its ID?",
+        "query": "Can you show me the details for network ID 35?",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1326,7 +1326,7 @@
         }
     },
     {
-        "query": "How do I find out more about a television network if I have its network ID?",
+        "query": "Fetch data for network with ID 102.",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1334,7 +1334,7 @@
         }
     },
     {
-        "query": "What information can I retrieve about a network with its unique ID?",
+        "query": "I need details about the network that has the ID 78.",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1342,7 +1342,7 @@
         }
     },
     {
-        "query": "Is it possible to get the profile of a TV network by entering its ID?",
+        "query": "What are the specifics for the network identified by ID 250?",
         "solution": {
             "endpoint": "/network/{network_id}",
             "method": "GET",
@@ -1350,7 +1350,7 @@
         }
     },
     {
-        "query": "What are some recommended TV shows related to this one?",
+        "query": "What are some recommended TV shows similar to this one?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
@@ -1360,7 +1360,7 @@
         }
     },
     {
-        "query": "Can you suggest similar TV series to watch next?",
+        "query": "Can you suggest TV series similar to this one?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
@@ -1370,7 +1370,7 @@
         }
     },
     {
-        "query": "What TV shows are typically recommended when watching this series?",
+        "query": "What other TV shows would I like if I enjoyed this one?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
@@ -1380,7 +1380,7 @@
         }
     },
     {
-        "query": "What are the top suggested series after watching this TV show?",
+        "query": "Show me TV series recommendations based on this show.",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
@@ -1390,7 +1390,7 @@
         }
     },
     {
-        "query": "Find TV series recommendations connected to this title.",
+        "query": "What are the recommended TV shows related to this series?",
         "solution": {
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
@@ -1400,7 +1400,7 @@
         }
     },
     {
-        "query": "What images are available for episode 5 of season 3 of 'Stranger Things'?",
+        "query": "What images are available for season 3, episode 5 of 'Stranger Things'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1408,7 +1408,7 @@
         }
     },
     {
-        "query": "Can you show me the photos from the first episode of the latest season of 'Game of Thrones'?",
+        "query": "Can I see photos from episode 2 of season 4 of 'The Crown'?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1416,7 +1416,7 @@
         }
     },
     {
-        "query": "Display all the pictures from season 4, episode 10 of 'Breaking Bad'.",
+        "query": "Show me the stills from episode 10, season 1 of 'Breaking Bad'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1424,7 +1424,7 @@
         }
     },
     {
-        "query": "Fetch imagery from episode 7 in season 2 of 'The Crown'.",
+        "query": "Find pictures from season 2, episode 7 of 'Game of Thrones'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1432,7 +1432,7 @@
         }
     },
     {
-        "query": "Provide the stills for episode 9 in season 5 of 'Friends'.",
+        "query": "Display the images for episode 3 in season 5 of 'Friends'.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
@@ -1440,7 +1440,7 @@
         }
     },
     {
-        "query": "What are the current popular movies?",
+        "query": "What are the most popular movies right now?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
@@ -1450,7 +1450,7 @@
         }
     },
     {
-        "query": "Show me the list of trending movies right now.",
+        "query": "Can you show me trending movies currently?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
@@ -1460,7 +1460,7 @@
         }
     },
     {
-        "query": "Can you find the most popular films at the moment?",
+        "query": "What are the top movies everyone is watching lately?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
@@ -1470,7 +1470,7 @@
         }
     },
     {
-        "query": "Which movies are everyone watching today?",
+        "query": "List today's popular films.",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
@@ -1480,7 +1480,7 @@
         }
     },
     {
-        "query": "List the top trending movies currently.",
+        "query": "Which movies are popular now?",
         "solution": {
             "endpoint": "/movie/popular",
             "method": "GET",
@@ -1500,7 +1500,7 @@
         }
     },
     {
-        "query": "Can you list today's TV schedule?",
+        "query": "Can you list the TV series that are airing today?",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
@@ -1510,7 +1510,7 @@
         }
     },
     {
-        "query": "Which series will be broadcasted today?",
+        "query": "Which TV shows can I watch that are airing today?",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
@@ -1520,7 +1520,7 @@
         }
     },
     {
-        "query": "Show me the TV lineup for today.",
+        "query": "Show me the list of TV programs airing today.",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
@@ -1530,7 +1530,7 @@
         }
     },
     {
-        "query": "What's on TV today?",
+        "query": "Find out which television shows are broadcasting today.",
         "solution": {
             "endpoint": "/tv/airing_today",
             "method": "GET",
@@ -1540,7 +1540,7 @@
         }
     },
     {
-        "query": "What are the keywords associated with this TV show?",
+        "query": "What are the keywords associated with a specific TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1548,7 +1548,7 @@
         }
     },
     {
-        "query": "Can you list the keywords for a specific TV series?",
+        "query": "Can you list the keywords for this television series?",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1556,7 +1556,7 @@
         }
     },
     {
-        "query": "Show me the key themes for this television series.",
+        "query": "Show me the keywords related to this TV series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1564,7 +1564,7 @@
         }
     },
     {
-        "query": "What are the main topics covered in this TV show?",
+        "query": "What are the main themes or keywords of this TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1572,7 +1572,7 @@
         }
     },
     {
-        "query": "Find the keywords related to a certain TV program.",
+        "query": "Find keywords for a particular TV series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
@@ -1580,7 +1580,7 @@
         }
     },
     {
-        "query": "Which actors are associated with the name 'Tim Burton'?",
+        "query": "Who are the top trending actors this week?",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
@@ -1592,7 +1592,7 @@
         }
     },
     {
-        "query": "Find information about actresses named 'Emma'.",
+        "query": "Find information on actors named Emma.",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
@@ -1604,7 +1604,7 @@
         }
     },
     {
-        "query": "Can you search for directors with the last name 'Nolan'?",
+        "query": "Which actors starred in the movie 'Inception'?",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
@@ -1616,7 +1616,7 @@
         }
     },
     {
-        "query": "What are the details for filmmakers named 'Lee'?",
+        "query": "Show me the profile for actress Jennifer Lawrence.",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
@@ -1628,7 +1628,7 @@
         }
     },
     {
-        "query": "Look up profiles for celebrities with the name 'Smith'.",
+        "query": "Can you list all the filmmakers from Canada?",
         "solution": {
             "endpoint": "/search/person",
             "method": "GET",
@@ -1640,7 +1640,7 @@
         }
     },
     {
-        "query": "Find a film production company by name",
+        "query": "What are the top film production companies?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
@@ -1651,7 +1651,7 @@
         }
     },
     {
-        "query": "Search for a movie studio based on keyword",
+        "query": "Can you find information on a movie studio named Pixar?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
@@ -1662,7 +1662,7 @@
         }
     },
     {
-        "query": "Look up details of a cinema production house",
+        "query": "Which companies are known for producing horror movies?",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
@@ -1673,7 +1673,7 @@
         }
     },
     {
-        "query": "Query for a movie company using a specific term",
+        "query": "Show me details about the company behind Jurassic Park.",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
@@ -1684,7 +1684,7 @@
         }
     },
     {
-        "query": "Discover media companies relevant to a search keyword",
+        "query": "List all movie companies starting with 'Warner'.",
         "solution": {
             "endpoint": "/search/company",
             "method": "GET",
@@ -1695,7 +1695,7 @@
         }
     },
     {
-        "query": "What are the top-rated TV shows available now?",
+        "query": "What are the most popular TV shows available now?",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
@@ -1716,7 +1716,7 @@
         }
     },
     {
-        "query": "Discover popular TV series airing this week.",
+        "query": "Can you find TV series that are trending this week?",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
@@ -1737,7 +1737,7 @@
         }
     },
     {
-        "query": "Can you list new TV series that debuted this year?",
+        "query": "Show me a list of top-rated TV shows in the drama genre.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
@@ -1758,7 +1758,7 @@
         }
     },
     {
-        "query": "Find trending TV shows for me to watch.",
+        "query": "Discover new TV shows to watch this weekend.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
@@ -1779,7 +1779,7 @@
         }
     },
     {
-        "query": "Explore recently added TV shows by genre.",
+        "query": "Explore TV series recommendations based on high user ratings.",
         "solution": {
             "endpoint": "/discover/tv",
             "method": "GET",
@@ -1800,7 +1800,7 @@
         }
     },
     {
-        "query": "What are the highest-rated movies right now?",
+        "query": "What are the highest-rated movies currently?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
@@ -1810,7 +1810,7 @@
         }
     },
     {
-        "query": "Show me the top-rated movies according to critics.",
+        "query": "Can you show the top-rated movies of all time?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
@@ -1820,7 +1820,7 @@
         }
     },
     {
-        "query": "Can you list the current top-rated movies on TMDB?",
+        "query": "Which movies have the best ratings on TMDB?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
@@ -1830,7 +1830,7 @@
         }
     },
     {
-        "query": "What movies have the highest ratings globally?",
+        "query": "I'd like to see the list of top rated movies, please.",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
@@ -1840,7 +1840,7 @@
         }
     },
     {
-        "query": "Give me the top 10 movies with the best ratings.",
+        "query": "What movies are in the top rated category on TMDB?",
         "solution": {
             "endpoint": "/movie/top_rated",
             "method": "GET",
@@ -1850,7 +1850,7 @@
         }
     },
     {
-        "query": "What is the latest movie released?",
+        "query": "What is the most recently released movie?",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -1858,7 +1858,7 @@
         }
     },
     {
-        "query": "Can you show me the most recent movie added to the database?",
+        "query": "Can you find the latest movie added to the database?",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -1866,7 +1866,7 @@
         }
     },
     {
-        "query": "What's the newest film available now?",
+        "query": "Show me the newest movie released.",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -1874,7 +1874,7 @@
         }
     },
     {
-        "query": "Which movie was released most recently?",
+        "query": "Which movie was released last?",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -1882,7 +1882,7 @@
         }
     },
     {
-        "query": "Tell me about the latest movie that was added.",
+        "query": "Tell me about the latest movie added to TMDB.",
         "solution": {
             "endpoint": "/movie/latest",
             "method": "GET",
@@ -1890,7 +1890,7 @@
         }
     },
     {
-        "query": "What are the highest rated TV shows currently?",
+        "query": "What are the top-rated TV shows right now?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
@@ -1900,7 +1900,7 @@
         }
     },
     {
-        "query": "Can you list the top-rated TV series available?",
+        "query": "Can you provide the current best-rated TV series?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
@@ -1910,7 +1910,7 @@
         }
     },
     {
-        "query": "Show me the best TV shows based on ratings.",
+        "query": "What TV shows are highly rated at the moment?",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
@@ -1920,7 +1920,7 @@
         }
     },
     {
-        "query": "What TV shows have the highest ratings?",
+        "query": "List the highest-rated television shows available today.",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
@@ -1930,7 +1930,7 @@
         }
     },
     {
-        "query": "Which television series are top-rated right now?",
+        "query": "Show me the top-rated television series currently.",
         "solution": {
             "endpoint": "/tv/top_rated",
             "method": "GET",
@@ -1940,7 +1940,7 @@
         }
     },
     {
-        "query": "What's trending in movies this week?",
+        "query": "What's currently trending in movies and TV shows?",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -1948,7 +1948,7 @@
         }
     },
     {
-        "query": "Show me this month's trending TV shows.",
+        "query": "Show me the top trending movies this week.",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -1956,7 +1956,7 @@
         }
     },
     {
-        "query": "Which documentaries are trending today?",
+        "query": "Can you list the most popular TV series today?",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -1964,7 +1964,7 @@
         }
     },
     {
-        "query": "Can you list the trending music videos for the week?",
+        "query": "What are the trending actors this week?",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -1972,7 +1972,7 @@
         }
     },
     {
-        "query": "What are the top movies and TV shows trending this month?",
+        "query": "Discover the top trending media over this month.",
         "solution": {
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
@@ -1988,7 +1988,7 @@
         }
     },
     {
-        "query": "Can you list all the genres for movies?",
+        "query": "Can you list all the genres of movies?",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -1996,7 +1996,7 @@
         }
     },
     {
-        "query": "Show me a list of movie genres.",
+        "query": "Show me a list of different movie genres.",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2004,7 +2004,7 @@
         }
     },
     {
-        "query": "What genres can I find in the movie database?",
+        "query": "What types of genres can I find in movies today?",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2012,7 +2012,7 @@
         }
     },
     {
-        "query": "Provide a list of movie genres.",
+        "query": "Give me the categories of movies currently recognized.",
         "solution": {
             "endpoint": "/genre/movie/list",
             "method": "GET",
@@ -2020,7 +2020,7 @@
         }
     },
     {
-        "query": "What are the details of season 3 for the TV show with ID 1402?",
+        "query": "What details are available for season 3 of the TV show with id 1400?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2028,7 +2028,7 @@
         }
     },
     {
-        "query": "Can you fetch information about season 2 of the series with ID 6548?",
+        "query": "Can you fetch information about season 2 for the series with id 456?",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2036,7 +2036,7 @@
         }
     },
     {
-        "query": "Get all details for season 5 of the TV show with ID 8910.",
+        "query": "Retrieve details for season 1 of the television series identified by 789.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2044,7 +2044,7 @@
         }
     },
     {
-        "query": "Show me the full information for season 1 of the TV series with ID 10020.",
+        "query": "Show me information about season 5 for the TV series with the id 1234.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2052,7 +2052,7 @@
         }
     },
     {
-        "query": "Provide the entire details for season 4 of the television show with ID 7850.",
+        "query": "Get data on season 4 of the TV show that has an id of 1012.",
         "solution": {
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
@@ -2060,7 +2060,7 @@
         }
     },
     {
-        "query": "What are the details of the movie collection with ID 1234?",
+        "query": "What are the details for collection ID 1234 on TMDB?",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2068,7 +2068,7 @@
         }
     },
     {
-        "query": "Can you find information about a film series using collection ID 9876?",
+        "query": "Can you fetch the information for collection ID 5678 from TMDB?",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2076,7 +2076,7 @@
         }
     },
     {
-        "query": "Show me the full details for the movie collection identified by ID 4321.",
+        "query": "Show me the collection details for ID 91011 on TMDB.",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2084,7 +2084,7 @@
         }
     },
     {
-        "query": "Retrieve comprehensive details about the collection with ID 5678.",
+        "query": "Retrieve data for collection ID 1213 from The Movie Database.",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2092,7 +2092,7 @@
         }
     },
     {
-        "query": "How can I get information on a specific movie collection by its ID 2468?",
+        "query": "What does collection ID 1415 include on TMDB?",
         "solution": {
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
@@ -2100,7 +2100,7 @@
         }
     },
     {
-        "query": "Show me all photos of actor with ID 12345",
+        "query": "What images are available for this actor?",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2108,7 +2108,7 @@
         }
     },
     {
-        "query": "Can I see the image gallery for the director with ID 67890?",
+        "query": "Show me all photos related to this film director.",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2116,7 +2116,7 @@
         }
     },
     {
-        "query": "Retrieve all available pictures for the artist with ID 101112",
+        "query": "Can you display the gallery for this celebrity?",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2124,7 +2124,7 @@
         }
     },
     {
-        "query": "I need to see all images associated with the celebrity identified by ID 131415",
+        "query": "Fetch all images for this person from the database.",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2132,7 +2132,7 @@
         }
     },
     {
-        "query": "Fetch the complete image collection for the performer with ID 161718",
+        "query": "Display pictures from this artist's profile.",
         "solution": {
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
@@ -2140,7 +2140,7 @@
         }
     },
     {
-        "query": "What is the detailed information for Friends TV show?",
+        "query": "What are the full details of a given TV show by its ID?",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2148,7 +2148,7 @@
         }
     },
     {
-        "query": "Can you retrieve the full details of the Breaking Bad series?",
+        "query": "Can you fetch the comprehensive info for a specific TV series using its ID?",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2156,7 +2156,7 @@
         }
     },
     {
-        "query": "Show me the complete overview and cast details of The Crown.",
+        "query": "Provide all the information about a TV series identified by its unique ID.",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2164,7 +2164,7 @@
         }
     },
     {
-        "query": "Provide the in-depth details of the Game of Thrones series.",
+        "query": "Retrieve complete details for a TV show when supplied with its TV ID.",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2172,7 +2172,7 @@
         }
     },
     {
-        "query": "Fetch the entire details including episodes and seasons for Stranger Things.",
+        "query": "Show me everything about a television series, including cast and episodes, based on its ID.",
         "solution": {
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
@@ -2180,7 +2180,7 @@
         }
     },
     {
-        "query": "what are the most popular actors right now?",
+        "query": "Who are the trending actors right now?",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
@@ -2190,7 +2190,7 @@
         }
     },
     {
-        "query": "who are the current trending celebrities?",
+        "query": "List the current popular celebrities on TMDB.",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
@@ -2200,7 +2200,7 @@
         }
     },
     {
-        "query": "show me a list of popular personalities in the film industry today",
+        "query": "Which actors are gaining popularity this week?",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
@@ -2210,7 +2210,7 @@
         }
     },
     {
-        "query": "can you find out which actors are popular this week?",
+        "query": "Show me the most popular film personalities today.",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
@@ -2220,7 +2220,7 @@
         }
     },
     {
-        "query": "which movie stars are currently in the spotlight?",
+        "query": "Find out the top trending people in the entertainment industry.",
         "solution": {
             "endpoint": "/person/popular",
             "method": "GET",
@@ -2230,7 +2230,7 @@
         }
     },
     {
-        "query": "Can I see all the images from the Star Wars collection?",
+        "query": "Can you show me images from the Harry Potter collection?",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2238,7 +2238,7 @@
         }
     },
     {
-        "query": "Show me the gallery for the Harry Potter film collection.",
+        "query": "What are the latest images for the Star Wars collection?",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2246,7 +2246,7 @@
         }
     },
     {
-        "query": "What images are available for the James Bond movie collection?",
+        "query": "I need to see pictures from the James Bond collection, please.",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2254,7 +2254,7 @@
         }
     },
     {
-        "query": "Display all pictures of the Lord of the Rings collection.",
+        "query": "Could you find images related to the Marvel Cinematic Universe collection?",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2262,7 +2262,7 @@
         }
     },
     {
-        "query": "Retrieve photos from the Pixar movie collection.",
+        "query": "Show me the visual gallery for the Lord of the Rings collection.",
         "solution": {
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
@@ -2270,7 +2270,7 @@
         }
     },
     {
-        "query": "Can you show me the cast and crew list for a specific TV show by its ID?",
+        "query": "What are the cast and crew details for a specific TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2278,7 +2278,7 @@
         }
     },
     {
-        "query": "What are the full credits for a TV series given its ID?",
+        "query": "Can you list the actors and production team of a television series?",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2286,7 +2286,7 @@
         }
     },
     {
-        "query": "Who are the actors and behind-the-scenes personnel for a television series from its ID?",
+        "query": "Who are the key personnel involved in the making of a TV show?",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2294,7 +2294,7 @@
         }
     },
     {
-        "query": "List all the people involved in producing a TV show based on its TV ID.",
+        "query": "Show me the full credits for a television program.",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2302,7 +2302,7 @@
         }
     },
     {
-        "query": "Provide the complete credits for a TV show using its unique identifier.",
+        "query": "Provide the cast and crew list for a TV series.",
         "solution": {
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
@@ -2310,7 +2310,7 @@
         }
     },
     {
-        "query": "What movies has actor ID 123 appeared in?",
+        "query": "What movies has actor ID 123 starred in?",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2318,7 +2318,7 @@
         }
     },
     {
-        "query": "Can you list the filmography for person ID 456?",
+        "query": "Can you list the movie credits for person ID 456?",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2326,7 +2326,7 @@
         }
     },
     {
-        "query": "Show all movie credits for person with ID 789.",
+        "query": "Show me all film roles for person ID 789.",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2334,7 +2334,7 @@
         }
     },
     {
-        "query": "Which movies feature person ID 1011 on their cast list?",
+        "query": "Find movie appearances for individual with ID 321.",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2342,7 +2342,7 @@
         }
     },
     {
-        "query": "Give me the list of films involving person ID 1213.",
+        "query": "Retrieve all movie projects associated with person ID 101.",
         "solution": {
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
@@ -2350,7 +2350,7 @@
         }
     },
     {
-        "query": "What movies would you recommend based on movie ID 150?",
+        "query": "What are some movie recommendations based on movie ID 1453?",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
@@ -2360,7 +2360,7 @@
         }
     },
     {
-        "query": "Can you suggest similar movies to The Dark Knight?",
+        "query": "Can you suggest similar movies to The Secret Life of Pets?",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
@@ -2370,7 +2370,7 @@
         }
     },
     {
-        "query": "Show me movies related to Titanic.",
+        "query": "Show me movies similar to Jaws based on the TMDB recommendations.",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
@@ -2380,7 +2380,7 @@
         }
     },
     {
-        "query": "Find recommended movies for Avengers: Infinity War.",
+        "query": "Find movie recommendations related to Titanic.",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
@@ -2390,7 +2390,7 @@
         }
     },
     {
-        "query": "List some movies that are similar to Inception.",
+        "query": "List movies that are recommended if you liked Inception.",
         "solution": {
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
@@ -2400,7 +2400,7 @@
         }
     },
     {
-        "query": "What are the popular movie collections on TMDB?",
+        "query": "What are the latest movie collections available?",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
@@ -2411,7 +2411,7 @@
         }
     },
     {
-        "query": "Show collections that include the Star Wars movies.",
+        "query": "Can you find a collection that includes 'The Matrix' movies?",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
@@ -2422,7 +2422,7 @@
         }
     },
     {
-        "query": "Find film collections containing 'Harry Potter'.",
+        "query": "Show me collections related to superhero themes.",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
@@ -2433,7 +2433,7 @@
         }
     },
     {
-        "query": "Can I get a list of collections for superhero movies?",
+        "query": "I'm looking for film series about space exploration, any suggestions?",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
@@ -2444,7 +2444,7 @@
         }
     },
     {
-        "query": "Search for collections that feature James Bond films.",
+        "query": "Search for collections featuring James Bond films.",
         "solution": {
             "endpoint": "/search/collection",
             "method": "GET",
@@ -2455,7 +2455,7 @@
         }
     },
     {
-        "query": "What are the cast and crew details for a specific movie?",
+        "query": "Who are the actors in the movie with ID 1234?",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2463,7 +2463,7 @@
         }
     },
     {
-        "query": "Can I get the list of actors and their roles in a movie?",
+        "query": "Can you fetch the cast and crew details for the movie titled 'Inception'?",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2471,7 +2471,7 @@
         }
     },
     {
-        "query": "Show me the full credit list for a chosen movie.",
+        "query": "What are the credits for the latest James Bond movie?",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2479,7 +2479,7 @@
         }
     },
     {
-        "query": "Who are the key crew members involved in a particular movie?",
+        "query": "Retrieve cast and crew information for the film named 'Psycho'.",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2487,7 +2487,7 @@
         }
     },
     {
-        "query": "Fetch me the details of all cast and crew for a movie.",
+        "query": "List the main cast and crew for 'The Matrix'.",
         "solution": {
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
@@ -2495,7 +2495,7 @@
         }
     },
     {
-        "query": "What movies are similar to the one with ID 512?",
+        "query": "What other movies are similar to Inception?",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
@@ -2505,7 +2505,7 @@
         }
     },
     {
-        "query": "Can you find movies like the one with ID 300?",
+        "query": "Can you suggest movies similar to The Godfather?",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
@@ -2515,7 +2515,7 @@
         }
     },
     {
-        "query": "Show movies similar to the movie with ID 1024.",
+        "query": "Show me movies like Star Wars.",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
@@ -2525,7 +2525,7 @@
         }
     },
     {
-        "query": "Which movies resemble the movie with ID 2048?",
+        "query": "Find films related to Frozen.",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
@@ -2535,7 +2535,7 @@
         }
     },
     {
-        "query": "Recommend movies that are similar to the movie ID 4096.",
+        "query": "List movies that are similar to The Matrix.",
         "solution": {
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
