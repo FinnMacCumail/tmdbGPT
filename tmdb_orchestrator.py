@@ -5,46 +5,44 @@ import logging
 import chromadb
 from openai import OpenAI
 from dotenv import load_dotenv
+import re
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load API keys
-
 dotenv_path = os.path.join(os.getcwd(), ".env") 
-load_dotenv(dotenv_path)
+load_dotenv(dotenv_path, override=True)
 
-# Get API keys from environment
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not TMDB_API_KEY:
-    print("❌ ERROR: TMDB_API_KEY is missing! Check your .env file.")
+    logger.error("❌ TMDB_API_KEY is missing or incorrect! Check your .env file.")
+    exit(1)  # ✅ Stop execution if API key is missing
 else:
-    print(f"✅ TMDB_API_KEY loaded: {TMDB_API_KEY[:5]}******")
-
+    logger.info(f"✅ TMDB_API_KEY loaded: {TMDB_API_KEY}")  # ✅ Correct
 
 if not OPENAI_API_KEY:
-    logger.error("❌ Missing OPENAI_API_KEY. Ensure it's set in your .env file.")
+    logger.error("❌ OPENAI_API_KEY is missing! Check your .env file.")
 
-# Correctly set ChromaDB path to ~/embeddings/chroma_db
-CHROMA_DB_PATH = "embeddings/chroma_db"
+
 
 # Connect to ChromaDB
+CHROMA_DB_PATH = "embeddings/chroma_db"
 chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
 collection = chroma_client.get_collection("tmdb_queries")
 
+
 class ResponseAgent:
-    """Uses LLM to dynamically format the final response."""
+    """Formats responses using OpenAI's LLM."""
 
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
 
     def generate_response(self, state, user_query):
-        """
-        Uses OpenAI's LLM to format the response dynamically.
-        """
+        """Formats the response dynamically using LLM."""
         prompt = f"""
         Given the following retrieved data:
         {json.dumps(state['results'], indent=2)}
@@ -57,7 +55,6 @@ class ResponseAgent:
 
         Output only the final response.
         """
-
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4-turbo",
@@ -71,32 +68,27 @@ class ResponseAgent:
 
 
 class OrchestratorAgent:
-    """
-    Main agent that manages query execution, keeps track of state,
-    and routes tasks to specialized agents.
-    """
+    """Manages query execution and routes tasks to specialized agents."""
 
     def __init__(self):
         self.state = {}
 
     def handle_query(self, user_query):
         """Processes the user query dynamically."""
-        logger.info(f"🤖 Orchestrator handling query: {user_query}")
+        logger.info(f"🤖 Handling query: {user_query}")
 
-        # Step 1: Use PlannerAgent to break down the query
         steps = PlannerAgent().generate_plan(user_query)
         if not steps:
             return "❌ Unable to process your request."
 
         self.state["steps"] = steps
         self.state["results"] = {}
+        self.state["user_query"] = user_query
 
-        # Step 2: Execute steps dynamically
         for step in steps:
             logger.info(f"🔍 Executing step: {step}")
             ExecutionAgent().execute_step(step, self.state)
 
-        # Step 3: Format final response
         return ResponseAgent().generate_response(self.state, user_query)
 
 
@@ -104,151 +96,269 @@ class PlannerAgent:
     """Uses LLM to break down user queries into structured steps."""
 
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
+
+    def extract_entity(self, user_query):
+        """
+        Extracts the relevant entity (person name, movie title, etc.) from a user query.
+
+        Example:
+        - "Who is Sofia Coppola?" → "Sofia Coppola"
+        - "Tell me about Lost in Translation." → "Lost in Translation"
+        """
+        function_call_schema = {
+            "name": "extract_entity",
+            "description": "Extract the relevant entity (person name, movie title, TV show) from a user query.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entity": {"type": "string", "description": "The extracted entity needed for the API request."}
+                },
+                "required": ["entity"]
+            }
+        }
+
+        prompt = f"""
+        Extract the most relevant entity from the following user query:
+        "{user_query}"
+
+        - If the query is about a person, return only the person's name.
+        - If the query is about a movie, return only the movie title.
+        - If the query is about a TV show, return only the TV show title.
+
+        Example outputs:
+        - "Who is Sofia Coppola?" → "Sofia Coppola"
+        - "Tell me about Lost in Translation." → "Lost in Translation"
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4-turbo",
+                messages=[{"role": "system", "content": prompt}],
+                tools=[{"type": "function", "function": function_call_schema}],
+                tool_choice="auto",
+                temperature=0  # ✅ Reduce randomness for better accuracy
+            )
+
+            tool_calls = response.choices[0].message.tool_calls
+            if not tool_calls:
+                logger.warning("⚠️ OpenAI did not return an extracted entity.")
+                return ""
+
+            extracted_data = json.loads(tool_calls[0].function.arguments)
+            entity = extracted_data.get("entity", "").strip()
+
+            if not entity:
+                logger.warning("⚠️ Extracted entity is empty.")
+                return ""
+
+            logger.info(f"✅ Extracted entity from user query: {entity}")
+
+            return entity
+
+        except Exception as e:
+            logger.error(f"❌ Failed to extract entity: {e}")
+            return ""
 
     def generate_plan(self, user_query):
         """
-        Generates structured steps using OpenAI's LLM.
+        Generates structured steps using OpenAI's LLM and validates API endpoints with ChromaDB.
         """
+        extracted_entity = self.extract_entity(user_query)
+
+        if not extracted_entity:
+            logger.error("❌ Could not extract a valid entity from user query.")
+            return None
+
         prompt = f"""
         Given the user query: "{user_query}", break it down into logical API calls.
         Identify if the query requires:
         - A single API call (like trending movies).
         - Multiple steps (like finding a person first, then getting their movie credits).
 
-        Return structured JSON with each step.
+        Do NOT return API endpoints. Only return the intent and required parameters.
 
         Example output:
         {{
             "steps": [
                 {{
-                    "intent": "fetch_trending_movies",
-                    "endpoint": "/trending/movie",
-                    "parameters": {{"time_window": "day"}}
+                    "intent": "find_person",
+                    "parameters": {{"query": "Sofia Coppola"}}
+                }},
+                {{
+                    "intent": "get_person_details",
+                    "parameters": {{}}
                 }}
             ]
         }}
         """
 
         try:
-            response = self.client.chat.completions.create(  # Use self.client instead of client
+            response = self.client.chat.completions.create(
                 model="gpt-4-turbo",
                 messages=[{"role": "system", "content": prompt}],
                 temperature=0.2
             )
-            return json.loads(response.choices[0].message.content)["steps"]
+            plan = json.loads(response.choices[0].message.content)["steps"]
         except Exception as e:
             logger.error(f"❌ LLM Planner failed: {e}")
             return None
 
+        # ✅ Step 2: Determine Correct Endpoints Using ChromaDB
+        validated_steps = []
+        for step in plan:
+            intent = step["intent"]
+            stored_query = ChromaDBAgent().search_chroma_db(intent)  # ✅ Query ChromaDB with intent
+
+            if not stored_query:
+                logger.warning(f"❌ No API mapping found in ChromaDB for intent: {intent}")
+                continue
+
+            if isinstance(stored_query, list) and stored_query:
+                stored_query = stored_query[0]
+
+            if "solution" not in stored_query:
+                logger.error(f"❌ Retrieved query does not contain 'solution' key: {stored_query}")
+                continue
+
+            try:
+                stored_query = json.loads(stored_query["solution"])
+            except json.JSONDecodeError:
+                logger.error(f"❌ Failed to parse stored query JSON: {stored_query}")
+                continue
+
+            # ✅ Replace the endpoint in the step with the correct ChromaDB result
+            step["endpoint"] = stored_query.get("endpoint")
+            validated_steps.append(step)
+
+        return validated_steps if validated_steps else None
+
+
 class ChromaDBAgent:
-    """Agent responsible for searching API mappings in ChromaDB."""
+    """Agent for searching API mappings in ChromaDB."""
 
     def search_chroma_db(self, query):
-        """Finds the correct API call for a given step."""
+        """Finds the correct API call mapping from ChromaDB."""
         search_results = collection.query(query_texts=[query], n_results=1)
         return search_results["metadatas"][0] if search_results and search_results["ids"] else None
 
 
 class ExecutionAgent:
-    """Executes API calls dynamically, ensuring placeholders are replaced using extracted values."""
-    
-    def execute_step(self, step, state):
-        """Executes an API call dynamically and updates the state with extracted values."""
+    """Handles API calls dynamically and resolves placeholders."""
 
-        # Retrieve API mapping from ChromaDB
-        stored_query = ChromaDBAgent().search_chroma_db(step["endpoint"])
-        logger.info(f"🔍 Retrieved ChromaDB query: {stored_query}")
+    def __init__(self):
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
+
+    def extract_placeholders(self, endpoint):
+        """Extracts placeholders from API endpoints like `{person_id}`."""
+        return re.findall(r'\{(.*?)\}', endpoint)
+
+    def resolve_placeholders(self, endpoint, state):
+        """Replaces placeholders with extracted values from state."""
+        placeholders = self.extract_placeholders(endpoint)
+        missing_placeholders = []
+
+        for placeholder in placeholders:
+            if placeholder in state.get("values", {}):
+                value = state["values"][placeholder]
+                endpoint = endpoint.replace(f"{{{placeholder}}}", str(value))
+            else:
+                missing_placeholders.append(placeholder)
+
+        return endpoint, missing_placeholders
+
+    def execute_step(self, step, state):
+        """Executes an API call dynamically and ensures the correct API mapping is retrieved."""
+        logger.info(f"🔍 Executing step: {step}")
+
+        # ✅ Determine whether this step is a primary search step or a secondary API call
+        if step["endpoint"].startswith("/search/"):  # ✅ Primary search API
+            search_key = state.get("user_query", "")
+        else:  # ✅ Secondary API step that depends on extracted data
+            search_key = step["endpoint"]
+
+        if not search_key:
+            logger.error("❌ Missing search key for ChromaDB lookup.")
+            return
+
+        stored_query = ChromaDBAgent().search_chroma_db(search_key)
 
         if not stored_query:
-            logger.warning(f"❌ No API mapping found for {step['endpoint']}")
+            logger.warning(f"❌ No API mapping found in ChromaDB for: {search_key}")
             return
 
         if isinstance(stored_query, list) and stored_query:
-            stored_query = stored_query[0]
+            stored_query = stored_query[0]  
 
-        if "solution" in stored_query:
-            try:
-                stored_query = json.loads(stored_query["solution"])
-            except json.JSONDecodeError:
-                logger.error(f"❌ Failed to parse stored query: {stored_query}")
-                return
+        if "solution" not in stored_query:
+            logger.error(f"❌ Retrieved query does not contain 'solution' key: {stored_query}")
+            return
+
+        try:
+            stored_query = json.loads(stored_query["solution"])
+        except json.JSONDecodeError:
+            logger.error(f"❌ Failed to parse stored query JSON: {stored_query}")
+            return
 
         endpoint = stored_query.get("endpoint")
-        if not endpoint:
-            logger.warning(f"❌ No valid endpoint found for {step['endpoint']}")
-            return
-
         params = stored_query.get("parameters", step.get("parameters", {}))
 
-        # ✅ Ensure search query parameter is populated ONLY for search endpoints
-        if "/search/" in endpoint:
-            if "query" in params and not params["query"]:
-                params["query"] = step["parameters"].get("query", "")
+        resolved_endpoint, missing_placeholders = self.resolve_placeholders(endpoint, state)
 
-            if not params.get("query"):
-                logger.error("❌ Search query is missing. Cannot proceed with search API call.")
-                return  # Prevents an empty request
+        # ✅ Ensure required placeholders are available before executing dependent steps
+        if missing_placeholders:
+            logger.warning(f"⚠️ Missing placeholders: {missing_placeholders}. Trying extraction from previous response.")
+            last_response = state.get("last_response", {})
+            extracted_data = LLMAgent().extract_relevant_data(step, last_response)
 
-        # ✅ Inject extracted `person_id` dynamically (no hardcoding)
-        extracted_values = state.get("values", {})
-        for key, value in extracted_values.items():
-            if isinstance(value, (str, int)):  
-                endpoint = endpoint.replace(f"{{{key}}}", str(value))
+            if extracted_data:
+                state.setdefault("values", {}).update(extracted_data)
+                resolved_endpoint, remaining_missing = self.resolve_placeholders(endpoint, state)
 
-        logger.info(f"🔍 Final API Call with Resolved Placeholders: {endpoint}")
+                if remaining_missing:
+                    logger.error(f"❌ Still missing placeholders after extraction: {remaining_missing}")
+                    return  # Stop execution if placeholders are still missing
+            else:
+                logger.error(f"❌ Placeholder extraction failed. Cannot continue.")
+                return  # Stop execution if we couldn't extract anything
 
-        # ✅ Execute the API call
-        result = self.execute_tmdb_api(endpoint, params)
+        logger.info(f"🔍 Final API Call: {resolved_endpoint}")
+        result = self.execute_tmdb_api(resolved_endpoint, params)
 
-        if not result:
-            logger.error(f"❌ API call failed or returned empty response for {endpoint}. Skipping LLM extraction.")
-            return
+        if result:
+            state["last_response"] = result
+            extracted_data = LLMAgent().extract_relevant_data(step, result)
+            state.setdefault("values", {}).update(extracted_data)
 
-        # ✅ Log the raw API response for debugging
-        logger.info(f"✅ Raw API Response for {endpoint}: {json.dumps(result, indent=2)}")
 
-        # ✅ Extract new values from API response using LLM
-        extracted_data = LLMAgent().extract_relevant_data(step, result)
-
-        if not extracted_data.get("values"):
-            logger.warning("⚠️ No new extracted values from API response. Proceeding with existing data.")
-
-        # ✅ Update state with extracted values dynamically
-        state.update(extracted_data.get("values", {}))
-
-        # ✅ Apply extracted `person_id` or other placeholders for next steps
-        if "updated_endpoint" in extracted_data and extracted_data["updated_endpoint"]:
-            endpoint = extracted_data["updated_endpoint"]
-
-        for key, value in state.get("values", {}).items():
-            if isinstance(value, (str, int)):  
-                endpoint = endpoint.replace(f"{{{key}}}", str(value))
-
-        logger.info(f"🔍 Final API Call after Extraction: {endpoint}")
-
-        # ✅ Execute the updated API call if needed
-        final_result = self.execute_tmdb_api(endpoint, params)
-        state["results"][step["intent"]] = final_result
 
 
     def execute_tmdb_api(self, endpoint, params):
-        """Calls the TMDB API dynamically."""
+        """Calls the TMDB API dynamically with correct authentication."""
         base_url = "https://api.themoviedb.org/3"
 
         if not TMDB_API_KEY:
             logger.error("❌ TMDB_API_KEY is missing. Check your .env file.")
             return None
 
-        # ✅ Add API Key to request parameters
-        params["api_key"] = TMDB_API_KEY
+        # ✅ Ensure "query" is a raw string, NOT manually encoded
+        if "query" in params and isinstance(params["query"], str):
+            logger.info(f"🔍 Raw Query Parameter Before Sending: {params['query']}")
 
         request_url = f"{base_url}{endpoint}"
         logger.info(f"🔍 Sending request to: {request_url} with params {params}")
 
+        headers = {
+            "Authorization": f"Bearer {TMDB_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
         try:
-            response = requests.get(request_url, params=params)
+            response = requests.get(request_url, params=params, headers=headers)
             response_data = response.json()
+
+            # ✅ Log full API response
+            logger.info(f"✅ API Response for {endpoint}: {json.dumps(response_data, indent=2)}")
 
             if response.status_code == 200:
                 return response_data
@@ -259,73 +369,96 @@ class ExecutionAgent:
         except requests.RequestException as e:
             logger.error(f"❌ Request error: {e}")
             return None
-
+        
 class LLMAgent:
     """Uses LLM reasoning to dynamically extract key values and replace placeholders."""
 
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
 
     def extract_relevant_data(self, step, api_response):
-        """Extracts dynamic values from API responses and replaces placeholders."""
+        """
+        Extracts necessary values from an API response based on required placeholders.
+        
+        - Identifies what needs to be extracted based on the next API call.
+        - Uses OpenAI function calling for structured, reliable extraction.
+
+        :param step: The current step in the execution plan.
+        :param api_response: The raw JSON response from TMDB API.
+        :return: Dictionary containing extracted values.
+        """
 
         if not api_response or "results" not in api_response or not api_response["results"]:
             logger.error("❌ API response is empty or malformed. Cannot extract data.")
             return {}
 
-        # ✅ Convert JSON first (avoiding formatting issues)
+        # ✅ Identify required placeholders from the next step
+        placeholders_needed = ExecutionAgent().extract_placeholders(step["endpoint"])
+
+        if not placeholders_needed:
+            logger.info("✅ No placeholders needed for this step.")
+            return {}
+
+        # ✅ Convert API response to JSON string to avoid formatting issues
         formatted_json = json.dumps(api_response, indent=2)
 
-        # ✅ Use an f-string instead of str.format()
+        # ✅ Define OpenAI function calling schema
+        function_call_schema = {
+            "name": "extract_values",
+            "description": "Extract necessary values from API response based on placeholders.",
+            "parameters": {
+                "type": "object",
+                "properties": {placeholder: {"type": "string"} for placeholder in placeholders_needed},
+                "required": placeholders_needed
+            }
+        }
+
+        # ✅ Construct prompt for OpenAI
         prompt = f"""
-        Given the API response:
+        Given the following API response:
         {formatted_json}
 
-        - Identify if the response contains a `person_id` for a search query.
-        - If applicable, return "values": {{"person_id": extracted_id}}.
-        - If the response does not contain valid results, return {{"values": {{}}}}.
+        - Identify and extract only the necessary values for the placeholders: {placeholders_needed}.
+        - Ensure the extracted values match their correct keys.
 
-        Only return a JSON response.
+        Return the extracted values as a JSON object.
         """
 
         try:
+            # ✅ Use OpenAI function calling
             response = self.client.chat.completions.create(
                 model="gpt-4-turbo",
                 messages=[{"role": "system", "content": prompt}],
+                tools=[{"type": "function", "function": function_call_schema}],
+                tool_choice="auto",
                 temperature=0.2
             )
 
-            raw_output = response.choices[0].message.content.strip()
-            logger.info(f"✅ Raw LLM Response: {raw_output}")
-
-            extracted_data = json.loads(raw_output)
-
-            if not isinstance(extracted_data, dict) or "values" not in extracted_data:
-                logger.warning("⚠️ LLM returned unexpected structure.")
+            # ✅ Extract structured JSON output from OpenAI response
+            tool_calls = response.choices[0].message.tool_calls
+            if not tool_calls:
+                logger.warning(f"⚠️ Warning: OpenAI returned no tool calls for extraction.")
                 return {}
 
+            extracted_data = json.loads(tool_calls[0].function.arguments)
+
+            logger.info(f"✅ Extracted values from API response: {extracted_data}")
+
             return extracted_data
-        except json.JSONDecodeError:
-            logger.error("❌ LLM returned invalid JSON.")
-            return {}
+
         except Exception as e:
             logger.error(f"❌ LLM Extraction failed: {e}")
             return {}
 
 
-# ------------------ MAIN CHATBOT LOOP ------------------ #
 def main():
     """Interactive chatbot loop for querying TMDB."""
-    print("🎬 TMDB Chatbot: Ask me about movies, actors, or trending films!")
-
     while True:
         user_input = input("\nYou: ")
         if user_input.lower() in ["exit", "quit"]:
-            print("Goodbye! 🎬")
             break
+        print(OrchestratorAgent().handle_query(user_input))
 
-        response = OrchestratorAgent().handle_query(user_input)
-        print(response)
 
 if __name__ == "__main__":
     main()
