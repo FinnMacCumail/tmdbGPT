@@ -9,3 +9,4 @@ venv/
 embeddings/
 #logs/
 .vscode/
+chroma_db/
