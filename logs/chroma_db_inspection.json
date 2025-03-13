@@ -6,7 +6,7 @@
             "description": "Get Keywords",
             "endpoint": "/movie/{movie_id}/keywords",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -26,7 +26,7 @@
             "description": "Get TV List",
             "endpoint": "/genre/tv/list",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[]"
         }
     },
     {
@@ -66,7 +66,7 @@
             "description": "Get Details",
             "endpoint": "/credit/{credit_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"credit_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the credit id.\", \"required\": true}]"
         }
     },
     {
@@ -76,7 +76,7 @@
             "description": "Get TV Credits",
             "endpoint": "/person/{person_id}/tv_credits",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"person_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the person id.\", \"required\": true}]"
         }
     },
     {
@@ -86,7 +86,7 @@
             "description": "Get Latest",
             "endpoint": "/tv/latest",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[]"
         }
     },
     {
@@ -96,7 +96,7 @@
             "description": "Get Details",
             "endpoint": "/company/{company_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"company_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the company id.\", \"required\": true}]"
         }
     },
     {
@@ -106,7 +106,7 @@
             "description": "Get Images",
             "endpoint": "/tv/{tv_id}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -116,7 +116,7 @@
             "description": "Get Credits",
             "endpoint": "/tv/{tv_id}/season/{season_number}/credits",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}, {\"name\": \"season_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the season number.\", \"required\": true}]"
         }
     },
     {
@@ -126,7 +126,7 @@
             "description": "Get Details",
             "endpoint": "/person/{person_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"person_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the person id.\", \"required\": true}]"
         }
     },
     {
@@ -146,7 +146,7 @@
             "description": "Get Details",
             "endpoint": "/review/{review_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"review_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the review id.\", \"required\": true}]"
         }
     },
     {
@@ -166,7 +166,7 @@
             "description": "Get Details",
             "endpoint": "/movie/{movie_id}",
             "method": "GET",
-            "parameters": "[{\"name\": \"append_to_response\", \"in\": \"query\", \"schema\": {\"type\": \"string\"}, \"description\": \"Append requests within the same namespace to the response.\"}]"
+            "parameters": "[{\"name\": \"append_to_response\", \"in\": \"query\", \"schema\": {\"type\": \"string\"}, \"description\": \"Append requests within the same namespace to the response.\"}, {\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -176,7 +176,7 @@
             "description": "Get Images",
             "endpoint": "/tv/{tv_id}/season/{season_number}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}, {\"name\": \"season_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the season number.\", \"required\": true}]"
         }
     },
     {
@@ -186,7 +186,7 @@
             "description": "Get Images",
             "endpoint": "/company/{company_id}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"company_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the company id.\", \"required\": true}]"
         }
     },
     {
@@ -196,7 +196,7 @@
             "description": "Get Reviews",
             "endpoint": "/tv/{tv_id}/reviews",
             "method": "GET",
-            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}]"
+            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}, {\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -206,7 +206,7 @@
             "description": "Get Similar TV Shows",
             "endpoint": "/tv/{tv_id}/similar",
             "method": "GET",
-            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}]"
+            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}, {\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -216,7 +216,7 @@
             "description": "Get Details",
             "endpoint": "/network/{network_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"network_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the network id.\", \"required\": true}]"
         }
     },
     {
@@ -226,7 +226,7 @@
             "description": "Get Recommendations",
             "endpoint": "/tv/{tv_id}/recommendations",
             "method": "GET",
-            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}]"
+            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}, {\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -236,7 +236,7 @@
             "description": "Get Reviews",
             "endpoint": "/movie/{movie_id}/reviews",
             "method": "GET",
-            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}]"
+            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}, {\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -246,7 +246,7 @@
             "description": "Get Images",
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}, {\"name\": \"season_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the season number.\", \"required\": true}, {\"name\": \"episode_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the episode number.\", \"required\": true}]"
         }
     },
     {
@@ -276,7 +276,7 @@
             "description": "Get Keywords",
             "endpoint": "/tv/{tv_id}/keywords",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -326,7 +326,7 @@
             "description": "Get Latest",
             "endpoint": "/movie/latest",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[]"
         }
     },
     {
@@ -346,7 +346,7 @@
             "description": "Get Release Dates",
             "endpoint": "/movie/{movie_id}/release_dates",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -356,7 +356,7 @@
             "description": "Get Trending",
             "endpoint": "/trending/{media_type}/{time_window}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"media_type\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the media type.\", \"required\": true}, {\"name\": \"time_window\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the time window.\", \"required\": true}]"
         }
     },
     {
@@ -366,7 +366,7 @@
             "description": "Get Movie List",
             "endpoint": "/genre/movie/list",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[]"
         }
     },
     {
@@ -376,7 +376,7 @@
             "description": "Get Details",
             "endpoint": "/tv/{tv_id}/season/{season_number}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}, {\"name\": \"season_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the season number.\", \"required\": true}]"
         }
     },
     {
@@ -386,7 +386,7 @@
             "description": "Get Details",
             "endpoint": "/collection/{collection_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"collection_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the collection id.\", \"required\": true}]"
         }
     },
     {
@@ -396,7 +396,7 @@
             "description": "Get Images",
             "endpoint": "/person/{person_id}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"person_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the person id.\", \"required\": true}]"
         }
     },
     {
@@ -406,7 +406,7 @@
             "description": "Get Details",
             "endpoint": "/tv/{tv_id}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -426,7 +426,7 @@
             "description": "Get Images",
             "endpoint": "/collection/{collection_id}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"collection_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the collection id.\", \"required\": true}]"
         }
     },
     {
@@ -436,7 +436,7 @@
             "description": "Get Credits",
             "endpoint": "/tv/{tv_id}/credits",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}]"
         }
     },
     {
@@ -446,7 +446,7 @@
             "description": "Get Movie Credits",
             "endpoint": "/person/{person_id}/movie_credits",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"person_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the person id.\", \"required\": true}]"
         }
     },
     {
@@ -456,7 +456,7 @@
             "description": "Get Credits",
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}, {\"name\": \"season_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the season number.\", \"required\": true}, {\"name\": \"episode_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the episode number.\", \"required\": true}]"
         }
     },
     {
@@ -466,7 +466,7 @@
             "description": "Get Recommendations",
             "endpoint": "/movie/{movie_id}/recommendations",
             "method": "GET",
-            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}]"
+            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}, {\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -486,7 +486,7 @@
             "description": "Get Credits",
             "endpoint": "/movie/{movie_id}/credits",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -496,7 +496,7 @@
             "description": "Get Similar Movies",
             "endpoint": "/movie/{movie_id}/similar",
             "method": "GET",
-            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}]"
+            "parameters": "[{\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"default\": 1}, \"description\": \"Specify which page to query.\"}, {\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -506,7 +506,7 @@
             "description": "Get Images",
             "endpoint": "/movie/{movie_id}/images",
             "method": "GET",
-            "parameters": "[{\"name\": \"include_image_language\", \"in\": \"query\", \"schema\": {\"type\": \"string\"}}]"
+            "parameters": "[{\"name\": \"include_image_language\", \"in\": \"query\", \"schema\": {\"type\": \"string\"}}, {\"name\": \"movie_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the movie id.\", \"required\": true}]"
         }
     },
     {
@@ -526,7 +526,7 @@
             "description": "Get Details",
             "endpoint": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"tv_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the tv id.\", \"required\": true}, {\"name\": \"season_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the season number.\", \"required\": true}, {\"name\": \"episode_number\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the episode number.\", \"required\": true}]"
         }
     },
     {
@@ -536,7 +536,7 @@
             "description": "Get Images",
             "endpoint": "/network/{network_id}/images",
             "method": "GET",
-            "parameters": ""
+            "parameters": "[{\"name\": \"network_id\", \"in\": \"path\", \"schema\": {\"type\": \"integer\"}, \"description\": \"The ID of the network id.\", \"required\": true}]"
         }
     }
 ]
