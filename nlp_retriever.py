@@ -8,7 +8,8 @@ import os
 import ast  # Import to parse JSON-like strings
 from dotenv import load_dotenv
 import spacy
-
+from openai import OpenAI
+import re
 
 # Load API keys
 dotenv_path = os.path.join(os.getcwd(), ".env") 
@@ -24,6 +25,8 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 # Initialize ChromaDB client
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="tmdb_queries")
+
+nlp = spacy.load("en_core_web_trf")
 
 class IntentAnalyzer:
     """
@@ -62,19 +65,22 @@ class IntentAnalyzer:
         ]
     
     def extract_entities(self, query):
-        """
-        Uses the spaCy model to extract entities from the query and maps them to domain-specific keys.
-        """
-        doc = self.nlp(query)
+        """Extracts named entities from the query using NLP without any hardcoding."""
+        doc = nlp(query)
         extracted = {}
+
+        # Map spaCy entity types dynamically based on TMDB API parameter names
+        entity_mappings = {
+            "PERSON": "query",  # Used for /search/person
+            "WORK_OF_ART": "query",  # Used for /search/movie
+            "DATE": "date",
+            "GPE": "region"
+        }
+
         for ent in doc.ents:
-            # Map the spaCy entity label using the injected mapping.
-            key = self.entity_mapping.get(ent.label_, ent.label_)
-            # Concatenate if the same key appears more than once.
-            if key in extracted:
-                extracted[key] += f" {ent.text}"
-            else:
-                extracted[key] = ent.text
+            if ent.label_ in entity_mappings:
+                extracted[entity_mappings[ent.label_]] = ent.text
+
         return extracted
     
     def rule_search_person(self, query, entities):
@@ -163,12 +169,6 @@ class IntentAnalyzer:
             return {"entities": entities, "steps": refined}
         return {"entities": entities, "intents": intents}
 
-import openai
-
-import openai
-
-from openai import OpenAI
-
 class OpenAILLMClient:
     def __init__(self, api_key, model="gpt-4-turbo", temperature=0.2):
         self.api_key = api_key
@@ -197,108 +197,302 @@ class OpenAILLMClient:
             return message.tool_calls[0].function.arguments
         else:
             return message.content.strip()
- 
-def match_query_to_cluster(query, n_results=3):
-    """Find the closest N clusters to the user query using cosine similarity."""
-    query_vector = model.encode([query]).tolist()
-    search_results = collection.query(query_texts=[query], n_results=n_results)
 
-    # ✅ Debugging: Print multiple search results
-    #print("🛠️ Debug: ChromaDB search results:", search_results)
+class PlannerAgent:
+    def __init__(self, llm_client, chroma_collection, intent_analyzer):
+        self.llm_client = llm_client
+        self.chroma_collection = chroma_collection
+        self.intent_analyzer = intent_analyzer
+
+    def generate_plan(self, query, extracted_entities):
+        """
+        Dynamically builds an execution plan based on detected API intent and extracted entities.
+        """
+        intent_data = detect_intents(query, self.chroma_collection, self.intent_analyzer)  # ✅ Now correctly passes intent_analyzer
+
+        if not intent_data:
+            print("⚠️ No matching API found for:", query)
+            return {"plan": []}
+
+        # ✅ Ensure `extracted_entities` is passed to `extract_required_parameters`
+        parameters = extract_required_parameters(intent_data["parameters"], extracted_entities)  # ✅ Fix applied
+
+        for param in parameters.keys():
+            if param in extracted_entities:
+                parameters[param] = extracted_entities[param]  # ✅ Use extracted entities dynamically
+
+        step = {
+            "step": 1,
+            "type": "api_call",
+            "intent": intent_data["intent"],
+            "endpoint": intent_data["endpoint"],
+            "method": intent_data["method"],
+            "parameters": parameters,  # ✅ Inject dynamically extracted parameters
+            "depends_on": None
+        }
+
+        return {"plan": [step]}
+
+
+def match_query_to_cluster(query, chroma_collection, extracted_entities, n_results=5):
+    """
+    Searches ChromaDB for the best matching API clusters dynamically.
+
+    - Uses ChromaDB's similarity search.
+    - Re-ranks results based on extracted entities.
+    """
+    refined_query = refine_embedding_input(query, extracted_entities)
+    search_results = chroma_collection.query(query_texts=[refined_query], n_results=n_results)
 
     if not search_results or "metadatas" not in search_results or not search_results["metadatas"]:
-        print("❌ No matching clusters found in ChromaDB.")
+        print("⚠️ No metadata found in ChromaDB results.")
         return []
 
-    return search_results["metadatas"]  # Return multiple clusters instead of one
+    metadata_results = search_results["metadatas"][0]
+    distances = search_results["distances"][0]
 
-def generate_openai_function_call(user_query, matched_clusters, llm_client):
-    """Use LLM function calling (via llm_client) to determine the correct API call from multiple clusters."""
+    # ✅ Re-rank dynamically based on extracted entity types
+    entity_weighting = {
+        "query": "/search/person",  # If a person entity is found, prioritize `/search/person`
+        "movie_title": "/search/movie"
+    }
+
+    def rank_function(item, score):
+        endpoint = item.get("endpoint", "")
+        weight = 0
+
+        for entity_type, preferred_endpoint in entity_weighting.items():
+            if entity_type in extracted_entities and preferred_endpoint in endpoint:
+                weight -= 1  # Boost priority for preferred endpoint
+
+        return score + weight  # Lower score is better
+
+    # ✅ Sort results dynamically based on weighted scores
+    sorted_results = sorted(
+        zip(metadata_results, distances),
+        key=lambda x: rank_function(x[0], x[1])  # Apply ranking function
+    )
+
+    # ✅ Return the best match dynamically
+    return [sorted_results[0][0]]  # Select best-ranked API dynamically
+
+def get_relevant_api_endpoints(query, n_results=3):
+    """Finds the closest API endpoints for a given query using ChromaDB."""
+    search_results = collection.query(query_texts=[query], n_results=n_results)
+
+    if not search_results or "metadatas" not in search_results or not search_results["metadatas"]:
+        print("⚠️ No matching API endpoints found in ChromaDB.")
+        return []
+
+    return search_results["metadatas"][0]  # Return metadata of best matches
+
+def generate_openai_function_call(intent, parameters, chroma_collection, llm_client, extracted_entities):
+    """
+    Dynamically selects an API endpoint based on the detected intent.
+    """
+    matched_clusters = match_query_to_cluster(intent, chroma_collection, extracted_entities)
+
     if not matched_clusters:
-        print("❌ No cluster data available for OpenAI.")
-        return []
+        raise ValueError(f"❌ No relevant API endpoint found for intent: {intent}")
 
     function_schemas = []
-    for i, cluster_data in enumerate(matched_clusters[0]):  # Extract first element (list of metadata)
+    for i, cluster_data in enumerate(matched_clusters):
+        if not isinstance(cluster_data, dict):
+            print(f"⚠️ Skipping invalid cluster {i}: {repr(cluster_data)}")
+            continue
+
+        description = cluster_data.get("description", "Unknown API Call")
+        endpoint = cluster_data.get("endpoint", None)
+        method = cluster_data.get("method", "GET")
+        param_raw = cluster_data.get("parameters", "[]")
+
+        if not endpoint:
+            print(f"⚠️ Skipping cluster {i} - missing endpoint: {cluster_data}")
+            continue
+
+        # ✅ Ensure parameters are parsed correctly
+        if isinstance(param_raw, str):
+            try:
+                param_list = json.loads(param_raw)
+            except json.JSONDecodeError:
+                param_list = []
+        elif isinstance(param_raw, list):
+            param_list = param_raw
+        else:
+            param_list = []
+
+        # ✅ Inject extracted entities dynamically into API parameters
+        final_parameters = {}
+        for param in param_list:
+            param_name = param["name"]
+            final_parameters[param_name] = extracted_entities.get(param_name, f"from_user_input:{param_name}")
+
+        # ✅ Append API Call Info
         function_schemas.append({
             "type": "function",
             "function": {
                 "name": f"select_api_function_{i}",
-                "description": f"Select the best API function for: {cluster_data['description']}",
+                "description": description,
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "endpoint": {"type": "string"},
-                        "method": {"type": "string"},
-                        "parameters": {"type": "object"}
+                        param["name"]: {"type": param.get("schema", {}).get("type", "string")}
+                        for param in param_list
                     },
-                    "required": ["endpoint", "method"]
+                    "required": [param["name"] for param in param_list if param.get("required", False)]
                 }
-            }
+            },
+            "endpoint": endpoint,
+            "method": method,
+            "parameters": final_parameters  # ✅ Inject correct parameters
         })
 
-    user_prompt = f"""
-    **User Query**: "{user_query.strip().lower()}"  # Ensure proper formatting
+    if function_schemas:
+        return function_schemas[0]
+    else:
+        print("⚠️ No valid API schemas generated.")
+        return None
 
-    **Available API Functions**:
-    {json.dumps(matched_clusters[0], indent=2)}
+# Sequential execution using planner and function calls
+def execute_planned_steps(planner_agent, query, extracted_entities):
+    """
+    Executes API calls based on dynamically generated plans.
+    """
+    execution_plan = planner_agent.generate_plan(query, extracted_entities)
 
-    **Task**:
-    - Select the most relevant API function for the given user query.
-    - If the query is about a **person (e.g., actor, director)**, choose **`/search/person`**.
-    - If the query is about a **movie**, choose **`/search/movie`**.
-    - If multiple API calls are required, return all of them.
+    if not execution_plan:
+        print("⚠️ No valid execution plan found.")
+        return {}
 
-    **Example Response for a multi-step query**:
-    {{
-      "functions": [
-        {{
-          "endpoint": "/search/person",
-          "method": "GET",
-          "parameters": {{
-            "query": "sofia coppola"
-          }}
-        }}
-      ]
-    }}
+    for step in execution_plan["plan"]:
+        api_call_info = generate_openai_function_call(
+            intent=step["intent"],
+            parameters=step["parameters"],
+            chroma_collection=planner_agent.chroma_collection,
+            llm_client=planner_agent.llm_client,  # ✅ Removed incorrect intent_analyzer
+            extracted_entities=extracted_entities  # ✅ Pass extracted entities correctly
+        )
 
-    **Return only a valid JSON response, do not explain your choice.**
+        if not api_call_info:
+            print("❌ ERROR: No valid API call found.")
+            return {}
+
+        response = execute_api_call(api_call_info, extracted_entities)  # ✅ Pass extracted_entities
+
+        return response
+
+def dynamic_refinement_step(parameters):
+    """
+    Dynamically filters a list of items based on provided filter criteria.
+    This avoids hardcoding refinement logic.
+    """
+    input_list_key = next((key for key, value in parameters.items() if isinstance(value, list)), None)
+    if not input_list_key:
+        print("⚠️ No valid list found for refinement.")
+        return {}
+
+    input_list = parameters[input_list_key]
+    filter_criteria = {key: value for key, value in parameters.items() if key != input_list_key}
+
+    # Apply filters dynamically based on the query parameters
+    filtered_items = [
+        item for item in input_list
+        if all(
+            (isinstance(value, list) and item.get(key) in value) or
+            (item.get(key) == value)
+            for key, value in filter_criteria.items()
+        )
+    ]
+
+    # Remove duplicates if they have an 'id' field
+    unique_items = {item["id"]: item for item in filtered_items}.values() if "id" in filtered_items[0] else filtered_items
+
+    return {input_list_key: list(unique_items)}
+
+def map_and_validate_api_call(step, shared_state, chroma_collection, llm_client):
+    intent = step["intent"]
+    parameters = step["parameters"].copy()
+
+    # Resolve dependencies dynamically
+    if step.get("depends_on"):
+        dependency_step_num = step["depends_on"]
+        dependency_response = shared_state.get(dependency_step_num)
+
+        if not dependency_response:
+            raise ValueError(f"Dependency step {dependency_step_num} unresolved for step {step['step']}")
+
+        # Resolve parameters dynamically using LLM
+        for param, value in parameters.items():
+            if isinstance(value, str) and value.startswith("from_step_"):
+                resolved_value = resolve_dependency_via_llm(
+                    previous_response=dependency_response,
+                    intent=intent,
+                    param_name=param,
+                    llm_client=llm_client
+                )
+                parameters[param] = resolved_value
+
+    api_call_data = generate_openai_function_call(
+        intent=intent,
+        parameters=parameters,
+        chroma_collection=chroma_collection,
+        llm_client=llm_client
+    )
+
+    required_keys = ["endpoint", "method"]
+    if not all(key in api_call_data for key in required_keys):
+        raise ValueError(f"Invalid API call info from mapping: {api_call_data}")
+
+    return api_call_data
+
+def resolve_dependency(previous_response, json_path):
+    keys = json_path.split('.')
+    value = previous_response
+    try:
+        for key in keys:
+            if key.isdigit():
+                key = int(key)
+            value = value[key]
+        return value
+    except (KeyError, IndexError, TypeError) as e:
+        raise ValueError(f"Error resolving dependency at '{json_path}': {e}")
+
+def prepare_endpoint(endpoint, parameters):
+    """
+    Replaces placeholders in API endpoints with extracted entity values dynamically.
+    """
+    formatted_endpoint = endpoint
+    for param, value in parameters.items():
+        if f"{{{param}}}" in formatted_endpoint:
+            formatted_endpoint = formatted_endpoint.replace(f"{{{param}}}", str(value))
+    
+    return formatted_endpoint
+
+def execute_api_call(api_call_info, extracted_entities):
+    """
+    Executes an API call with dynamically injected parameters from extracted entities.
     """
 
-    # Use our OpenAILLMClient instance (llm_client) to generate the response.
-    try:
-        response_str = llm_client.generate_response(
-            prompt=user_prompt,
-            tools=function_schemas,
-            tool_choice="auto",
-            temperature=0
-        )
-        # First try to parse a function call output
-        try:
-            result = [json.loads(response_str)]
-            return result
-        except json.JSONDecodeError:
-            # Fallback: try to parse as a JSON object with a "functions" key.
-            parsed = json.loads(response_str)
-            return parsed.get("functions", [])
-    except Exception as e:
-        print("❌ Error in generating function call:", e)
-        return []
+    endpoint = api_call_info["endpoint"]
+    method = api_call_info["method"].upper()
+    params = api_call_info.get("parameters", {})
 
-def execute_api_call(api_function):
-    """Execute the API call and return the response."""
-    url = f"https://api.themoviedb.org/3{api_function['endpoint']}"
-    headers = {"Authorization": f"Bearer {TMDB_API_KEY}", "Content-Type": "application/json"}
+    # ✅ Inject extracted entity values dynamically
+    for param_name in params.keys():
+        if param_name in extracted_entities:
+            params[param_name] = extracted_entities[param_name]
 
-    # ✅ Print request details for debugging
-    print(f"🔍 Debug: Making API Call to {url}")
-    print(f"🔍 Debug: Request Parameters: {api_function.get('parameters', {})}")
-    
-    response = requests.request(api_function["method"], url, headers=headers, params=api_function.get("parameters", {}))
+    # ✅ Handle Path vs Query Parameters
+    formatted_endpoint = prepare_endpoint(endpoint, params)  # ✅ Inject path params
+    query_params = {k: v for k, v in params.items() if "from_user_input" not in str(v)}
 
-    # ✅ Print raw API response
-    #print("🔍 Debug: Raw API Response:", response.json())
+    url = f"https://api.themoviedb.org/3{formatted_endpoint}"
+    headers = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
+    print(f"🔍 Making API Call: {url} with params: {json.dumps(query_params, indent=2)}")
+
+    response = requests.request(method, url, headers=headers, params=query_params)
+    response.raise_for_status()
     return response.json()
 
 def summarize_response(api_response):
@@ -319,35 +513,88 @@ def summarize_response(api_response):
 
     return response.choices[0].message.content.strip()
 
+def detect_intents(query, chroma_collection, intent_analyzer):
+    """
+    Dynamically selects the most relevant API from ChromaDB using embeddings and extracted entities.
+    """
+    extracted_entities = intent_analyzer.extract_entities(query)  # ✅ Extract entities first
+
+    matched_apis = match_query_to_cluster(query, chroma_collection, extracted_entities)  # ✅ Pass entities
+
+    if not matched_apis:
+        print("⚠️ No matching APIs found for:", query)
+        return {}
+
+    best_match = matched_apis[0]
+
+    # ✅ Ensure parameters are structured correctly and pass `extracted_entities`
+    parameters = extract_required_parameters(best_match["parameters"], extracted_entities)  # ✅ Fix applied
+
+    return {
+        "intent": best_match["description"],
+        "endpoint": best_match["endpoint"],
+        "method": best_match["method"],
+        "parameters": parameters  # ✅ Inject extracted entities dynamically into API call
+    }
+
+def refine_embedding_input(query, extracted_entities):
+    """
+    Improves query embedding by injecting extracted entity types for better ChromaDB separation.
+    """
+    entity_labels = " ".join([f"{key}:{value}" for key, value in extracted_entities.items()])
+    return f"{query} | Entities: {entity_labels}"  # ✅ Append entity metadata to avoid misclassification
+
+def extract_required_parameters(api_parameters, extracted_entities):
+    """
+    Extracts required parameters dynamically from API metadata and injects extracted entities.
+    """
+    extracted_params = {}
+
+    if isinstance(api_parameters, str):
+        try:
+            api_parameters = json.loads(api_parameters)
+        except json.JSONDecodeError:
+            print("❌ Failed to decode API parameters:", api_parameters)
+            return {}
+
+    if isinstance(api_parameters, list):
+        for param in api_parameters:
+            param_name = param.get("name")
+            if param.get("required", False):
+                # ✅ Auto-fill extracted entities if available
+                extracted_params[param_name] = extracted_entities.get(param_name, f"from_user_input:{param_name}")
+
+    return extracted_params
+
 def main():
-    # Instantiate the analyzer with optional parameters.
     llm_client = OpenAILLMClient(api_key=OPENAI_API_KEY)
-    intent_analyzer = IntentAnalyzer(llm_client=llm_client)
-    
+    intent_analyzer = IntentAnalyzer(llm_client=llm_client)  # ✅ Initialize IntentAnalyzer
+    planner_agent = PlannerAgent(llm_client=llm_client, chroma_collection=collection, intent_analyzer=intent_analyzer)  # ✅ Pass intent_analyzer
+
     while True:
         user_query = input("Enter your query: ")
         if user_query.lower() in ["exit", "quit"]:
             break
 
-        # Analyze the query
-        analysis_result = intent_analyzer.analyze(user_query)
+        extracted_entities = intent_analyzer.extract_entities(user_query)  # ✅ Extract entities
+        print(f"🧐 Extracted Entities: {extracted_entities}")
+        intent_data = detect_intents(user_query, collection, intent_analyzer)  # ✅ Ensure intent_analyzer is passed
+
+        if not intent_data:
+            print("❌ No valid API found for the query.")
+            continue
+
+        execution_plan = planner_agent.generate_plan(user_query, extracted_entities)  # ✅ Generate execution plan
+
+        if not execution_plan or not execution_plan.get("plan"):
+            print("❌ No valid execution plan generated.")
+            continue
         
-        # Debug print to see what was extracted
-        print("Extracted Entities:", analysis_result.get("entities"))
-        print("Detected Intents / Steps:", analysis_result.get("intents") or analysis_result.get("steps"))
-        
-        # Depending on the structure, you might have:
-        if "steps" in analysis_result:
-            # For multi-step queries, pass the steps to your planner/execution pipeline
-            plan = analysis_result["steps"]
-            # Example: for step in plan: execute_api_call(step)
-        else:
-            # For simple queries, use the basic intents directly
-            intents = analysis_result.get("intents", {})
-            # Example: map the 'search_movie' intent to an API call.
-        
-        # Continue with the rest of your pipeline (e.g., generating and executing API calls)
-        # ...
+        shared_state = execute_planned_steps(planner_agent, user_query, extracted_entities)  
+
+        print(json.dumps(shared_state, indent=2))
 
 if __name__ == "__main__":
     main()
+
+
