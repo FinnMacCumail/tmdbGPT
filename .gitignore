@@ -10,3 +10,4 @@ embeddings/
 #logs/
 .vscode/
 chroma_db/
+semantic_chroma_db/
