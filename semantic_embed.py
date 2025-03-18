@@ -3,130 +3,139 @@ import chromadb
 import os
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+import json
+import re
+from typing import List, Dict
 
-# Load environment variables (if needed)
-dotenv_path = os.path.join(os.getcwd(), ".env")
-load_dotenv(dotenv_path, override=True)
+# Load environment variables
+load_dotenv()
 
-# Initialize ChromaDB client
+# Initialize ChromaDB
 chroma_client = chromadb.PersistentClient(path="./semantic_chroma_db")
 collection = chroma_client.get_or_create_collection(name="tmdb_queries")
 
 # Load embedding model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Load TMDB API schema
-TMDB_SCHEMA_PATH = "./data/tmdb.json"
-with open(TMDB_SCHEMA_PATH, "r", encoding="utf-8") as f:
+# Load API schema
+with open("./data/tmdb.json", "r", encoding="utf-8") as f:
     tmdb_schema = json.load(f)
 
 api_endpoints = tmdb_schema.get("paths", {})
 
-
-def infer_api_context(path, description, query_params, path_placeholders):
-    """
-    Dynamically infers API usage context based on path patterns and extracted parameters.
-    Ensures search-first logic for missing ID dependencies.
-    """
-
-    # ✅ Identify if an endpoint requires an ID
-    requires_id = any(placeholder != "None" for placeholder in path_placeholders)
-
-    # ✅ Determine if it's a "search-first" API (uses query params instead of an ID)
-    is_query_based = len(query_params) > 0 and not requires_id
-
-    if "search" in path:
-        return "used for searching"
-    if requires_id and "movie_credits" in path:
-        return "retrieves movies directed by a person"
-    if requires_id and "credits" in path:
-        return "retrieves cast and crew of a movie"
-    if "/tv/" in path:
-        return "retrieves TV show information"
-    if "/network/" in path:
-        return "retrieves network-related data"
-    if "/company/" in path:
-        return "retrieves company-related data"
-    if "/collection/" in path:
-        return "retrieves movie collections"
-
-    # ✅ Prioritize APIs that can be executed immediately (search/query-based)
-    if is_query_based:
-        return "query-based API, no ID required"
+def analyze_parameters(parameters: List) -> Dict:
+    """Dynamically classifies parameters with type safety"""
+    analysis = {
+        "search_params": [],
+        "filter_params": [],
+        "pagination_params": [],
+        "id_params": [],
+        "required_params": []
+    }
     
-    return "ID-based API, requires entity resolution"
-
-
-def extract_parameters(endpoint_data):
-    """
-    Extracts query parameters vs. path placeholders dynamically.
-    Ensures proper classification for ranking and execution.
-    """
-    parameters = endpoint_data.get("parameters", [])
-    query_params = []
-    path_placeholders = []
-
     for param in parameters:
-        param_name = param.get("name")
-        if param.get("in") == "query":
-            query_params.append(param_name)
-        elif param.get("in") == "path":
-            path_placeholders.append(param_name)
+        # Skip non-dictionary parameters
+        if not isinstance(param, dict):
+            continue
+            
+        param_name = param.get("name", "")
+        param_in = param.get("in", "")
+        required = param.get("required", False)
+        
+        if param_in == "path":
+            analysis["id_params"].append(param_name)
+        elif param_in == "query":
+            if param_name == "query":
+                analysis["search_params"].append(param_name)
+            elif "page" in param_name:
+                analysis["pagination_params"].append(param_name)
+            elif any(k in param_name for k in [".gte", ".lte", "sort_by", "with_"]):
+                analysis["filter_params"].append(param_name)
+        
+        if required:
+            analysis["required_params"].append(param_name)
+    
+    return analysis
 
-    return query_params, path_placeholders
+# In semantic_embed.py
+def infer_api_context(method_data: dict) -> str:  # Remove "path" parameter
+    """Dynamically infer API purpose from parameters and summary"""
+    parameters = method_data.get("parameters", [])
+    summary = method_data.get("summary", "").lower()
+    
+    # 1. Detect search endpoints by parameter presence
+    if any(p.get("name") == "query" for p in parameters):
+        return "Text search endpoint"
+    
+    # 2. Identify discovery endpoints
+    discovery_flags = {"sort_by", "with_", "without_", ".gte", ".lte"}
+    if any(any(flag in p.get("name", "") for flag in discovery_flags) for p in parameters):
+        return "Filtered discovery endpoint"
+    
+    # 3. Check summary semantics as fallback
+    if "search" in summary:
+        return "Search-oriented endpoint"
+    if "discover" in summary:
+        return "Content discovery endpoint"
+    
+    # 4. Default context
+    return "General API endpoint"
+def generate_embedding_components(path, method, method_data):
+    """Constructs embedding metadata through dynamic analysis"""
+    parameters = method_data.get("parameters", [])
+    param_analysis = analyze_parameters(parameters)
+    context = infer_api_context(method_data)
+    
+    return {
+        "path": path,
+        "method": method.upper(),
+        "summary": method_data.get("summary", "No summary"),
+        "context": context,
+        "parameters": {
+            "search": param_analysis["search_params"],
+            "filters": param_analysis["filter_params"],
+            "pagination": param_analysis["pagination_params"],
+            "ids": param_analysis["id_params"],
+            "required": param_analysis["required_params"]
+        }
+    }
 
+def create_embedding_text(components):
+    """Generates semantic text for embedding from analyzed components"""
+    parts = [
+        f"API Purpose: {components['summary']}",
+        f"Context Type: {components['context']}",
+        f"HTTP Method: {components['method']}",
+        f"Path Pattern: {components['path']}",
+        "Parameters:",
+        f"- Search: {components['parameters']['search'] or 'None'}",
+        f"- Filters: {components['parameters']['filters'] or 'None'}",
+        f"- Pagination: {components['parameters']['pagination'] or 'None'}",
+        f"- IDs: {components['parameters']['ids'] or 'None'}",
+        f"- Required: {components['parameters']['required'] or 'None'}"
+    ]
+    return "\n".join(parts)
 
 def store_api_embeddings():
-    """
-    Processes all API endpoints, generates embeddings, and stores them in ChromaDB.
-    Dynamically flags ID-dependent APIs vs. query-based APIs.
-    """
-
-    all_api_data = []
-
+    """Store embeddings with ChromaDB-compatible metadata"""
     for path, methods in api_endpoints.items():
-        for method, data in methods.items():
-            description = data.get("summary", "No description available")
-            query_params, path_placeholders = extract_parameters(data)
-            context = infer_api_context(path, description, query_params, path_placeholders)
-
-            # ✅ Generate full context description for embedding
-            full_text = (
-                f"{description} | Context: {context} | Path: {path} | Method: {method} | "
-                f"Query Params: {', '.join(query_params) if query_params else 'None'} | "
-                f"Path Placeholders: {', '.join(path_placeholders) if path_placeholders else 'None'}"
-            )
-
-            # ✅ Generate embedding vector
-            embedding = model.encode(full_text, convert_to_numpy=True).tolist()
-
-            # ✅ Store in ChromaDB with enhanced metadata
-            collection.add(
-                ids=[path],  # Use path as unique identifier
-                embeddings=[embedding],
-                metadatas=[
-                    {
-                        "path": path,
-                        "method": method,
-                        "description": description,
-                        "context": context,  # ✅ Now dynamically generated
-                        "query_params": ", ".join(query_params) if query_params else "None",
-                        "path_placeholders": ", ".join(path_placeholders) if path_placeholders else "None"
-                    }
-                ],
-            )
-
-            all_api_data.append({
+        for method, method_data in methods.items():
+            parameters = method_data.get("parameters", [])
+            
+            # Convert parameters to JSON string
+            metadata = {
                 "path": path,
-                "method": method,
-                "description": description,
-                "context": context,
-                "query_params": query_params,
-                "path_placeholders": path_placeholders
-            })
-
-    print(f"✅ Successfully stored {len(all_api_data)} API endpoints in ChromaDB!")
-
+                "method": method.upper(),
+                "parameters": json.dumps([p for p in parameters if isinstance(p, dict)]),
+                "context": infer_api_context(method_data),  # Remove "path" argument
+                "requires_resolution": bool(re.search(r"{\w+}", path))
+            }
+            
+            collection.add(
+                ids=[f"{path}-{method}"],
+                embeddings=[model.encode(metadata["context"]).tolist()],
+                metadatas=[metadata]
+            )
 
 if __name__ == "__main__":
     store_api_embeddings()
