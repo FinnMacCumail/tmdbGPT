@@ -7,6 +7,9 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 from openai import OpenAI
 import re
+from datetime import datetime
+from typing import Dict, List, Optional
+
 
 # Load API keys
 dotenv_path = os.path.join(os.getcwd(), ".env")
@@ -23,28 +26,247 @@ collection = chroma_client.get_or_create_collection(name="tmdb_queries")
 nlp = spacy.load("en_core_web_trf")
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
+# TMDB API configuration
+BASE_URL = "https://api.themoviedb.org/3"
+HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
-class IntentAnalyzer:
-    """Extracts entities and determines API intents dynamically."""
 
-    def __init__(self, llm_client=None):
-        self.llm_client = llm_client
+class EnhancedIntentAnalyzer:
+    """Enhanced entity recognition with genre and temporal analysis"""
+    
+    def __init__(self):
         self.nlp = spacy.load("en_core_web_trf")
-
-    def extract_entities(self, query):
-        """Extracts named entities dynamically from a query."""
+        self._add_custom_patterns()
+        self.genre_map = self._fetch_genre_mappings()
+    
+    def _add_custom_patterns(self):
+        """Add patterns for genre and date recognition"""
+        ruler = self.nlp.add_pipe("entity_ruler")
+        patterns = [
+            {"label": "GENRE", "pattern": [{"LOWER": {"IN": ["action", "comedy", "drama"]}}]},
+            {"label": "DATE", "pattern": [{"SHAPE": "dddd"}]},  # Years like 2023
+            {"label": "DATE", "pattern": [{"TEXT": {"REGEX": r"\d{4}s"}}]}  # Decades like 2010s
+        ]
+        ruler.add_patterns(patterns)
+    
+    def _fetch_genre_mappings(self) -> Dict[str, int]:
+        """Fetch genre IDs from TMDB"""
+        response = requests.get(f"{BASE_URL}/genre/movie/list", headers=HEADERS)
+        return {genre["name"].lower(): genre["id"] for genre in response.json().get("genres", [])}
+    
+    def extract_entities(self, query: str) -> Dict[str, str]:
+        """Extract entities with enhanced recognition"""
         doc = self.nlp(query)
-        entity_mappings = {
-            "PERSON": "person",
-            "WORK_OF_ART": "query",
-            "DATE": "date",
-            "GPE": "region"
+        entities = {
+            "person": [], "title": [], "genre": [], "date": [],
+            "year": [], "region": [], "numeric": []
         }
-        extracted = {entity_mappings.get(ent.label_, ent.label_): ent.text for ent in doc.ents}
-        print(f"🧐 Extracted Entities: {json.dumps(extracted, indent=2)}")
-        return extracted
+        
+        for ent in doc.ents:
+            if ent.label_ == "PERSON":
+                entities["person"].append(ent.text)
+            elif ent.label_ == "WORK_OF_ART":
+                entities["title"].append(ent.text)
+            elif ent.label_ == "GPE":
+                entities["region"].append(ent.text)
+            elif ent.label_ == "DATE":
+                if ent.text.endswith("s"):
+                    entities["date"].append(ent.text[:-1])  # Remove 's' from decades
+                else:
+                    entities["date"].append(ent.text)
+            elif ent.label_ == "GENRE":
+                entities["genre"].append(ent.text)
+            elif ent.label_ == "CARDINAL":
+                entities["numeric"].append(ent.text)
+        
+        # Extract year from dates
+        entities["year"] = [d for d in entities["date"] if d.isdigit() and len(d) == 4]
+        
+        print(f"🔍 Extracted Entities: {json.dumps(entities, indent=2)}")
+        return entities
 
+class ContextAwareParameterHandler:
+    """Handles parameter mapping with endpoint context awareness"""
+    
+    def __init__(self, genre_map: Dict[str, int]):
+        self.genre_map = genre_map
+    
+    def resolve_parameters(self, params: list, entities: dict, context: str) -> dict:
+        """Dynamic parameter injection without path assumptions"""
+        resolved = {}
+        
+        for param in params:
+            pname = param.get("name", "")
+            
+            # Match entity type to parameter name
+            for entity_type, values in entities.items():
+                if entity_type in pname and values:
+                    resolved[pname] = values[0]
+                    break
+                    
+            # Special handling for generic "query" param
+            if pname == "query" and not resolved.get(pname):
+                resolved[pname] = next(iter(entities.values()), [""])[0]
+                
+        return resolved
+    
+    def _get_primary_entity(self, context: str) -> Optional[str]:
+        """Extract primary entity type from endpoint context"""
+        match = re.search(r"for (\w+) entities", context)
+        return match.group(1).lower() if match else None
+    
+    def _resolve_query_value(self, entities: Dict, primary_entity: Optional[str]) -> Optional[str]:
+        """Resolve query value with priority: primary entity > title > person"""
+        if primary_entity and entities.get(primary_entity):
+            return entities[primary_entity][0]
+        if entities.get("title"):
+            return entities["title"][0]
+        if entities.get("person"):
+            return entities["person"][0]
+        return None
+    
+    def _format_date(self, date_str: str, param_name: str) -> str:
+        """Convert date entities to TMDB-compatible formats"""
+        if param_name.endswith(".gte"):
+            return f"{date_str}-01-01"
+        if param_name.endswith(".lte"):
+            return f"{date_str}-12-31"
+        return date_str
 
+class IntelligentPlanner:
+    """Generates execution plans with context-aware resolution"""
+    
+    def __init__(self, chroma_collection, intent_analyzer):
+        self.collection = chroma_collection
+        self.intent_analyzer = intent_analyzer
+        self.param_handler = ContextAwareParameterHandler(intent_analyzer.genre_map)
+
+    def generate_plan(self, query: str, entities: Dict) -> Dict:
+        """Generate execution plan with parameter deserialization"""
+        matched_apis = self._match_apis(query, entities)
+        plan = []
+        
+        for idx, api_data in enumerate(matched_apis, 1):
+            # Deserialize parameters if stored as JSON string
+            parameters = api_data.get("parameters", [])
+            if isinstance(parameters, str):
+                try:
+                    parameters = json.loads(parameters)
+                except json.JSONDecodeError:
+                    parameters = []
+            
+            step = {
+                "step": idx,
+                "type": "api_call",
+                "endpoint": api_data["path"],
+                "method": api_data["method"],
+                "parameters": self.param_handler.resolve_parameters(
+                    parameters,  # Now properly deserialized
+                    entities,
+                    api_data.get("context", "")
+                ),
+                "requires_resolution": api_data.get("requires_resolution", False)
+            }
+            plan.append(step)
+        
+        return {"plan": self._add_resolution_steps(plan, entities)}
+
+    def _match_apis(self, query: str, entities: Dict) -> List[Dict]:
+        """Robust API matching with metadata validation"""
+        results = self.collection.query(query_texts=[query], n_results=5)
+        
+        valid_apis = []
+        # Handle ChromaDB's nested response format
+        for metadata in results.get("metadatas", [[]])[0]:  # First query text results
+            if isinstance(metadata, dict):
+                valid_apis.append(metadata)
+            elif isinstance(metadata, str):
+                try:
+                    parsed = json.loads(metadata)
+                    if isinstance(parsed, dict):
+                        valid_apis.append(parsed)
+                except json.JSONDecodeError:
+                    continue
+        
+        # Validate required fields
+        return [
+            api for api in valid_apis
+            if isinstance(api.get("path"), str) 
+            and isinstance(api.get("method"), str)
+            and "parameters" in api
+        ]
+
+    def _sort_results(self, metadatas: List[Dict], distances: List[float], entities: Dict):
+        """Safe sorting with type checking"""
+        return sorted(
+            zip(metadatas, distances),
+            key=lambda x: self._ranking_score(x[0], x[1], entities)
+        )[:3]  # Return top 3 results
+
+    def _ranking_score(self, api_data: dict, distance: float, entities: dict) -> float:
+        score = float(distance)
+        params = json.loads(api_data.get("parameters", "[]"))
+        
+        # Boost for query parameter match
+        if any(p.get("name") == "query" for p in params):
+            if "person" in entities and "query" in [p["name"] for p in params]:
+                score -= 10.0  # Massive boost for person search endpoints
+            else:
+                score -= 5.0  # General search boost
+                
+        # Boost for entity-specific filters
+        for entity_type in entities:
+            if any(entity_type in p["name"] for p in params):
+                score -= 3.0
+                
+        return score
+
+    def _has_required_ids(self, api_data: Dict, entities: Dict) -> bool:
+        """Check if required path parameters exist in entities"""
+        path_params = api_data.get("path_params", [])
+        return all(
+            any(param in key for key in entities.keys())
+            for param in path_params
+        )
+
+    def _add_resolution_steps(self, plan: List[Dict], entities: Dict) -> List[Dict]:
+        """Add ID resolution steps where needed"""
+        resolved_plan = []
+        for step in plan:
+            if step["requires_resolution"] and not self._has_required_ids(step, entities):
+                resolution_step = self._create_resolution_step(step, entities)
+                if resolution_step:
+                    resolved_plan.append(resolution_step)
+            resolved_plan.append(step)
+        return resolved_plan
+
+    def _create_resolution_step(self, step: Dict, entities: Dict) -> Optional[Dict]:
+        """Create ID resolution step for API dependencies"""
+        placeholder = re.findall(r"{(\w+)}", step["endpoint"])[0]
+        search_endpoint = self._find_search_endpoint(placeholder)
+        
+        if search_endpoint:
+            return {
+                "step": f"{step['step']}-resolve",
+                "type": "resolution",
+                "endpoint": search_endpoint["path"],
+                "method": search_endpoint["method"],
+                "parameters": self.param_handler.resolve_parameters(
+                    search_endpoint.get("parameters", []),
+                    entities,
+                    search_endpoint.get("context", "")
+                )
+            }
+        return None
+
+    def _find_search_endpoint(self, entity_type: str) -> Optional[Dict]:
+        """Find search endpoint for a given entity type"""
+        results = self.collection.query(
+            query_texts=[f"Search endpoint for {entity_type}"],
+            n_results=1
+        )
+        return results["metadatas"][0][0] if results["metadatas"] else None   
+    
 class OpenAILLMClient:
     """Uses OpenAI LLM to generate execution plans dynamically."""
 
@@ -64,130 +286,88 @@ class OpenAILLMClient:
         return output
 
 
-class PlannerAgent:
-    def __init__(self, llm_client, chroma_collection, intent_analyzer):
-        self.llm_client = llm_client
-        self.chroma_collection = chroma_collection
-        self.intent_analyzer = intent_analyzer
-
-    def generate_plan(self, query, extracted_entities):
-        """Dynamically generates an execution plan based on extracted entities and API intent detection."""
-        matched_apis = self.match_query_to_cluster(query, extracted_entities)
-
-        if not matched_apis:
-            print("⚠️ No matching APIs found for:", query)
-            return {"plan": []}
-
-        steps = []
-        for idx, api_data in enumerate(matched_apis, start=1):
-            step = {
-                "step": idx,
-                "type": "api_call",
-                "intent": api_data.get("description"),
-                "endpoint": api_data.get("path"),
-                "method": api_data.get("method"),
-                "parameters": extract_required_parameters(api_data.get("query_params", []), extracted_entities),
-                "depends_on": None
-            }
-            steps.append(step)
-        print(f"✅ Execution Plan:\n{json.dumps(steps, indent=2)}\n")
-        return {"plan": steps}
-
-    def match_query_to_cluster(self, query, extracted_entities, n_results=5):
-        """Selects the best-matching API dynamically based on embeddings and entity context."""
-        refined_query = refine_embedding_input(query, extracted_entities)
-        search_results = self.chroma_collection.query(query_texts=[refined_query], n_results=n_results)
-
-        if not search_results or "metadatas" not in search_results or not search_results["metadatas"]:
-            print("⚠️ No metadata found in ChromaDB results.")
-            return []
-
-        metadata_results = search_results["metadatas"][0]
-        distances = search_results["distances"][0]
-
-        sorted_results = sorted(
-            zip(metadata_results, distances),
-            key=lambda x: rank_function(x[0], x[1], extracted_entities)
-        )
-
-        return [sorted_results[0][0]] if sorted_results else []
-
-
-
-    def generate_openai_function_call(self, step, extracted_entities):
-        """
-        Dynamically selects an API endpoint based on the step intent and extracted entities.
-        This function ensures that the correct API path, method, and parameters are used.
-        """
-        matched_clusters = self.match_query_to_cluster(step["intent"], extracted_entities)
-
-        if not matched_clusters:
-            return None
-
-        best_match = matched_clusters[0]
-
-        query_params = best_match.get("query_params", "")
-        if isinstance(query_params, str):
-            query_params = [{"name": param.strip()} for param in query_params.split(", ") if param]  # Convert to list of dicts
-
-        return {
-            "endpoint": best_match["path"],
-            "method": best_match["method"],            
-            "parameters": extract_required_parameters(query_params, extracted_entities)
-        }
-
-def refine_embedding_input(query, extracted_entities):
-    """Enhances query embedding by appending extracted entities to the query text."""
-    entity_metadata = " | ".join([f"{key}:{value}" for key, value in extracted_entities.items()])
-    return f"{query} | Entities: {entity_metadata}"
-
-
 def extract_required_parameters(api_parameters, extracted_entities):
-    """
-    Dynamically injects extracted entities into API parameters, handling missing keys safely.
-    """
+    """Robust parameter extraction with JSON deserialization and type safety"""
     extracted_params = {}
-
-    # ✅ Ensure `api_parameters` is a list of dictionaries
-    if isinstance(api_parameters, str):
-        api_parameters = [{"name": param.strip()} for param in api_parameters.split(", ") if param]
-
-    if isinstance(api_parameters, list):
-        for param in api_parameters:
-            param_name = param.get("name")
-
-            if param_name:  # ✅ Avoid processing None values
-                extracted_params[param_name] = extracted_entities.get(param_name, None)
-
-            # Ensure correct data type (fallback to sensible defaults)
-            param_type = param.get("schema", {}).get("type", "string") if isinstance(param, dict) else "string"
-            param_value = extracted_params.get(param_name, None)  
-
-            if param_type == "integer":
-                try:
-                    extracted_params[param_name] = int(param_value) if param_value is not None else 1
-                except ValueError:
-                    extracted_params[param_name] = 1
-
-    print(f"🛠️ Extracted Parameters (Updated): {json.dumps(extracted_params, indent=2)}")
-    return extracted_params
-
-def execute_api_call(api_call_info, extracted_entities):
-    """Executes an API call with dynamically injected parameters."""
-    url = f"https://api.themoviedb.org/3{api_call_info['endpoint']}"
-    headers = {"Authorization": f"Bearer {TMDB_API_KEY}"}
-    params = api_call_info.get("parameters", {})
-
-    # ✅ Remove unresolved placeholders
-    for param in list(params.keys()):
-        if params[param] is None:
-            del params[param]
-
-    print(f"🔍 Making API Call: {url} with params: {json.dumps(params, indent=2)}")
     
-    response = requests.request(api_call_info["method"].upper(), url, headers=headers, params=params)
-    return response.json()
+    # 1. Deserialize parameters if stored as JSON string
+    if isinstance(api_parameters, str):
+        try:
+            api_parameters = json.loads(api_parameters)
+        except json.JSONDecodeError:
+            print("⚠️ Failed to deserialize parameters:", api_parameters)
+            return {}
 
+    # 2. Handle empty or invalid parameter formats
+    if not isinstance(api_parameters, list):
+        print("⚠️ Invalid parameters format, expected list")
+        return {}
+
+    # 3. Process each parameter with type validation
+    for param in api_parameters:
+        # Skip invalid parameter entries
+        if not isinstance(param, dict):
+            continue
+            
+        param_name = param.get("name", "").strip()
+        if not param_name:
+            continue
+
+        # 4. Dynamic entity-parameter mapping
+        param_found = False
+        for entity_key, entity_value in extracted_entities.items():
+            # Case-insensitive partial matching (e.g., "person" matches "person_id")
+            if entity_key.lower() in param_name.lower():
+                extracted_params[param_name] = entity_value
+                param_found = True
+                print(f"✅ Mapped {param_name} → {entity_value}")
+                break
+
+        # 5. Fallback for required parameters without direct matches
+        if not param_found and param.get("required", False):
+            print(f"⚠️ Missing required parameter: {param_name}")
+            extracted_params[param_name] = None
+
+    # 6. Clean null values and URL-encode strings
+    final_params = {}
+    for key, value in extracted_params.items():
+        if value is not None:
+            final_params[key] = requests.utils.quote(str(value)) if isinstance(value, str) else value
+
+    print(f"🛠️ Final parameters: {json.dumps(final_params, indent=2)}")
+    return final_params
+
+def execute_api_call(api_call_info: Dict, entities: Dict) -> Dict:
+    """Robust API execution with parameter validation"""
+    try:
+        # Validate metadata structure
+        if not isinstance(api_call_info, dict):
+            raise ValueError("Invalid API call info format")
+            
+        endpoint = api_call_info.get("endpoint", "")
+        method = api_call_info.get("method", "GET")
+        params = api_call_info.get("parameters", {})
+        
+        # Convert string parameters to dict if needed
+        if isinstance(params, str):
+            params = json.loads(params)
+            
+        # Encode parameters
+        safe_params = {
+            k: requests.utils.quote(v) if isinstance(v, str) else v
+            for k, v in params.items()
+        }
+        
+        response = requests.request(
+            method,
+            f"https://api.themoviedb.org/3{endpoint}",
+            headers={"Authorization": f"Bearer {TMDB_API_KEY}"},
+            params=safe_params
+        )
+        return response.json()
+    except Exception as e:
+        print(f"🚨 API Execution Failed: {str(e)}")
+        return {"error": str(e)}
 
 def execute_planned_steps(planner_agent, query, extracted_entities):
     """
@@ -197,15 +377,18 @@ def execute_planned_steps(planner_agent, query, extracted_entities):
     """
 
     execution_plan = planner_agent.generate_plan(query, extracted_entities)
-
-    if not execution_plan or not execution_plan.get("plan"):
-        print("⚠️ No valid execution plan found.")
-        return {}
-
+    if not isinstance(execution_plan, dict) or not isinstance(execution_plan.get("plan"), list):
+        raise ValueError("Invalid execution plan format")
+        
     shared_state = {}
-
+    
     for step in execution_plan["plan"]:
-        print(f"\n🚀 Executing Step {step['step']} - {step['endpoint']}")
+        # Validate step structure
+        if not isinstance(step, dict) or not all(key in step for key in ["endpoint", "method"]):
+            print(f"⚠️ Skipping invalid step: {step}")
+            continue
+            
+        print(f"\n🚀 Executing Step {step.get('step', '?')} - {step['endpoint']}")
 
         step_query = step.get("intent", query)
         step_entities = planner_agent.intent_analyzer.extract_entities(step_query)
@@ -239,7 +422,11 @@ def execute_planned_steps(planner_agent, query, extracted_entities):
                             print(f"✅ Resolved {missing_id}: {resolved_id}")
 
         # ✅ Generate API Call
-        api_call_info = planner_agent.generate_openai_function_call(step, combined_entities)
+        api_call_info = {
+            "endpoint": step["endpoint"],
+            "method": step["method"],
+            "parameters": step["parameters"]
+        }
 
         if not api_call_info:
             print(f"❌ No valid API call found for step {step['step']}.")
@@ -253,45 +440,23 @@ def execute_planned_steps(planner_agent, query, extracted_entities):
 
     return shared_state
 
-def rank_function(item, score, extracted_entities):
-    """
-    Dynamically ranks API endpoints based on entity presence and query type.
-    """
-    endpoint = item.get("path", "")
-    query_params = item.get("query_params", "")
-    placeholders = re.findall(r"{(.*?)}", endpoint)
-    weight = 0
-
-    # ✅ Prioritize entity-aligned APIs
-    for entity in extracted_entities:
-        if entity in endpoint:
-            weight -= 2  # Boost APIs that match entity type
-
-    # ✅ If API is query-based (e.g., /search/person) and we have query params, prioritize it
-    if query_params and not placeholders:
-        weight -= 3  # Prioritize query-driven APIs when no ID is available
-
-    # ✅ Penalize APIs requiring an ID if the ID is missing
-    if placeholders and not any(f"{p}" in extracted_entities for p in placeholders):
-        weight += 3  # Lower priority if ID is missing
-
-    return score + weight  # Lower score is better
-
-
 def main():
-    llm_client = OpenAILLMClient(api_key=OPENAI_API_KEY)
-    intent_analyzer = IntentAnalyzer(llm_client=llm_client)
-    planner_agent = PlannerAgent(llm_client=llm_client, chroma_collection=collection, intent_analyzer=intent_analyzer)
-
+    intent_analyzer = EnhancedIntentAnalyzer()
+    planner = IntelligentPlanner(collection, intent_analyzer)
+    
     while True:
-        user_query = input("Enter your query: ")
-        if user_query.lower() in ["exit", "quit"]:
-            break
-
-        extracted_entities = intent_analyzer.extract_entities(user_query)
-        shared_state = execute_planned_steps(planner_agent, user_query, extracted_entities)
-        print(json.dumps(shared_state, indent=2))
-
+        try:
+            query = input("Enter your query (or 'exit' to quit): ")
+            if query.lower() in ["exit", "quit"]:
+                break
+                
+            entities = intent_analyzer.extract_entities(query)
+            # Pass the planner instance, not the plan
+            results = execute_planned_steps(planner, query, entities)
+            print(f"🎉 Final Results:\n{json.dumps(results, indent=2)}")
+            
+        except Exception as e:
+            print(f"⚠️ Error processing query: {str(e)}")
 
 if __name__ == "__main__":
     main()
