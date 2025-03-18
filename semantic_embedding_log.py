@@ -1,52 +1,52 @@
 import os
+import logging
 import json
 import chromadb
 
-# Ensure logs directory exists
-LOGS_DIR = "./logs"
-os.makedirs(LOGS_DIR, exist_ok=True)
+def setup_file_logger(log_file: str) -> logging.Logger:
+    """
+    Configures and returns a logger that writes INFO-level logs to the specified file.
+    """
+    logger = logging.getLogger("ChromaLogger")
+    logger.setLevel(logging.INFO)
+    # Clear existing handlers to avoid duplicate logging
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    return logger
 
-# File path for the log output
-LOG_FILE_PATH = os.path.join(LOGS_DIR, "semantic_embeddings.log")
-
-# Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(path="./semantic_chroma_db")
-collection = chroma_client.get_or_create_collection(name="tmdb_queries")
-
-def list_semantic_embeddings():
-    """Fetch and log all stored semantic embeddings from ChromaDB while handling missing values."""
+def log_chroma_collection_contents(collection, logger: logging.Logger):
+    """
+    Retrieves all records from the given ChromaDB collection and logs them.
+    """
     try:
-        # ✅ Fetch only embeddings and metadata
-        all_data = collection.get(include=["embeddings", "metadatas"])
-
-        if not all_data or "metadatas" not in all_data or not all_data["metadatas"]:
-            print("⚠️ No embeddings found in ChromaDB!")
-            return
-        
-        log_entries = []
-
-        for idx, metadata in enumerate(all_data["metadatas"]):
-            # ✅ Extract ID from metadata (ChromaDB stores IDs inside metadata)
-            api_id = metadata.get("path", f"unknown_{idx}")
-
-            # ✅ Handle missing embeddings gracefully
-            embedding = all_data.get("embeddings", [None])[idx]  
-            
-            entry = {
-                "id": api_id,
-                "embedding": embedding if embedding is not None else "❌ Missing Embedding",
-                "metadata": metadata if metadata is not None else "❌ Missing Metadata"
-            }
-            log_entries.append(entry)
-
-        # ✅ Write logs to file
-        with open(LOG_FILE_PATH, "w", encoding="utf-8") as log_file:
-            json.dump(log_entries, log_file, indent=2)
-
-        print(f"✅ Logged {len(log_entries)} embeddings to {LOG_FILE_PATH}")
-
+        # Retrieve all stored records from the collection
+        results = collection.get()
+        # Log the results as a pretty-printed JSON string
+        logger.info("Chroma Collection Contents:\n%s", json.dumps(results, indent=2))
     except Exception as e:
-        print(f"❌ Error fetching embeddings: {str(e)}")
+        logger.error("Error retrieving collection contents: %s", str(e))
 
-if __name__ == "__main__":
-    list_semantic_embeddings()
+# Initialize ChromaDB client and access the collection used by semantic_embed.py
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(
+    name="tmdb_endpoints",
+    metadata={"hnsw:space": "cosine"}
+)
+
+# Ensure the logs folder exists
+LOGS_FOLDER = "logs"
+os.makedirs(LOGS_FOLDER, exist_ok=True)
+
+# Define the output log file path
+OUTPUT_LOG_FILE = os.path.join(LOGS_FOLDER, "chroma_embeddings.log")
+
+# Setup the logger
+logger = setup_file_logger(OUTPUT_LOG_FILE)
+
+# Log the contents of the ChromaDB collection
+log_chroma_collection_contents(collection, logger)
