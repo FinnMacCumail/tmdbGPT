@@ -185,6 +185,10 @@ def store_api_embeddings():
     for path, methods in api_endpoints.items():
         for method, method_data in methods.items():
             components = generate_embedding_components(path, method, method_data)
+            if "/search/" in path:
+                components["summary"] += " search query-based endpoint"
+            if "/person/" in path:
+                components["summary"] += " individual entity details"
             embedding_text = create_embedding_text(components)
             
             metadata = {
