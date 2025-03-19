@@ -1,14 +1,36 @@
 from langgraph.graph import StateGraph, END
 from typing import Dict, TypedDict, List
-from nlp_retriever import EnhancedIntentAnalyzer, IntelligentPlanner, execute_planned_steps
-from entity_resolution import TMDBEntityResolver
-from semantic_embed import GENRE_MAPPINGS
 import json
 import os
+import chromadb
+import re
+from dotenv import load_dotenv
+from nlp_retriever import (
+    EnhancedIntentAnalyzer, 
+    IntelligentPlanner,
+    execute_api_call,
+    OpenAILLMClient
+)
+from entity_resolution import TMDBEntityResolver
+
+# Load environment variables first
+load_dotenv()
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Initialize ChromaDB client with proper configuration
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(
+    name="tmdb_endpoints",
+    metadata={"hnsw:space": "cosine"}
+)
+
+# Verify collection contents
+print(f"Collection contains {collection.count()} embeddings")
 
 # Initialize core components
 intent_analyzer = EnhancedIntentAnalyzer()
-entity_resolver = TMDBEntityResolver(os.getenv("TMDB_API_KEY"))
+entity_resolver = TMDBEntityResolver(TMDB_API_KEY)
 planner = IntelligentPlanner(collection, intent_analyzer)
 
 class ControllerState(TypedDict):
@@ -37,60 +59,87 @@ def parse_query(state: ControllerState) -> ControllerState:
     return state
 
 def resolve_entities(state: ControllerState) -> ControllerState:
-    """Node 2: Resolve entities using TMDB APIs"""
-    print("\n=== RESOLVING ENTITIES ===")
-    resolved = {}
+    raw_entities = state["raw_entities"]
+    resolved = state["resolved_entities"]
     
-    # Resolve different entity types
-    for ent_type, values in state["raw_entities"].items():
-        if not values: continue
-        
-        for value in values:
-            # Handle special cases first
-            if ent_type == "genre":
-                resolved_genre = entity_resolver.resolve_genre(value)
-                if resolved_genre:
-                    resolved.setdefault("genres", []).append(resolved_genre["id"])
-            elif ent_type == "person":
-                person = entity_resolver.resolve_person(value)
-                if person:
-                    resolved["person_id"] = person["id"]
-            elif ent_type == "year":
-                resolved["year"] = value
-            # Add other entity types as needed
+    print("\n=== ENTITY RESOLUTION DEBUG ===")
+    print(f"🐞 [ENTITY RESOLVER] Raw entities received: {json.dumps(raw_entities, indent=2)}")
     
-    state["resolved_entities"] = resolved
-    print(f"Resolved Entities: {json.dumps(resolved, indent=2)}")
+    for ent_type in ["person", "movie", "tv"]:
+        if ent_type in raw_entities and raw_entities[ent_type]:
+            raw_value = raw_entities[ent_type][0]
+            query_key = f"{ent_type}_query"
+            id_key = f"{ent_type}_id"
+            
+            print(f"\n🐞 [ENTITY RESOLVER] Processing {ent_type} entity")
+            print(f"🐞 [ENTITY RESOLVER] Raw value: {raw_value}")
+            
+            # Store query value
+            resolved[query_key] = raw_value
+            print(f"✅ [ENTITY RESOLVER] Stored query value: {query_key} = {raw_value}")
+
+            # Attempt ID resolution
+            try:
+                print(f"🐞 [ENTITY RESOLVER] Attempting {ent_type} ID resolution...")
+                result = entity_resolver.resolve_entity(raw_value, ent_type)
+                
+                if result and "id" in result:
+                    resolved[id_key] = result["id"]
+                    print(f"✅ [ENTITY RESOLVER] Resolved {ent_type} ID: {result['id']}")
+                else:
+                    print(f"⚠️ [ENTITY RESOLVER] No ID found for {ent_type}: {raw_value}")
+                    
+            except Exception as e:
+                print(f"🔥 [ENTITY RESOLVER] Error resolving {ent_type}: {str(e)}")
+                #print(f"🔥 [ENTITY RESOLVER] Traceback: {traceback.format_exc()}")
+
+    print(f"\n🐞 [ENTITY RESOLVER] Final resolved entities: {json.dumps(resolved, indent=2)}")
     return state
 
 def plan_steps(state: ControllerState) -> ControllerState:
-    """Node 3: Generate API execution plan"""
+    """Node 3: Generate API execution plan with validation"""
     print("\n=== GENERATING EXECUTION PLAN ===")
-    plan = planner.generate_plan(state["query"], state["raw_entities"])
-    state["api_plan"] = plan.get("plan", [])
-    print(f"Execution Plan:\n{json.dumps(plan, indent=2)}")
+    try:
+        plan = planner.generate_plan(state["query"], state["resolved_entities"])
+        # Ensure all steps have required fields
+        valid_steps = [
+            step for step in plan.get("plan", [])
+            if "endpoint" in step and "method" in step
+        ]
+        state["api_plan"] = valid_steps
+        print(f"Execution Plan:\n{json.dumps(valid_steps, indent=2)}")
+    except Exception as e:
+        print(f"⚠️ Planning Failed: {str(e)}")
+        state["api_plan"] = []
     return state
 
 def execute_api_plan(state: ControllerState) -> ControllerState:
-    """Node 4: Execute the API plan"""
-    print("\n=== EXECUTING API PLAN ===")
+    """Execution with detailed request/response logging"""
+    print("\n=== EXECUTION DEBUG ===")
     results = {}
     
     for step in state["api_plan"]:
-        if step["type"] == "api_call":
-            print(f"Executing: {step['endpoint']}")
-            response = execute_api_call({
-                "endpoint": step["endpoint"],
-                "method": step["method"],
-                "parameters": step["parameters"]
-            }, state["resolved_entities"])
+        print(f"\n🚀 Executing step: {step['endpoint']}")
+        print(f"🔧 Method: {step['method']}")
+        print(f"🔧 Parameters: {json.dumps(step.get('parameters', {}), indent=2)}")
+        
+        try:
+            response = execute_api_call(step, state["resolved_entities"])
+            print(f"✅ Response received (status: {response.get('status_code', 'N/A')})")
+            
+            # Store relevant IDs from responses
+            if "id" in response:
+                entity_type = step["endpoint"].split("/")[1]
+                id_key = f"{entity_type}_id"
+                state["resolved_entities"][id_key] = response["id"]
+                print(f"💡 Stored resolved {id_key} = {response['id']}")
             
             results[step["endpoint"]] = response
-            # Store IDs for subsequent steps
-            if "id" in response:
-                state["resolved_entities"]["id"] = response["id"]
+            
+        except Exception as e:
+            print(f"🚨 Execution failed: {str(e)}")
+            results[step["endpoint"]] = {"error": str(e)}
     
-    state["execution_results"] = results
     return state
 
 def build_response(state: ControllerState) -> ControllerState:
