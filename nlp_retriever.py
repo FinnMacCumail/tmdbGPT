@@ -9,6 +9,7 @@ from openai import OpenAI
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
+import traceback
 
 
 # Load API keys
@@ -19,8 +20,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
 # Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(path="./semantic_chroma_db")
-collection = chroma_client.get_or_create_collection(name="tmdb_queries")
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(
+    name="tmdb_endpoints",
+    metadata={"hnsw:space": "cosine"}
+)
 
 # Load NLP and embedding models
 nlp = spacy.load("en_core_web_trf")
@@ -85,36 +89,86 @@ class EnhancedIntentAnalyzer:
         print(f"🔍 Extracted Entities: {json.dumps(entities, indent=2)}")
         return entities
 
+  
 class ContextAwareParameterHandler:
     """Handles parameter mapping with endpoint context awareness"""
-    
     def __init__(self, genre_map: Dict[str, int]):
         self.genre_map = genre_map
-    
+
     def resolve_parameters(self, params: list, entities: dict, context: str) -> dict:
-        """Dynamic parameter injection without path assumptions"""
-        resolved = {}
+        """Parameter resolution with detailed tracing"""
+        print(f"\n=== PARAMETER RESOLUTION ===")
+        print(f"🔧 Context: {context}")
+        print(f"📦 Available Entities: {json.dumps(entities, indent=2)}")
+        print(f"🔧 Parameters to resolve: {json.dumps(params, indent=2)}")
         
+        resolved = {}
         for param in params:
-            pname = param.get("name", "")
+            if not isinstance(param, dict):
+                print(f"⚠️ Skipping invalid parameter: {param}")
+                continue
+
+            pname = param.get("name")
+            p_in = param.get("in")
+            p_type = param.get("schema", {}).get("type", "string")
+
+            print(f"\n🔍 Processing parameter: {pname} (in: {p_in}, type: {p_type})")
+
+            # Query parameter resolution
+            if p_in == "query":
+                self._resolve_query_param(pname, entities, resolved)
             
-            # Match entity type to parameter name
-            for entity_type, values in entities.items():
-                if entity_type in pname and values:
-                    resolved[pname] = values[0]
-                    break
-                    
-            # Special handling for generic "query" param
-            if pname == "query" and not resolved.get(pname):
-                resolved[pname] = next(iter(entities.values()), [""])[0]
-                
+            # Path parameter resolution
+            elif p_in == "path":
+                self._resolve_path_param(pname, entities, resolved)
+            
+            # Handle other parameter types
+            else:
+                print(f"⚠️ Unhandled parameter location: {p_in}")
+
+        print(f"\n✅ Resolved parameters: {json.dumps(resolved, indent=2)}")
         return resolved
     
+    def _resolve_query_param(self, name: str, entities: dict, resolved: dict):
+        """Resolve query parameters with pattern matching"""
+        if name == "query":
+            print("🔎 Looking for query sources...")
+            for key in entities:
+                if key.endswith("_query"):
+                    value = requests.utils.quote(str(entities[key]))
+                    resolved[name] = value
+                    print(f"✅ Found query source: {key} → {value}")
+                    return
+            print("⚠️ No matching query sources found")
+        else:
+            print(f"🔎 Looking for direct match: {name}")
+            if name in entities:
+                resolved[name] = entities[name]
+                print(f"✅ Direct match found: {entities[name]}")
+            else:
+                print(f"⚠️ No direct match found")
+
+    def _resolve_path_param(self, name: str, entities: dict, resolved: dict):
+        """Resolve path parameters using naming convention"""
+        print(f"🔎 Resolving path parameter: {name}")
+        if "_id" in name:
+            base_type = name.split("_")[0]
+            id_key = f"{base_type}_id"
+            print(f"🔍 Looking for ID: {id_key}")
+            
+            if id_key in entities:
+                resolved[name] = entities[id_key]
+                print(f"✅ ID found: {entities[id_key]}")
+            else:
+                print(f"⚠️ Missing ID: {id_key}")
+        else:
+            print(f"⚠️ Unrecognized path parameter pattern: {name}")
+
     def _get_primary_entity(self, context: str) -> Optional[str]:
         """Extract primary entity type from endpoint context"""
         match = re.search(r"for (\w+) entities", context)
         return match.group(1).lower() if match else None
-    
+
     def _resolve_query_value(self, entities: Dict, primary_entity: Optional[str]) -> Optional[str]:
         """Resolve query value with priority: primary entity > title > person"""
         if primary_entity and entities.get(primary_entity):
@@ -124,7 +178,7 @@ class ContextAwareParameterHandler:
         if entities.get("person"):
             return entities["person"][0]
         return None
-    
+
     def _format_date(self, date_str: str, param_name: str) -> str:
         """Convert date entities to TMDB-compatible formats"""
         if param_name.endswith(".gte"):
@@ -142,59 +196,237 @@ class IntelligentPlanner:
         self.param_handler = ContextAwareParameterHandler(intent_analyzer.genre_map)
 
     def generate_plan(self, query: str, entities: Dict) -> Dict:
-        """Generate execution plan with parameter deserialization"""
-        matched_apis = self._match_apis(query, entities)
-        plan = []
+        """Debug-enhanced plan generation"""
+        print("\n=== PLANNER INIT ===")
+        print(f"📥 Received entities type: {type(entities)}")
+        print(f"📥 Entity keys: {list(entities.keys())}")
         
-        for idx, api_data in enumerate(matched_apis, 1):
-            # Deserialize parameters if stored as JSON string
-            parameters = api_data.get("parameters", [])
-            if isinstance(parameters, str):
-                try:
-                    parameters = json.loads(parameters)
-                except json.JSONDecodeError:
-                    parameters = []
+        try:
+            print("\n🔍 Starting vector search...")
+            raw_steps = self._match_apis(query, entities)
+            print(f"🔍 Found {len(raw_steps)} raw steps from vector search")
             
-            step = {
-                "step": idx,
-                "type": "api_call",
-                "endpoint": api_data["path"],
-                "method": api_data["method"],
-                "parameters": self.param_handler.resolve_parameters(
-                    parameters,  # Now properly deserialized
-                    entities,
-                    api_data.get("context", "")
-                ),
-                "requires_resolution": api_data.get("requires_resolution", False)
-            }
-            plan.append(step)
-        
-        return {"plan": self._add_resolution_steps(plan, entities)}
-
-    def _match_apis(self, query: str, entities: Dict) -> List[Dict]:
-        """Robust API matching with metadata validation"""
-        results = self.collection.query(query_texts=[query], n_results=5)
-        
-        valid_apis = []
-        # Handle ChromaDB's nested response format
-        for metadata in results.get("metadatas", [[]])[0]:  # First query text results
-            if isinstance(metadata, dict):
-                valid_apis.append(metadata)
-            elif isinstance(metadata, str):
-                try:
-                    parsed = json.loads(metadata)
-                    if isinstance(parsed, dict):
-                        valid_apis.append(parsed)
-                except json.JSONDecodeError:
+            final_plan = []
+            for idx, step in enumerate(raw_steps, 1):
+                print(f"\n🔧 Processing step {idx}: {json.dumps(step, indent=2)}")
+                
+                if not isinstance(step, dict):
+                    print(f"⚠️ Invalid step type: {type(step)}")
                     continue
+                    
+                path = step.get("path")
+                method = step.get("method")
+                
+                print(f"🔧 Path: {path}, Method: {method}")
+                
+                if not path or not method:
+                    print("⚠️ Skipping invalid step (missing path/method)")
+                    continue
+                
+                final_plan.append({
+                    "endpoint": path,
+                    "method": method,
+                    "parameters": {},
+                    "requires_resolution": "{" in path
+                })
+            
+            print("\n✅ Valid steps in plan:")
+            for step in final_plan:
+                print(f"  - {step['endpoint']}")
+            
+            return {"plan": final_plan[:3]}
+            
+        except Exception as e:
+            print(f"🚨 Critical planning error: {str(e)}")
+            print(traceback.format_exc())
+            return {"plan": []}
+    
+    def _resolve_parameters(self, params: list, entities: dict) -> dict:
+        """Resolve parameters with logging"""
+        resolved = {}
+        for param in params:
+            pname = param.get("name")
+            p_in = param.get("in")
+            
+            print(f"🐞 Processing param: {pname} (in: {p_in})")
+            
+            if p_in == "query":
+                # Find matching query source
+                for key in entities:
+                    if key.endswith("_query") and pname == "query":
+                        value = requests.utils.quote(entities[key])
+                        resolved[pname] = value
+                        print(f"✅ Resolved query param from {key} → {value}")
+                        break
+            
+            elif p_in == "path":
+                # Match path parameters using naming convention
+                base_type = pname.split("_")[0]
+                id_key = f"{base_type}_id"
+                if id_key in entities:
+                    resolved[pname] = entities[id_key]
+                    print(f"✅ Resolved path param from {id_key} → {entities[id_key]}")
         
-        # Validate required fields
+        print(f"🐞 Final parameters: {json.dumps(resolved, indent=2)}")
+        return resolved
+    
+    def _prioritize_steps(self, steps: List[Dict], entities: Dict) -> List[Dict]:
+        """Prioritize steps with context awareness"""
+        prioritized = []
+        
+        # Stage 1: Search endpoints
+        print("\n🐞 [PLANNER] Prioritizing search endpoints...")
+        search_steps = [s for s in steps if "/search/" in s["path"]]
+        for step in search_steps:
+            if any(ent in step["path"] for ent in entities):
+                print(f"  ➕ Adding search endpoint: {step['path']}")
+                prioritized.append(step)
+        
+        # Stage 2: Entity detail endpoints
+        print("\n🐞 [PLANNER] Looking for detail endpoints...")
+        detail_steps = []
+        for step in steps:
+            path_params = re.findall(r"{(\w+)}", step["path"])
+            if any(f"{p}_id" in entities for p in path_params):
+                print(f"  ➕ Adding detail endpoint: {step['path']}")
+                detail_steps.append(step)
+        prioritized.extend(detail_steps)
+        
+        # Stage 3: Filter out irrelevant steps
+        print("\n🐞 [PLANNER] Filtering irrelevant endpoints...")
+        filtered = []
+        required_params = ["person", "movie", "tv"]  # Entity types from schema
+        for step in prioritized:
+            if any(p in step["path"] for p in required_params):
+                filtered.append(step)
+            else:
+                print(f"  ➖ Filtering out: {step['path']}")
+        
+        return filtered[:5]  # Return top 5 relevant steps
+    
+    def _build_dynamic_plan(self, steps: List[Dict], entities: Dict) -> List[Dict]:
+        plan = []
+        resolved_ids = set()
+        
+        for step in sorted(steps, key=lambda x: x["path"].count("{")):
+            path_params = re.findall(r"{(\w+)}", step["path"])
+            
+            # Check if all path parameters are resolved
+            if all(f"{p}_id" in entities for p in path_params):
+                plan.append({
+                    "endpoint": step["path"],
+                    "method": step["method"],
+                    "parameters": self._map_parameters(step["parameters"], entities),
+                    "requires_resolution": bool(path_params)
+                })
+                resolved_ids.update(path_params)
+                
+            # Add search steps for unresolved entities
+            elif not path_params and "query" in [p["name"] for p in step["parameters"]]:
+                plan.insert(0, {
+                    "endpoint": step["path"],
+                    "method": step["method"],
+                    "parameters": {"query": next(iter(entities.values()))[0]},
+                    "requires_resolution": False
+                })
+                
+        return {"plan": plan[:5]}  # Limit to 5 steps
+
+    def _map_parameters(self, params: list, entities: dict) -> dict:
+        return {
+            p["name"]: entities[f"{p['name']}_id"] 
+            if f"{p['name']}_id" in entities 
+            else entities.get(p["name"])
+            for p in params
+        }
+
+    def _create_priority_plan(self, steps: List[Dict], entities: Dict) -> List[Dict]:
+        """Create validated execution steps"""
+        valid_steps = []
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            if "path" not in step or "method" not in step:
+                continue
+                
+            # Enforce step structure
+            validated = {
+                "endpoint": step["path"],
+                "method": step.get("method", "GET"),
+                "parameters": step.get("parameters", {}),
+                "requires_resolution": "{" in step["path"]
+            }
+            valid_steps.append(validated)
+        
+        # Prioritization logic
+        return sorted(
+            valid_steps,
+            key=lambda x: (
+                -int("/search/" in x["endpoint"]),
+                -int(x["requires_resolution"]),
+                len(x["endpoint"])
+            )
+        )[:5]  # Return top 5 most relevant
+    
+    # In nlp_retriever.py's _match_apis method:
+    def _match_apis(self, query: str, entities: Dict) -> List[Dict]:
+        """Improved API matching with vector search insights"""
+        print("\n=== VECTOR SEARCH DEBUG ===")
+        print(f"🐞 Query: {query}")
+        print(f"🐞 Entities: {json.dumps(entities, indent=2)}")
+        
+        # Get raw vector search results
+        results = self.collection.query(
+            query_texts=[query],
+            n_results=10,
+            include=["metadatas", "distances", "documents"]
+        )
+        
+        # print("🔍 Raw vector search results:")
+        # for i, (meta, dist, doc) in enumerate(zip(results["metadatas"][0], 
+        #                                         results["distances"][0],
+        #                                         results["documents"][0])):
+        #     print(f"{i+1}. {meta['path']} (distance: {dist:.2f})")
+        #     print(f"   Metadata: {json.dumps(meta, indent=4)}")
+        #     print(f"   Document: {doc[:100]}...\n")
+
+        # # Filter valid APIs
+        # valid_apis = []
+        # for meta in results["metadatas"][0]:
+        #     if not isinstance(meta, dict): continue
+        #     if self._is_valid_api(meta):
+        #         valid_apis.append(meta)
+        #         print(f"✅ Valid API: {meta['path']}")
+        #     else:
+        #         print(f"🚫 Invalid API: {meta.get('path', 'unknown')}")
+
+        # return valid_apis
         return [
-            api for api in valid_apis
-            if isinstance(api.get("path"), str) 
-            and isinstance(api.get("method"), str)
-            and "parameters" in api
+            meta for meta in results["metadatas"][0] 
+            if isinstance(meta, dict) 
+            and "path" in meta 
+            and "method" in meta
         ]
+    
+    def _is_valid_api(self, api_meta: Dict) -> bool:
+        """Validate API structure with logging"""
+        valid = all(key in api_meta for key in ["path", "method"]) 
+        valid &= isinstance(api_meta.get("parameters", []), list)
+        
+        if not valid:
+            print(f"⚠️ Invalid API structure: {json.dumps(api_meta, indent=2)}")
+        
+        return valid
+
+    def _parse_semantic_parameters(self, meta: Dict) -> List:
+        """Convert semantic_embed parameters to original format"""
+        param_map = {
+            "search_fields": {"name": "query", "in": "query"},
+            "temporal_filters": {"name": ["date.gte", "date.lte"], "in": "query"},
+            # Add other parameter mappings from semantic_embed's analyze_parameters
+        }
+        
+        return [param_map.get(k, {}) for k in meta.get("parameters", {})]
 
     def _sort_results(self, metadatas: List[Dict], distances: List[float], entities: Dict):
         """Safe sorting with type checking"""
@@ -221,25 +453,41 @@ class IntelligentPlanner:
                 
         return score
 
-    def _has_required_ids(self, api_data: Dict, entities: Dict) -> bool:
-        """Check if required path parameters exist in entities"""
-        path_params = api_data.get("path_params", [])
+    def _has_required_ids(self, step: Dict, entities: Dict) -> bool:
+        """Check path parameters against resolved entities"""
+        path_params = re.findall(r"{(\w+)}", step["path"])
         return all(
-            any(param in key for key in entities.keys())
+            f"{param}_id" in entities or param in entities
             for param in path_params
         )
 
-    def _add_resolution_steps(self, plan: List[Dict], entities: Dict) -> List[Dict]:
-        """Add ID resolution steps where needed"""
+    def _add_resolution_steps(self, steps: List[Dict], entities: Dict) -> List[Dict]:
+        """Safe resolution step addition with error handling"""
         resolved_plan = []
-        for step in plan:
-            if step["requires_resolution"] and not self._has_required_ids(step, entities):
-                resolution_step = self._create_resolution_step(step, entities)
-                if resolution_step:
-                    resolved_plan.append(resolution_step)
+        for step in steps:
+            # Validate step structure first
+            if not self._is_valid_step(step):
+                continue
+
+            # Existing resolution logic...
             resolved_plan.append(step)
         return resolved_plan
 
+    def _is_valid_step(self, step: Dict) -> bool:
+        """Validate step structure"""
+        required_keys = {"path", "method", "parameters"}
+        return all(key in step for key in required_keys)
+    
+    def _create_search_step(self, entity_type: str, entities: dict) -> Optional[Dict]:
+        """Create search step using query terms"""
+        return {
+            "step": f"search_{entity_type}",
+            "type": "api_call",
+            "endpoint": f"/search/{entity_type}",
+            "method": "GET",
+            "parameters": {"query": entities[f"{entity_type}_query"]}
+        }
+    
     def _create_resolution_step(self, step: Dict, entities: Dict) -> Optional[Dict]:
         """Create ID resolution step for API dependencies"""
         placeholder = re.findall(r"{(\w+)}", step["endpoint"])[0]
@@ -338,37 +586,27 @@ def extract_required_parameters(api_parameters, extracted_entities):
     return final_params
 
 def execute_api_call(api_call_info: Dict, entities: Dict) -> Dict:
-    """Robust API execution with parameter validation"""
     try:
-        # Validate metadata structure
-        if not isinstance(api_call_info, dict):
-            raise ValueError("Invalid API call info format")
-            
-        endpoint = api_call_info.get("endpoint", "")
-        method = api_call_info.get("method", "GET")
-        params = api_call_info.get("parameters", {})
-        
-        # Convert string parameters to dict if needed
-        if isinstance(params, str):
-            params = json.loads(params)
-            
-        # Encode parameters
-        safe_params = {
-            k: requests.utils.quote(v) if isinstance(v, str) else v
-            for k, v in params.items()
-        }
+        # Dynamic path parameter substitution
+        endpoint = api_call_info["endpoint"]
+        for match in re.finditer(r"{(\w+)}", endpoint):
+            param = match.group(1)
+            endpoint = endpoint.replace(match.group(0), str(entities.get(f"{param}_id", "")))
         
         response = requests.request(
-            method,
-            f"https://api.themoviedb.org/3{endpoint}",
-            headers={"Authorization": f"Bearer {TMDB_API_KEY}"},
-            params=safe_params
+            api_call_info["method"],
+            f"{BASE_URL}{endpoint}",
+            headers=HEADERS,
+            params=api_call_info.get("parameters", {})
         )
-        return response.json()
+        
+        return response.json() if response.status_code == 200 else {
+            "error": f"API Error {response.status_code}",
+            "details": response.text
+        }
     except Exception as e:
-        print(f"🚨 API Execution Failed: {str(e)}")
         return {"error": str(e)}
-
+    
 def execute_planned_steps(planner_agent, query, extracted_entities):
     """
     Executes API calls dynamically while resolving dependencies.
