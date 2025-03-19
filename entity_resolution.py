@@ -1,137 +1,96 @@
 import requests
 from typing import Dict, Optional
-import json
 
 class TMDBEntityResolver:
     def __init__(self, api_key: str):
-        self.api_key = api_key
+        self.api_key = api_key  # This should be a Bearer token
         self.base_url = "https://api.themoviedb.org/3"
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json;charset=utf-8"
+        }
         self._load_genres()
 
     def _load_genres(self):
-        # Preload genre lists for movies and TV shows once
+        """Preload genre lists for movies and TV shows using headers"""
         self.movie_genres = self._get_genres("movie")
         self.tv_genres = self._get_genres("tv")
 
     def _get_genres(self, media_type: str) -> Dict[str, int]:
+        """Get genres with Bearer authentication"""
         response = requests.get(
             f"{self.base_url}/genre/{media_type}/list",
-            params={"api_key": self.api_key}
+            headers=self.headers
         )
-        genres = response.json().get("genres", [])
-        return {g["name"].lower(): g["id"] for g in genres}
+        response.raise_for_status()
+        return {g["name"].lower(): g["id"] for g in response.json().get("genres", [])}
 
     def resolve_entity(self, entity_name: str, entity_type: str) -> Optional[Dict]:
         """
-        Resolves an entity based on its type.
-        For genres, it checks the preloaded lists.
-        For credits, it returns the provided value.
-        For other types, it uses the corresponding TMDB search endpoint.
+        Unified entity resolution with proper authentication
         """
-        if entity_type == "genre":
-            return self._resolve_genre(entity_name)
-        elif entity_type == "network":
-            return self._resolve_network(entity_name)
-        elif entity_type == "credit":
-            return {"id": entity_name}  # Credits use direct IDs
-        elif entity_type == "person":
-            return self._resolve_person(entity_name)
-        elif entity_type == "movie":
-            return self._resolve_movie(entity_name)
-        elif entity_type == "tv":
-            return self._resolve_tv(entity_name)
-        elif entity_type == "company":
-            return self._resolve_company(entity_name)
-        elif entity_type == "collection":
-            return self._resolve_collection(entity_name)
-        elif entity_type == "keyword":
-            return self._resolve_keyword(entity_name)
-        else:
-            # Fallback to multi-search if type is unrecognized
-            return self._resolve_multi(entity_name)
+        resolver_map = {
+            "genre": self._resolve_genre,
+            "network": self._resolve_network,
+            "credit": lambda x: {"id": x},
+            "person": self._resolve_person,
+            "movie": self._resolve_movie,
+            "tv": self._resolve_tv,
+            "company": self._resolve_company,
+            "collection": self._resolve_collection,
+            "keyword": self._resolve_keyword
+        }
+        
+        if entity_type in resolver_map:
+            return resolver_map[entity_type](entity_name)
+        return self._resolve_multi(entity_name)
 
+    def _make_search_request(self, endpoint: str, query: str) -> Optional[Dict]:
+        """Generic search method with error handling"""
+        try:
+            params = {
+                "query": requests.utils.quote(query),
+                "language": "en-US",
+                "page": 1
+            }
+            response = requests.get(
+                f"{self.base_url}{endpoint}",
+                headers=self.headers,
+                params=params
+            )
+            response.raise_for_status()
+            results = response.json().get("results", [])
+            return results[0] if results else None
+        except requests.exceptions.RequestException as e:
+            print(f"API Error: {str(e)}")
+            return None
+
+    # Simplified resolver methods using the generic search
     def _resolve_genre(self, genre_name: str) -> Optional[Dict]:
         genre_id = (self.movie_genres.get(genre_name.lower()) or 
                     self.tv_genres.get(genre_name.lower()))
         return {"id": genre_id, "name": genre_name} if genre_id else None
 
     def _resolve_network(self, network_name: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": network_name,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/company", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/company", network_name)
 
     def _resolve_person(self, person_name: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": person_name,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/person", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/person", person_name)
 
     def _resolve_movie(self, movie_name: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": movie_name,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/movie", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/movie", movie_name)
 
     def _resolve_tv(self, tv_name: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": tv_name,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/tv", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/tv", tv_name)
 
     def _resolve_company(self, company_name: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": company_name,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/company", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/company", company_name)
 
     def _resolve_collection(self, collection_name: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": collection_name,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/collection", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/collection", collection_name)
 
     def _resolve_keyword(self, keyword: str) -> Optional[Dict]:
-        params = {
-            "api_key": self.api_key,
-            "query": keyword,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/keyword", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/keyword", keyword)
 
     def _resolve_multi(self, query: str) -> Optional[Dict]:
-        # Generic multi-search if the entity type isn’t explicitly handled
-        params = {
-            "api_key": self.api_key,
-            "query": query,
-            "language": "en-US"
-        }
-        response = requests.get(f"{self.base_url}/search/multi", params=params)
-        results = response.json().get("results", [])
-        return results[0] if results else None
+        return self._make_search_request("/search/multi", query)
