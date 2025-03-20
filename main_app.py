@@ -135,55 +135,165 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
         return state
          
 def execute_api_plan(state: ControllerState) -> ControllerState:
-    """Enhanced execution with dependency tracking"""
-    print("\n=== EXECUTION DEBUG ===")
-    state['execution_state'] = {
+    """Execute API plan with detailed step debugging and dependency resolution"""
+    print(f"\n{'='*30} EXECUTION PLAN {'='*30}")
+    
+    # Initialize execution state
+    state.setdefault('execution_results', {})
+    state.setdefault('execution_state', {
         'completed_steps': [],
-        'available_entities': state['resolved_entities'].copy()
-    }
+        'available_entities': state.get('resolved_entities', {}).copy()
+    })
+    
+    # Validate dependency graph
+    dependency_graph = state.get('dependency_graph', nx.DiGraph())
+    print(f"\n🔗 Dependency Graph Structure:")
+    print(f"Nodes ({len(dependency_graph.nodes)}): {list(dependency_graph.nodes)}")
+    print(f"Edges ({len(dependency_graph.edges)}): {list(dependency_graph.edges)}")
+    
+    try:
+        # Get execution order with cycle handling
+        try:
+            execution_order = list(nx.topological_sort(dependency_graph))
+        except nx.NetworkXUnfeasible:
+            print("⚠️ Circular dependencies detected, using insertion order")
+            execution_order = list(dependency_graph.nodes)
+            
+        print(f"\n🔀 Execution Order: {execution_order}")
 
-    execution_order = list(nx.topological_sort(state['dependency_graph']))
-    print(f"🔀 Execution Order: {execution_order}")
+        for step_id in execution_order:
+            step_data = dependency_graph.nodes[step_id]
+            print(f"\n{'='*25} STEP {step_id} {'='*25}")
+            print(f"📝 Description: {step_data.get('description', 'No description')}")
+            print(f"🌐 Endpoint: {step_data['validated_endpoint']}")
+            print(f"⚙️ Method: {step_data.get('method', 'GET')}")
 
-    for step_id in execution_order:
-        step_data = state['dependency_graph'].nodes[step_id]
-        print(f"\n🚀 Executing Step {step_id}: {step_data['description']}")
+            # Resolve parameters with entity tracking
+            resolved_params = {}
+            print(f"\n🔧 Parameter Resolution:")
+            print(f"Available Entities: {json.dumps(state['execution_state']['available_entities'], indent=2)}")
+            
+            for param, value in step_data.get('parameters', {}).items():
+                original_value = value
+                if isinstance(value, str) and value.startswith("$"):
+                    entity_key = value[1:]
+                    resolved_value = state['execution_state']['available_entities'].get(entity_key)
+                    print(f"🔎 Resolving {value}: ", end="")
+                    
+                    if resolved_value:
+                        print(f"Found {resolved_value}")
+                        resolved_params[param] = resolved_value
+                    else:
+                        print(f"Missing! Attempting fuzzy search...")
+                        resolved_value = entity_resolver.fuzzy_search(entity_key, param.split('_')[0])
+                        if resolved_value:
+                            print(f"✅ Resolved via fuzzy search: {resolved_value['id']}")
+                            resolved_params[param] = resolved_value['id']
+                            state['execution_state']['available_entities'][entity_key] = resolved_value['id']
+                        else:
+                            raise ValueError(f"Missing required entity: {entity_key}")
+                else:
+                    resolved_params[param] = value
+                    print(f"✅ Literal parameter: {param}={value}")
+
+            # Handle path parameters
+            path = step_data['validated_endpoint']
+            for match in re.finditer(r'{(\w+)}', path):
+                param_name = match.group(1)
+                if param_name not in resolved_params:
+                    raise ValueError(f"Missing path parameter: {param_name}")
+                path = path.replace(f'{{{param_name}}}', str(resolved_params[param_name]))
+            
+            print(f"\n🚀 Final Request Details:")
+            print(f"Resolved Path: {path}")
+            print(f"Query Parameters: {json.dumps(resolved_params, indent=2)}")
+
+            # Execute API call
+            try:
+                response = requests.request(
+                    method=step_data.get('method', 'GET'),
+                    url=f"{BASE_URL}{path}",
+                    headers=HEADERS,
+                    params=resolved_params
+                )
+                response.raise_for_status()
+                
+                result = {
+                    "status": response.status_code,
+                    "data": response.json(),
+                    "error": None
+                }
+                
+                print(f"\n✅ Success Response ({response.status_code}):")
+                print(json.dumps(result['data'], indent=2)[:500] + ("..." if len(result['data']) > 500 else ""))
+                
+            except Exception as e:
+                result = _handle_api_error(path, "Execution error", str(e))
+                print(f"\n❌ API Call Failed:")
+                print(f"Error: {str(e)}")
+                print(f"Request Details:")
+                print(f"- URL: {path}")
+                print(f"- Params: {json.dumps(resolved_params, indent=2)}")
+
+            # Store results and extract entities
+            state['execution_results'][step_id] = result
+            state['execution_state']['completed_steps'].append(step_id)
+            
+            if result['data']:
+                new_entities = _extract_entities_from_response(
+                    result['data'],
+                    step_data.get('output_entities', [])
+                )
+                print(f"\n📥 Extracted Entities:")
+                for k, v in new_entities.items():
+                    print(f"- {k}: {v}")
+                    state['execution_state']['available_entities'][k] = v
+
+        return state
+
+    except Exception as e:
+        print(f"\n🚨 Execution Failed: {str(e)}")
+        traceback.print_exc()
+        state['execution_state']['error'] = str(e)
+        return state
+
+def _extract_entities_from_response(data: Dict, output_entities: List[str]) -> Dict:
+    """Entity extraction with detailed debugging"""
+    entities = {}
+    print(f"\n🔍 Entity Extraction from Response:")
+    
+    # Handle paginated results
+    if 'results' in data:
+        print(f"Processing results array ({len(data['results'])} items)")
+        if data['results']:
+            first_item = data['results'][0]
+            print(f"First item keys: {list(first_item.keys())}")
+            for entity in output_entities:
+                if entity.endswith('_id') and 'id' in first_item:
+                    entities[entity] = first_item['id']
+                elif entity in first_item:
+                    entities[entity] = first_item[entity]
+    
+    # Handle single entity responses
+    elif 'id' in data:
+        print("Processing single entity response")
+        entity_type = data.get('media_type', 'unknown')
+        for entity in output_entities:
+            if entity == f"{entity_type}_id":
+                entities[entity] = data['id']
+            elif entity in data:
+                entities[entity] = data[entity]
+    
+    # Debug output
+    if entities:
+        print("Extracted Entities:")
+        for k, v in entities.items():
+            print(f"- {k}: {v}")
+    else:
+        print("⚠️ No entities extracted from response")
+        print(f"Response keys: {list(data.keys())}")
         
-        # Resolve parameters
-        resolved_params = {}
-        for param, value in step_data['resolved_parameters'].items():
-            if isinstance(value, str) and value.startswith("$"):
-                entity_key = value[1:]
-                resolved_value = state['execution_state']['available_entities'].get(entity_key)
-                print(f"🔍 Resolving {value} → {entity_key} = {resolved_value}")
-                resolved_params[param] = resolved_value
-            else:
-                resolved_params[param] = value
-
-        # Execute API call
-        response = execute_api_call({
-            "endpoint": step_data['validated_endpoint'],
-            "method": step_data['validated_method'],
-            "parameters": resolved_params
-        })
-        
-        # Store results
-        state['execution_results'][step_id] = response
-        print(f"📦 Response for Step {step_id}: {response.get('status', 'No status')}")
-
-        # Update entity registry
-        if response.get('data'):
-            print(f"🔄 Updating entity registry from Step {step_id}")
-            new_entities = _extract_entities_from_response(
-                response['data'],
-                step_data['output_entities']
-            )
-            state['execution_state']['available_entities'].update(new_entities)
-            print(f"📥 New entities: {json.dumps(new_entities, indent=2)}")
-
-        state['execution_state']['completed_steps'].append(step_id)
-        
-    return state
+    return entities
 
 def _extract_entities_from_response(data: Dict, output_entities: List[str]) -> Dict:
     """Extract entities from API response with debugging"""
