@@ -12,6 +12,8 @@ from nlp_retriever import (
     OpenAILLMClient
 )
 from entity_resolution import TMDBEntityResolver
+from intent_classifier import IntentClassifier
+from dependency_manager import DependencyManager, ExecutionState
 
 # Load environment variables first
 load_dotenv()
@@ -26,17 +28,19 @@ collection = chroma_client.get_or_create_collection(
 )
 
 # Verify collection contents
-print(f"Collection contains {collection.count()} embeddings")
+#print(f"Collection contains {collection.count()} embeddings")
 
 # Initialize core components
 intent_analyzer = EnhancedIntentAnalyzer()
 entity_resolver = TMDBEntityResolver(TMDB_API_KEY)
 planner = IntelligentPlanner(collection, intent_analyzer)
+intent_classifier = IntentClassifier(OPENAI_API_KEY)
 
 class ControllerState(TypedDict):
     query: str
     raw_entities: Dict
     resolved_entities: Dict
+    detected_intents: Dict
     api_plan: List[Dict]
     execution_results: Dict
     final_response: str
@@ -53,17 +57,18 @@ def initialize_state(query: str) -> ControllerState:
 
 # Define node functions
 def parse_query(state: ControllerState) -> ControllerState:
-    """Node 1: Parse query and extract raw entities"""
-    print("\n=== PARSING QUERY ===")
+    """Enhanced parsing with intent classification"""
+    #print("\n=== PARSING QUERY ===")
     state["raw_entities"] = intent_analyzer.extract_entities(state["query"])
+    state["detected_intents"] = intent_classifier.classify(state["query"])
     return state
 
 def resolve_entities(state: ControllerState) -> ControllerState:
     raw_entities = state["raw_entities"]
     resolved = state["resolved_entities"]
     
-    print("\n=== ENTITY RESOLUTION DEBUG ===")
-    print(f"🐞 [ENTITY RESOLVER] Raw entities received: {json.dumps(raw_entities, indent=2)}")
+    #print("\n=== ENTITY RESOLUTION DEBUG ===")
+    #print(f"🐞 [ENTITY RESOLVER] Raw entities received: {json.dumps(raw_entities, indent=2)}")
     
     for ent_type in ["person", "movie", "tv"]:
         if ent_type in raw_entities and raw_entities[ent_type]:
@@ -94,52 +99,53 @@ def resolve_entities(state: ControllerState) -> ControllerState:
                 #print(f"🔥 [ENTITY RESOLVER] Traceback: {traceback.format_exc()}")
 
     print(f"\n🐞 [ENTITY RESOLVER] Final resolved entities: {json.dumps(resolved, indent=2)}")
+    planner.resolved_entities = resolved
     return state
 
-def plan_steps(state: ControllerState) -> ControllerState:
-    """Node 3: Generate API execution plan with validation"""
-    print("\n=== GENERATING EXECUTION PLAN ===")
+# Add new node for intent-aware planning
+def plan_with_intent(state: ControllerState) -> ControllerState:
+    """Diagnostic planning node"""
+    print("\n=== INTENT-BASED PLANNING ===")
     try:
-        plan = planner.generate_plan(state["query"], state["resolved_entities"])
-        # Ensure all steps have required fields
-        valid_steps = [
-            step for step in plan.get("plan", [])
-            if "endpoint" in step and "method" in step
-        ]
-        state["api_plan"] = valid_steps
-        print(f"Execution Plan:\n{json.dumps(valid_steps, indent=2)}")
+        print(f"Resolved entities: {json.dumps(state['resolved_entities'], indent=2)}")
+        print(f"Detected intents: {json.dumps(state['detected_intents'], indent=2)}")
+        
+        raw_plan = planner.generate_plan(
+            state["query"], 
+            state["resolved_entities"],
+            state.get("detected_intents", {})
+        )
+        
+        print("\nRaw plan from planner:")
+        print(json.dumps(raw_plan, indent=2))
+        
+        state["api_plan"] = raw_plan.get("plan", [])
+        return state
+        
     except Exception as e:
-        print(f"⚠️ Planning Failed: {str(e)}")
+        print(f"Planning error: {str(e)}")
         state["api_plan"] = []
-    return state
-
+        return state
+    
 def execute_api_plan(state: ControllerState) -> ControllerState:
     """Execution with detailed request/response logging"""
     print("\n=== EXECUTION DEBUG ===")
+    executor = ExecutionState(state["resolved_entities"]) 
     results = {}
-    
-    for step in state["api_plan"]:
-        print(f"\n🚀 Executing step: {step['endpoint']}")
-        print(f"🔧 Method: {step['method']}")
-        print(f"🔧 Parameters: {json.dumps(step.get('parameters', {}), indent=2)}")
         
-        try:
-            response = execute_api_call(step, state["resolved_entities"])
-            print(f"✅ Response received (status: {response.get('status_code', 'N/A')})")
-            
-            # Store relevant IDs from responses
-            if "id" in response:
-                entity_type = step["endpoint"].split("/")[1]
-                id_key = f"{entity_type}_id"
-                state["resolved_entities"][id_key] = response["id"]
-                print(f"💡 Stored resolved {id_key} = {response['id']}")
-            
-            results[step["endpoint"]] = response
-            
-        except Exception as e:
-            print(f"🚨 Execution failed: {str(e)}")
-            results[step["endpoint"]] = {"error": str(e)}
+    # Add validated steps to executor
+    for step in state["api_plan"]:
+        executor.add_step(step)
     
+    # Process steps until completion
+    while True:
+        response = executor.execute_next()
+        if not response:
+            break
+        endpoint = list(response.keys())[0]
+        results[endpoint] = response[endpoint]
+    
+    state["execution_results"] = results
     return state
 
 def build_response(state: ControllerState) -> ControllerState:
@@ -169,15 +175,15 @@ workflow = StateGraph(ControllerState)
 # Add nodes
 workflow.add_node("parse", parse_query)
 workflow.add_node("resolve", resolve_entities)
-workflow.add_node("plan", plan_steps)
+workflow.add_node("intent_plan", plan_with_intent)  # New node
 workflow.add_node("execute", execute_api_plan)
 workflow.add_node("respond", build_response)
 
 # Define edges
 workflow.set_entry_point("parse")
 workflow.add_edge("parse", "resolve")
-workflow.add_edge("resolve", "plan")
-workflow.add_edge("plan", "execute")
+workflow.add_edge("resolve", "intent_plan")
+workflow.add_edge("intent_plan", "execute")
 workflow.add_edge("execute", "respond")
 workflow.add_edge("respond", END)
 
