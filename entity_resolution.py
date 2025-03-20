@@ -11,6 +11,29 @@ class TMDBEntityResolver:
         }
         self._load_genres()
 
+    def fuzzy_search(self, query: str, entity_type: str, retries=2) -> Optional[Dict]:
+        """Enhanced search with retries and fuzzy matching"""
+        print(f"🔍 Fuzzy search for {entity_type}: {query}")
+        
+        for attempt in range(retries + 1):
+            result = self.resolve_entity(query, entity_type)
+            if result:
+                return result
+                
+            # Try spelling correction on final attempt
+            if attempt == retries - 1:
+                corrected = self._spell_check(query)
+                print(f"🔄 Retrying with corrected query: {corrected}")
+                result = self.resolve_entity(corrected, entity_type)
+                if result:
+                    return result
+                    
+        return None
+
+    def _spell_check(self, query: str) -> str:
+        """Simple spelling correction (placeholder for actual implementation)"""
+        return query  # Implement actual spell check here
+
     def _load_genres(self):
         """Preload genre lists for movies and TV shows using headers"""
         self.movie_genres = self._get_genres("movie")
