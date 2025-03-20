@@ -264,51 +264,57 @@ class IntelligentPlanner:
     
     def _generate_llm_plan(self, query: str) -> Dict:   
         """Generate initial plan using LLM with structured prompting"""
+        # PLANNING_PROMPT = f"""
+        # You are an API orchestration expert planning TMDB API calls. Follow these rules:
+
+        # 1. Parameter Requirements:
+        # - Path parameters must match exactly what's in the endpoint URL
+        # - Use $entity_name format for dependencies between steps
+        # - Use only parameters listed in the endpoint's schema
+
+        # 2. Endpoint Patterns:
+        # - Search: /search/{{resource}}?query=...
+        # - Details: /{{resource}}/{{id}}
+        # - Relationships: /{{resource}}/{{id}}/{{relationship}}
+
+        # 3. Required Parameters:
+        # {self._get_endpoint_requirements()}  # Dynamically insert current API capabilities
+
+        # 4. Example Plan:
+        # For "Movies directed by Sofia Coppola":
+        # {{
+        # "plan": [
+        #     {{
+        #     "step_id": 1,
+        #     "description": "Search for Sofia Coppola",
+        #     "endpoint_type": "/search/person",
+        #     "parameters": {{"query": "Sofia Coppola"}},
+        #     "output_entities": ["person_id"],
+        #     "depends_on": []
+        #     }},
+        #     {{
+        #     "step_id": 2,
+        #     "description": "Get movie credits",
+        #     "endpoint_type": "/person/{{person_id}}/movie_credits",
+        #     "parameters": {{"person_id": "$person_id"}},
+        #     "output_entities": ["movie_ids"],
+        #     "depends_on": [1]
+        #     }}
+        # ]
+        # }}
+
+        # Now create a plan for: {query}
+        # Respond with JSON only, no commentary.
+        # """
+        # PLANNING_PROMPT += f"""
+        # Existing Entities: {json.dumps(self.entity_registry)}
+        # Do NOT generate steps for these existing entities.
+        # """
+
         PLANNING_PROMPT = f"""
-        You are an API orchestration expert planning TMDB API calls. Follow these rules:
-
-        1. Parameter Requirements:
-        - Path parameters must match exactly what's in the endpoint URL
-        - Use $entity_name format for dependencies between steps
-        - Use only parameters listed in the endpoint's schema
-
-        2. Endpoint Patterns:
-        - Search: /search/{{resource}}?query=...
-        - Details: /{{resource}}/{{id}}
-        - Relationships: /{{resource}}/{{id}}/{{relationship}}
-
-        3. Required Parameters:
-        {self._get_endpoint_requirements()}  # Dynamically insert current API capabilities
-
-        4. Example Plan:
-        For "Movies directed by Sofia Coppola":
-        {{
-        "plan": [
-            {{
-            "step_id": 1,
-            "description": "Search for Sofia Coppola",
-            "endpoint_type": "/search/person",
-            "parameters": {{"query": "Sofia Coppola"}},
-            "output_entities": ["person_id"],
-            "depends_on": []
-            }},
-            {{
-            "step_id": 2,
-            "description": "Get movie credits",
-            "endpoint_type": "/person/{{person_id}}/movie_credits",
-            "parameters": {{"person_id": "$person_id"}},
-            "output_entities": ["movie_ids"],
-            "depends_on": [1]
-            }}
-        ]
-        }}
-
-        Now create a plan for: {query}
-        Respond with JSON only, no commentary.
-        """
-        PLANNING_PROMPT += f"""
-        Existing Entities: {json.dumps(self.entity_registry)}
-        Do NOT generate steps for these existing entities.
+        New Requirement: Include BOTH types of steps:
+        1. Entity Discovery: /search/... (when IDs are missing)
+        2. Data Retrieval: /person/{{id}} (when IDs exist)  # <-- Critical addition
         """
 
         try:
@@ -317,6 +323,7 @@ class IntelligentPlanner:
         except Exception as e:
             print(f"LLM Planning Error: {str(e)}")
             return {"plan": []}
+                
         
     def _get_endpoint_requirements(self) -> str:
         """Generate dynamic requirement text from ChromaDB metadata"""

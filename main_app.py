@@ -17,6 +17,7 @@ from dependency_manager import DependencyManager, ExecutionState
 import networkx as nx
 import traceback
 import requests
+import time
 
 # Load environment variables first
 load_dotenv()
@@ -105,6 +106,12 @@ def resolve_entities(state: ControllerState) -> ControllerState:
     for k, v in resolved.items():
         print(f"- {k}: {v} ({type(v)})")
     
+    # Track resolution outcomes
+    state["step_status"]["resolve_entities"] = {
+        "timestamp": time.time(),
+        "entities_resolved": list(state["resolved_entities"].keys()),
+        "missing_entities": [ent for ent in raw_entities if ent not in resolved]
+    }
     return state
 
 # Add new node for intent-aware planning
@@ -137,6 +144,23 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
          
 def execute_api_plan(state: ControllerState) -> ControllerState:
     """Execute API plan with detailed step debugging and dependency resolution"""
+
+     # Track actual executed steps
+    state['execution_state']['step_output_types'] = {}
+    
+    for step in execution_order:
+        # Record what type of data each step produced
+        output_type = 'entities' if step.get('output_entities') else 'data'
+        state['execution_state']['step_output_types'][step['step_id']] = output_type
+        
+        # Track entity usage
+        for param in step['parameters'].values():
+            if isinstance(param, str) and param.startswith("$"):
+                entity = param[1:]
+                state['entity_usage'].setdefault(entity, []).append(step['step_id'])
+
+
+
     print(f"\n{'='*30} EXECUTION PLAN {'='*30}")
     
     # Initialize execution state

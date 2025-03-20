@@ -14,6 +14,11 @@ def create_core_workflow():
     # Primary Flow
     workflow.set_entry_point("resolve_entities")
     workflow.add_edge("resolve_entities", "generate_plan")
+    workflow.add_edge(
+        "resolve_entities", 
+        "generate_plan",
+        condition=lambda s: _validate_state_shape(s) and s["resolved_entities"]
+    )
     
     # Conditional Validation
     workflow.add_conditional_edges(
@@ -30,3 +35,9 @@ def create_core_workflow():
 
 def should_validate_plan(state: ExecutionState):
     return len(state['validation_errors']) > 0
+
+# Add state shape validation at edges
+def _validate_state_shape(state: ExecutionState):
+    required_keys = {"query", "resolved_entities", "entity_origins"}
+    if not required_keys.issubset(state.keys()):
+        raise ValueError(f"Missing critical state keys: {required_keys - state.keys()}")

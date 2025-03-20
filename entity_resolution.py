@@ -73,6 +73,10 @@ class TMDBEntityResolver:
     def resolve_entity(self, entity_name: str, entity_type: str) -> Dict:
         """Ensure resolved IDs are integers"""
         result = self._make_search_request(f"/search/{entity_type}", entity_name)
+
+        state["entity_origins"][f"{entity_type}_id"] = "TMDBEntityResolver"
+        state["entity_timestamps"][f"{entity_type}_id"] = time.time()
+        state["entity_dependencies"].setdefault(f"{entity_type}_id", [])
         
         if result and 'id' in result:
             try:
