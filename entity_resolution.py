@@ -64,6 +64,7 @@ class TMDBEntityResolver:
         except requests.exceptions.RequestException as e:
             print(f"API Error: {str(e)}")
             return None
+        
 
     # Simplified resolver methods using the generic search
     def _resolve_genre(self, genre_name: str) -> Optional[Dict]:
@@ -94,3 +95,4 @@ class TMDBEntityResolver:
 
     def _resolve_multi(self, query: str) -> Optional[Dict]:
         return self._make_search_request("/search/multi", query)
+    
