@@ -10,7 +10,6 @@ import re
 from datetime import datetime
 from typing import Dict, List, Optional
 import traceback
-import requests
 from requests.exceptions import RequestException
 from utils.metadata_parser import MetadataParser
 import networkx as nx
@@ -274,7 +273,7 @@ Example:
         return self._parse_llm_response(response)
 
     def _generate_validated_steps(self, query: str) -> List[Dict]:
-        """Validation implementation with enhanced parameter checking and debugging"""
+        """Validation implementation with dynamic path parameter handling"""
         print(f"\n{'='*30} VALIDATING STEPS {'='*30}")
         validated_steps = []
         
@@ -290,8 +289,8 @@ Example:
                 
             for idx, raw_step in enumerate(llm_plan.get('plan', [])):
                 step_debug_header = f"\n🔍 STEP {idx+1} VALIDATION [Original: {raw_step.get('description')}]"
-                print(f"{step_debug_header}")
-                print("-"*len(step_debug_header))
+                print(step_debug_header)
+                print("-" * len(step_debug_header))
                 
                 try:
                     # Validate endpoint existence
@@ -302,13 +301,42 @@ Example:
                         
                     print(f"✅ Endpoint validated: {endpoint_match['path']}")
                     
-                    # Get detailed parameter schema
-                    supported_params = {p['name']: p for p in endpoint_match.get('parameters', [])}
-                    required_params = [p['name'] for p in endpoint_match.get('parameters', []) 
-                                    if p.get('required', False)]
+                    # Dynamic path parameter extraction
+                    path_params = re.findall(r'{(\w+)}', endpoint_match['path'])
+                    try:
+                        # Assume endpoint_match.get('parameters') returns a JSON string of parameter definitions
+                        param_details = json.loads(endpoint_match.get('parameters', '[]'))
+                    except Exception as e:
+                        print("⚠️ Error parsing endpoint parameters:", e)
+                        param_details = []
                     
-                    # Validate parameters with type checking
+                    # Build parameter schema combining declared (query) and dynamic (path) parameters
+                    supported_params = {p['name']: p for p in param_details}
+                    
+                    # Ensure each dynamic path parameter is present in the schema
+                    for param in path_params:
+                        if param not in supported_params:
+                            supported_params[param] = {
+                                'name': param,
+                                'in': 'path',
+                                'required': True,
+                                'schema': {'type': 'integer'}
+                            }
+                    
+                    # Print parameter schema table
+                    print(f"\n🔧 Parameter Schema:")
+                    print(f"Endpoint: {endpoint_match['path']}")
+                    print(f"| {'Param':<15} | {'Location':<10} | {'Required':<8} | {'Type':<12} |")
+                    print("|----------------|------------|----------|------------|")
+                    for param, meta in supported_params.items():
+                        print(f"| {param:<15} | {meta.get('in', 'query'):<10} | "
+                            f"{str(meta.get('required', False)):<8} | "
+                            f"{meta.get('schema', {}).get('type', 'string'):<12} |")
+                    
+                    # Parameter validation: check raw step parameters against supported schema
                     valid_params = {}
+                    required_params = [p for p, meta in supported_params.items() if meta.get('required', False)]
+                    
                     print(f"\n🔧 Parameter Validation Details:")
                     print(f"| {'Parameter':<20} | {'Status':<10} | {'Type':<15} | {'Value':<30} |")
                     print("|----------------------|------------|-----------------|--------------------------------|")
@@ -318,7 +346,7 @@ Example:
                         param_type = param_meta.get('schema', {}).get('type', 'unknown')
                         
                         if param in supported_params:
-                            # Type validation
+                            # Type checking for integer parameters
                             if param_type == 'integer' and not str(value).isdigit():
                                 status = "TYPE_MISMATCH"
                             else:
@@ -329,15 +357,25 @@ Example:
                         
                         print(f"| {param:<20} | {status:<10} | {param_type:<15} | {str(value):<30} |")
                     
-                    # Check required parameters
+                    # Validate that all dynamic path parameters are provided
+                    for path_param in path_params:
+                        if path_param not in raw_step.get('parameters', {}):
+                            print(f"🚨 Missing path parameter: {path_param}")
+                            raise ValueError(f"Path parameter {path_param} required")
+                    
+                    # Check for any required parameters missing from the valid_params
                     missing_required = [p for p in required_params if p not in valid_params]
                     if missing_required:
                         print(f"\n🚨 Missing required parameters: {missing_required}")
                         raise ValueError(f"Missing required parameters: {missing_required}")
                     
-                    # Build validated step
+                    if not valid_params:
+                        print("🚫 No valid parameters - rejecting step")
+                        raise ValueError("No valid parameters provided")
+                    
+                    # Build validated step record
                     validated_step = {
-                        "step_id": idx+1,
+                        "step_id": idx + 1,
                         "description": raw_step.get('description', 'Unnamed step'),
                         "original_endpoint": raw_step.get('endpoint_type'),
                         "validated_endpoint": endpoint_match['path'],
@@ -354,17 +392,13 @@ Example:
                         }
                     }
                     
-                    if not valid_params:
-                        print(f"🚫 No valid parameters - rejecting step")
-                        raise ValueError("No valid parameters provided")
-                    
                     validated_steps.append(validated_step)
-                    print(f"\n✅ Step {idx+1} validation successful")
+                    print(f"\n✅ Step {idx + 1} validation successful")
                     
                 except Exception as step_error:
-                    print(f"\n🚫 Step {idx+1} validation failed: {str(step_error)}")
+                    print(f"\n🚫 Step {idx + 1} validation failed: {str(step_error)}")
                     validated_steps.append({
-                        "step_id": idx+1,
+                        "step_id": idx + 1,
                         "validation_status": "failed",
                         "error": str(step_error),
                         "raw_data": raw_step,
@@ -383,6 +417,7 @@ Example:
             print(f"\n🚨 Critical validation error: {str(e)}")
             traceback.print_exc()
             return []
+
 
     def _parse_llm_response(self, response: str) -> Dict:
         """Safely parse LLM JSON output"""
@@ -811,10 +846,6 @@ Example:
             print(f"\n🔥 PARSE_METADATA ERROR: {str(e)}")
             traceback.print_exc()
             return []
-
-    def _parse_metadata(self, raw_results: Dict) -> List[Dict]:
-        """Convert ChromaDB metadata to application format"""
-        parsed = []
     
     def _priority_sort(self, results: List[Dict], needs_search: bool) -> List[Dict]:
         """Context-aware ranking"""
