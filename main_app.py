@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from typing import Dict, TypedDict, List
+from typing import Dict, TypedDict, List, Any
 import json
 import os
 import chromadb
@@ -14,6 +14,7 @@ from nlp_retriever import (
 from entity_resolution import TMDBEntityResolver
 from intent_classifier import IntentClassifier
 from dependency_manager import DependencyManager, ExecutionState
+import networkx as nx
 
 # Load environment variables first
 load_dotenv()
@@ -33,16 +34,19 @@ collection = chroma_client.get_or_create_collection(
 # Initialize core components
 intent_analyzer = EnhancedIntentAnalyzer()
 entity_resolver = TMDBEntityResolver(TMDB_API_KEY)
-planner = IntelligentPlanner(collection, intent_analyzer)
 intent_classifier = IntentClassifier(OPENAI_API_KEY)
+llm_client = OpenAILLMClient(OPENAI_API_KEY) 
+planner = IntelligentPlanner(collection, intent_analyzer, llm_client)
 
 class ControllerState(TypedDict):
     query: str
     raw_entities: Dict
     resolved_entities: Dict
     detected_intents: Dict
-    api_plan: List[Dict]
+    api_plan: Dict  
     execution_results: Dict
+    dependency_graph: Any  # NetworkX graph
+    execution_state: Dict
     final_response: str
 
 def initialize_state(query: str) -> ControllerState:
@@ -107,46 +111,113 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
     """Diagnostic planning node"""
     print("\n=== INTENT-BASED PLANNING ===")
     try:
-        print(f"Resolved entities: {json.dumps(state['resolved_entities'], indent=2)}")
-        print(f"Detected intents: {json.dumps(state['detected_intents'], indent=2)}")
-        
-        raw_plan = planner.generate_plan(
+        # Generate full plan structure
+        full_plan = planner.generate_plan(
             state["query"], 
             state["resolved_entities"],
             state.get("detected_intents", {})
         )
         
-        print("\nRaw plan from planner:")
-        print(json.dumps(raw_plan, indent=2))
+        # Store both plan and graph
+        state["api_plan"] = full_plan["plan"]
+        state["dependency_graph"] = planner.execution_graph
         
-        state["api_plan"] = raw_plan.get("plan", [])
+        print("\n🔗 Dependency Graph Structure:")
+        print(f"Nodes: {state['dependency_graph'].nodes(data=True)}")
+        print(f"Edges: {state['dependency_graph'].edges()}")
+        
         return state
         
     except Exception as e:
         print(f"Planning error: {str(e)}")
         state["api_plan"] = []
+        state["dependency_graph"] = nx.DiGraph()  # Empty graph as fallback
         return state
-    
+         
 def execute_api_plan(state: ControllerState) -> ControllerState:
-    """Execution with detailed request/response logging"""
+    """Enhanced execution with dependency tracking"""
     print("\n=== EXECUTION DEBUG ===")
-    executor = ExecutionState(state["resolved_entities"]) 
-    results = {}
+    state['execution_state'] = {
+        'completed_steps': [],
+        'available_entities': state['resolved_entities'].copy()
+    }
+
+    execution_order = list(nx.topological_sort(state['dependency_graph']))
+    print(f"🔀 Execution Order: {execution_order}")
+
+    for step_id in execution_order:
+        step_data = state['dependency_graph'].nodes[step_id]
+        print(f"\n🚀 Executing Step {step_id}: {step_data['description']}")
         
-    # Add validated steps to executor
-    for step in state["api_plan"]:
-        executor.add_step(step)
-    
-    # Process steps until completion
-    while True:
-        response = executor.execute_next()
-        if not response:
-            break
-        endpoint = list(response.keys())[0]
-        results[endpoint] = response[endpoint]
-    
-    state["execution_results"] = results
+        # Resolve parameters
+        resolved_params = {}
+        for param, value in step_data['resolved_parameters'].items():
+            if isinstance(value, str) and value.startswith("$"):
+                entity_key = value[1:]
+                resolved_value = state['execution_state']['available_entities'].get(entity_key)
+                print(f"🔍 Resolving {value} → {entity_key} = {resolved_value}")
+                resolved_params[param] = resolved_value
+            else:
+                resolved_params[param] = value
+
+        # Execute API call
+        response = execute_api_call({
+            "endpoint": step_data['validated_endpoint'],
+            "method": step_data['validated_method'],
+            "parameters": resolved_params
+        })
+        
+        # Store results
+        state['execution_results'][step_id] = response
+        print(f"📦 Response for Step {step_id}: {response.get('status', 'No status')}")
+
+        # Update entity registry
+        if response.get('data'):
+            print(f"🔄 Updating entity registry from Step {step_id}")
+            new_entities = _extract_entities_from_response(
+                response['data'],
+                step_data['output_entities']
+            )
+            state['execution_state']['available_entities'].update(new_entities)
+            print(f"📥 New entities: {json.dumps(new_entities, indent=2)}")
+
+        state['execution_state']['completed_steps'].append(step_id)
+        
     return state
+
+def _extract_entities_from_response(data: Dict, output_entities: List[str]) -> Dict:
+    """Extract entities from API response with debugging"""
+    entities = {}
+    
+    print(f"🔎 Extracting entities: {output_entities}")
+    
+    # Handle paginated results
+    if 'results' in data:
+        print(f"📄 Processing results array ({len(data['results'])} items)")
+        if data['results']:
+            first_item = data['results'][0]
+            for entity in output_entities:
+                if entity.endswith('_id') and 'id' in first_item:
+                    entities[entity] = first_item['id']
+                    print(f"✅ Extracted {entity} = {first_item['id']}")
+    
+    # Handle single entity responses
+    elif 'id' in data:
+        print("📄 Processing single entity response")
+        entity_type = data.get('media_type', 'unknown')
+        base_entity = f"{entity_type}_id"
+        for entity in output_entities:
+            if entity == base_entity:
+                entities[entity] = data['id']
+                print(f"✅ Extracted {entity} = {data['id']}")
+    
+    # Debug case where no entities found
+    if not entities:
+        print("⚠️ No entities extracted from response")
+        print(f"Response data: {json.dumps(data, indent=2)[:500]}...")
+    
+    return entities
+
 
 def build_response(state: ControllerState) -> ControllerState:
     """Node 5: Build final response"""
