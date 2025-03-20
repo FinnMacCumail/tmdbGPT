@@ -15,11 +15,17 @@ from entity_resolution import TMDBEntityResolver
 from intent_classifier import IntentClassifier
 from dependency_manager import DependencyManager, ExecutionState
 import networkx as nx
+import traceback
+import requests
 
 # Load environment variables first
 load_dotenv()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# TMDB API configuration
+BASE_URL = "https://api.themoviedb.org/3"
+HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
 # Initialize ChromaDB client with proper configuration
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
@@ -68,42 +74,37 @@ def parse_query(state: ControllerState) -> ControllerState:
     return state
 
 def resolve_entities(state: ControllerState) -> ControllerState:
-    raw_entities = state["raw_entities"]
-    resolved = state["resolved_entities"]
-    
-    #print("\n=== ENTITY RESOLUTION DEBUG ===")
-    #print(f"🐞 [ENTITY RESOLVER] Raw entities received: {json.dumps(raw_entities, indent=2)}")
+    """Entity resolution with detailed type checking"""
+    print(f"\n{'='*30} ENTITY RESOLUTION {'='*30}")
+    raw_entities = state['raw_entities']
+    resolved = state['resolved_entities']
     
     for ent_type in ["person", "movie", "tv"]:
         if ent_type in raw_entities and raw_entities[ent_type]:
-            raw_value = raw_entities[ent_type][0]
-            query_key = f"{ent_type}_query"
-            id_key = f"{ent_type}_id"
+            print(f"\n🔍 Processing {ent_type} entity:")
+            print(f"Raw value: {raw_entities[ent_type][0]}")
             
-            print(f"\n🐞 [ENTITY RESOLVER] Processing {ent_type} entity")
-            print(f"🐞 [ENTITY RESOLVER] Raw value: {raw_value}")
-            
-            # Store query value
-            resolved[query_key] = raw_value
-            print(f"✅ [ENTITY RESOLVER] Stored query value: {query_key} = {raw_value}")
-
-            # Attempt ID resolution
             try:
-                print(f"🐞 [ENTITY RESOLVER] Attempting {ent_type} ID resolution...")
-                result = entity_resolver.resolve_entity(raw_value, ent_type)
+                result = entity_resolver.resolve_entity(
+                    raw_entities[ent_type][0], 
+                    ent_type
+                )
                 
-                if result and "id" in result:
-                    resolved[id_key] = result["id"]
-                    print(f"✅ [ENTITY RESOLVER] Resolved {ent_type} ID: {result['id']}")
+                if result and 'id' in result:
+                    id_key = f"{ent_type}_id"
+                    resolved[id_key] = int(result['id'])  # Ensure integer conversion
+                    print(f"✅ Resolved {ent_type} ID: {resolved[id_key]} ({type(resolved[id_key])})")
                 else:
-                    print(f"⚠️ [ENTITY RESOLVER] No ID found for {ent_type}: {raw_value}")
+                    print(f"⚠️ No ID found for {ent_type}: {raw_entities[ent_type][0]}")
                     
-            except Exception as e:
-                print(f"🔥 [ENTITY RESOLVER] Error resolving {ent_type}: {str(e)}")
-                #print(f"🔥 [ENTITY RESOLVER] Traceback: {traceback.format_exc()}")
-
-    print(f"\n🐞 [ENTITY RESOLVER] Final resolved entities: {json.dumps(resolved, indent=2)}")
-    planner.resolved_entities = resolved
+            except ValueError as e:
+                print(f"🚨 Type conversion failed: {str(e)}")
+                traceback.print_exc()
+    
+    print(f"\n📦 Final Resolved Entities:")
+    for k, v in resolved.items():
+        print(f"- {k}: {v} ({type(v)})")
+    
     return state
 
 # Add new node for intent-aware planning
@@ -161,40 +162,49 @@ def execute_api_plan(state: ControllerState) -> ControllerState:
             
         print(f"\n🔀 Execution Order: {execution_order}")
 
+        print(f"\n📊 Pre-Execution Entity Registry:")
+        for k, v in state['execution_state']['available_entities'].items():
+            print(f"- {k}: {v} ({type(v)})")
+        
         for step_id in execution_order:
-            step_data = dependency_graph.nodes[step_id]
-            print(f"\n{'='*25} STEP {step_id} {'='*25}")
-            print(f"📝 Description: {step_data.get('description', 'No description')}")
-            print(f"🌐 Endpoint: {step_data['validated_endpoint']}")
-            print(f"⚙️ Method: {step_data.get('method', 'GET')}")
 
-            # Resolve parameters with entity tracking
-            resolved_params = {}
-            print(f"\n🔧 Parameter Resolution:")
-            print(f"Available Entities: {json.dumps(state['execution_state']['available_entities'], indent=2)}")
+            step_data = dependency_graph.nodes[step_id]
+        
+            # Pre-execution entity check
+            required_entities = get_required_entities(step_data)
+            missing_entities = [e for e in required_entities 
+                            if e not in state['execution_state']['available_entities']]
             
+            if missing_entities:
+                print(f"\n🔍 Missing entities for step {step_id}: {missing_entities}")
+                print("Attempting to resolve...")
+                resolve_missing_entities(missing_entities, state)
+
+            resolved_params = {}
+
+            # Resolve parameters with type conversion
             for param, value in step_data.get('parameters', {}).items():
-                original_value = value
                 if isinstance(value, str) and value.startswith("$"):
                     entity_key = value[1:]
-                    resolved_value = state['execution_state']['available_entities'].get(entity_key)
-                    print(f"🔎 Resolving {value}: ", end="")
+                    raw_value = state['execution_state']['available_entities'].get(entity_key)
                     
-                    if resolved_value:
-                        print(f"Found {resolved_value}")
+                    # Get parameter type from endpoint schema
+                    param_type = get_param_type(
+                        step_data['validated_endpoint'],
+                        param
+                    )
+                    
+                    # Convert entity value to required type
+                    try:
+                        resolved_value = convert_type(raw_value, param_type)
                         resolved_params[param] = resolved_value
-                    else:
-                        print(f"Missing! Attempting fuzzy search...")
-                        resolved_value = entity_resolver.fuzzy_search(entity_key, param.split('_')[0])
-                        if resolved_value:
-                            print(f"✅ Resolved via fuzzy search: {resolved_value['id']}")
-                            resolved_params[param] = resolved_value['id']
-                            state['execution_state']['available_entities'][entity_key] = resolved_value['id']
-                        else:
-                            raise ValueError(f"Missing required entity: {entity_key}")
+                        print(f"✅ Resolved {value} → {resolved_value} ({type(resolved_value)})")
+                    except ValueError as e:
+                        print(f"🚨 Failed to convert {value}: {str(e)}")
+                        raise
                 else:
                     resolved_params[param] = value
-                    print(f"✅ Literal parameter: {param}={value}")
+
 
             # Handle path parameters
             path = step_data['validated_endpoint']
@@ -249,6 +259,10 @@ def execute_api_plan(state: ControllerState) -> ControllerState:
                     print(f"- {k}: {v}")
                     state['execution_state']['available_entities'][k] = v
 
+        print(f"\n📊 Post-Execution Entity Registry:")
+        for k, v in state['execution_state']['available_entities'].items():
+            print(f"- {k}: {v} ({type(v)})")
+            
         return state
 
     except Exception as e:
@@ -256,6 +270,57 @@ def execute_api_plan(state: ControllerState) -> ControllerState:
         traceback.print_exc()
         state['execution_state']['error'] = str(e)
         return state
+
+def get_param_type(self, endpoint: str, param: str) -> str:
+    """Dynamic parameter type lookup"""
+    result = self.collection.query(
+        query_texts=[endpoint],
+        n_results=1,
+        where={"method": "GET"},
+        include=["metadatas"]
+    )
+    
+    if result["metadatas"][0]:
+        params = json.loads(result["metadatas"][0][0].get("parameters", "[]"))
+        for p in params:
+            if p["name"] == param:
+                return p.get("schema", {}).get("type", "string")
+    return "string"
+
+def convert_type(self, value: Any, target_type: str) -> Any:
+    """Type conversion with error handling"""
+    try:
+        if target_type == "integer":
+            return int(value)
+        elif target_type == "boolean":
+            return bool(value)
+        elif target_type == "number":
+            return float(value)
+        return str(value)
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Could not convert {value} to {target_type}: {str(e)}")
+    
+def get_required_entities(self, step_data: Dict) -> List[str]:
+    """Extract entity references from parameters"""
+    entities = []
+    for param, value in step_data.get('parameters', {}).items():
+        if isinstance(value, str) and value.startswith("$"):
+            entities.append(value[1:])
+    return entities
+
+def resolve_missing_entities(self, entities: List[str], state: ControllerState):
+    """Dynamic entity resolution fallback"""
+    for entity in entities:
+        print(f"🔎 Attempting to resolve {entity}...")
+        # Extract entity type from naming convention
+        entity_type = entity.split('_')[0]  # person_id -> person
+        raw_value = state['raw_entities'].get(entity_type, [None])[0]
+        
+        if raw_value:
+            resolved = self.entity_resolver.resolve_entity(raw_value, entity_type)
+            if resolved and 'id' in resolved:
+                state['execution_state']['available_entities'][entity] = resolved['id']
+                print(f"✅ Resolved {entity} = {resolved['id']}")
 
 def _extract_entities_from_response(data: Dict, output_entities: List[str]) -> Dict:
     """Entity extraction with detailed debugging"""
