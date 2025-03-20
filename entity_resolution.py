@@ -52,6 +52,14 @@ class TMDBEntityResolver:
         """
         Unified entity resolution with proper authentication
         """
+
+        print(f"\n🔎 Resolving {entity_type} entity: {entity_name}")
+        #print(f"Supported types: {self._get_entity_types()}")
+
+        # Add special handling for ID parameters
+        if entity_type.endswith('_id'):
+            return self._resolve_id_direct(entity_name)
+
         resolver_map = {
             "genre": self._resolve_genre,
             "network": self._resolve_network,
@@ -96,7 +104,7 @@ class TMDBEntityResolver:
         return {"id": genre_id, "name": genre_name} if genre_id else None
 
     def _resolve_network(self, network_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/company", network_name)
+        return self._make_search_request("/search/network", network_name)
 
     def _resolve_person(self, person_name: str) -> Optional[Dict]:
         return self._make_search_request("/search/person", person_name)
