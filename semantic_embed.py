@@ -40,54 +40,51 @@ with open("./data/tmdb.json", "r", encoding="utf-8") as f:
 api_endpoints = tmdb_schema.get("paths", {})
 
 def analyze_parameters(parameters: List) -> Dict:
-    """Enhanced parameter analysis with relationship detection"""
+    """Enhanced parameter analysis capturing all parameter names and types"""
     analysis = defaultdict(list)
-    analysis.update({
-        "search_params": [],
-        "content_filters": [],
-        "temporal_filters": [],
-        "quality_filters": [],
-        "relationship_filters": [],
-        "genre_params": [],
-        "pagination_params": [],
-        "id_params": [],
-        "required_params": [],
-        "sort_options": [],
-        "provider_filters": []
-    })
-
+    param_details = []
+    
     for param in parameters:
         if not isinstance(param, dict):
             continue
-
-        pname = param.get("name", "").lower()
-        param_in = param.get("in", "").lower()
-        required = param.get("required", False)
-
-        if param_in == "path":
-            analysis["id_params"].append(pname)
-        elif param_in == "query":
-            if pname == "query":
-                analysis["search_params"].append(pname)
-            elif "page" in pname:
-                analysis["pagination_params"].append(pname)
-            elif any(k in pname for k in [".gte", ".lte", "date"]):
-                analysis["temporal_filters"].append(pname)
-            elif "genre" in pname:
-                analysis["genre_params"].append(pname)
-            elif "vote" in pname or "rating" in pname:
-                analysis["quality_filters"].append(pname)
-            elif "with_" in pname:
-                if "watch" in pname:
-                    analysis["provider_filters"].append(pname)
-                elif any(k in pname for k in ["cast", "crew", "people"]):
-                    analysis["relationship_filters"].append(pname)
-            elif "sort_by" in pname:
-                analysis["sort_options"] = param.get("schema", {}).get("enum", [])
-
-        if required:
-            analysis["required_params"].append(pname)
-
+            
+        param_info = {
+            "name": param.get("name", ""),
+            "in": param.get("in", ""),
+            "required": param.get("required", False),
+            "type": param.get("schema", {}).get("type", "string")
+        }
+        param_details.append(param_info)
+        
+        # Existing categorization logic
+        if param_info["name"] == "query":
+            analysis["search_params"].append(param_info)
+        elif "genre" in param_info["name"].lower():
+            analysis["genre_params"].append(param_info)
+        elif param_info["in"].lower() == "path":
+            analysis["id_params"].append(param_info)
+        elif param_info["in"].lower() == "query":
+            if "page" in param_info["name"]:
+                analysis["pagination_params"].append(param_info)
+            elif any(k in param_info["name"] for k in [".gte", ".lte", "date"]):
+                analysis["temporal_filters"].append(param_info)
+            elif "vote" in param_info["name"] or "rating" in param_info["name"]:
+                analysis["quality_filters"].append(param_info)
+            elif "with_" in param_info["name"]:
+                if "watch" in param_info["name"]:
+                    analysis["provider_filters"].append(param_info)
+                elif any(k in param_info["name"] for k in ["cast", "crew", "people"]):
+                    analysis["relationship_filters"].append(param_info)
+            elif "sort_by" in param_info["name"]:
+                sort_options = param.get("schema", {}).get("enum", [])
+                analysis["sort_options"].extend(sort_options)
+            elif "filter" in param_info["name"]:
+                analysis["content_filters"].append(param_info)
+                
+        if param_info["required"]:
+            analysis["required_params"].append(param_info)
+    
+    analysis["all_parameters"] = param_details  # Add comprehensive list of all parameters
     return analysis
 
 def _get_operation_type(path: str, params: Dict) -> str:
@@ -204,7 +201,9 @@ def store_api_embeddings():
                 "filter_genre": str(bool(components['parameters']['genre_params'])),
                 "filter_relationships": str(bool(components['parameters']['relationship_filters'])),
                 "complexity_score": len(components['parameters']['required_params']),
-                "requires_id_resolution": str(bool(components['resolution_dependencies']))
+                "requires_id_resolution": str(bool(components['resolution_dependencies'])),
+                "parameters": json.dumps(components['parameters']['all_parameters']),
+                "path_parameters": ",".join(components['resolution_dependencies']),
             }
 
             embedding_text = create_embedding_text(components)
