@@ -239,39 +239,84 @@ class IntelligentPlanner:
                 "error": str(e)
             }
     
-    def _generate_llm_plan(self, query: str) -> Dict:
-        """Structured LLM planning with validation prompt"""
-        prompt = f"""Generate a TMDB API execution plan for: "{query}"
+    def _generate_llm_plan(self, query: str) -> Dict:   
+        """Generate initial plan using LLM with structured prompting"""
+        PLANNING_PROMPT = f"""
+        You are an API orchestration expert planning TMDB API calls. Follow these rules:
 
-Respond with JSON containing:
-- Ordered steps with dependencies
-- TMDB endpoint types (e.g., /search/person)
-- Parameter definitions using $ placeholders
-- Output entities to preserve
+        1. Parameter Requirements:
+        - Path parameters must match exactly what's in the endpoint URL
+        - Use $entity_name format for dependencies between steps
+        - Use only parameters listed in the endpoint's schema
 
-Available endpoints:
-Search: /search/[movie|tv|person]
-Details: /[movie|tv|person]/{{id}}
-Relationships: /person/{{person_id}}/movie_credits
-Discover: /discover/movie with filters
+        2. Endpoint Patterns:
+        - Search: /search/{{resource}}?query=...
+        - Details: /{{resource}}/{{id}}
+        - Relationships: /{{resource}}/{{id}}/{{relationship}}
 
-Example:
-{{
-  "plan": [
-    {{
-      "step_id": 1,
-      "description": "Search for person",
-      "endpoint_type": "/search/person",
-      "parameters": {{"query": "Sofia Coppola"}},
-      "output_entities": ["person_id"],
-      "depends_on": []
-    }}
-  ]
-}}"""
+        3. Required Parameters:
+        {self._get_endpoint_requirements()}  # Dynamically insert current API capabilities
 
-        response = self.llm_client.generate_response(prompt)
-        return self._parse_llm_response(response)
+        4. Example Plan:
+        For "Movies directed by Sofia Coppola":
+        {{
+        "plan": [
+            {{
+            "step_id": 1,
+            "description": "Search for Sofia Coppola",
+            "endpoint_type": "/search/person",
+            "parameters": {{"query": "Sofia Coppola"}},
+            "output_entities": ["person_id"],
+            "depends_on": []
+            }},
+            {{
+            "step_id": 2,
+            "description": "Get movie credits",
+            "endpoint_type": "/person/{{person_id}}/movie_credits",
+            "parameters": {{"person_id": "$person_id"}},
+            "output_entities": ["movie_ids"],
+            "depends_on": [1]
+            }}
+        ]
+        }}
 
+        Now create a plan for: {query}
+        Respond with JSON only, no commentary.
+        """
+
+        try:
+            response = self.llm_client.generate_response(PLANNING_PROMPT)
+            return self._parse_llm_response(response)
+        except Exception as e:
+            print(f"LLM Planning Error: {str(e)}")
+            return {"plan": []}
+        
+    def _get_endpoint_requirements(self) -> str:
+        """Generate dynamic requirement text from ChromaDB metadata"""
+        requirements = []
+        common_endpoints = [
+            "/search/person",
+            "/person/{{person_id}}",
+            "/person/{{person_id}}/movie_credits",
+            "/discover/movie"
+        ]
+        
+        for endpoint in common_endpoints:
+            result = self.collection.query(
+                query_texts=[endpoint],
+                n_results=1,
+                include=["metadatas"]
+            )
+            if result["metadatas"][0]:
+                meta = result["metadatas"][0][0]
+                params = json.loads(meta.get("parameters", "[]"))
+                req_params = [p["name"] for p in params if p.get("required")]
+                requirements.append(
+                    f"- {endpoint}: Required params: {', '.join(req_params) or 'None'}"
+                )
+                
+        return "\n".join(requirements)
+        
     def _generate_validated_steps(self, query: str) -> List[Dict]:
         """Validation implementation with dynamic path parameter handling"""
         print(f"\n{'='*30} VALIDATING STEPS {'='*30}")
@@ -358,10 +403,15 @@ Example:
                         print(f"| {param:<20} | {status:<10} | {param_type:<15} | {str(value):<30} |")
                     
                     # Validate that all dynamic path parameters are provided
-                    for path_param in path_params:
-                        if path_param not in raw_step.get('parameters', {}):
-                            print(f"🚨 Missing path parameter: {path_param}")
-                            raise ValueError(f"Path parameter {path_param} required")
+                    path_params = re.findall(r'{(\w+)}', endpoint_match['path'])
+                    for param in path_params:
+                        if param not in supported_params:
+                            supported_params[param] = {
+                                'name': param,
+                                'in': 'path', 
+                                'required': True,
+                                'schema': {'type': 'integer'}
+                            }
                     
                     # Check for any required parameters missing from the valid_params
                     missing_required = [p for p in required_params if p not in valid_params]
