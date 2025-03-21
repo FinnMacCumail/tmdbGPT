@@ -324,7 +324,35 @@ class IntelligentPlanner:
             print(f"LLM Planning Error: {str(e)}")
             return {"plan": []}
                 
+
+    def _get_param_type(endpoint: str, param: str) -> str:
+        """Fetch parameter type from ChromaDB metadata with caching"""
+        # Cache results to avoid repeated Chroma queries
+        if not hasattr(_get_param_type, "cache"):
+            _get_param_type.cache = {}
         
+        cache_key = f"{endpoint}::{param}"
+        if cache_key in _get_param_type.cache:
+            return _get_param_type.cache[cache_key]
+        
+        result = collection.query(
+            query_texts=[endpoint],
+            n_results=1,
+            where={"method": "GET"},
+            include=["metadatas"]
+        )
+        
+        param_type = "string"  # Default fallback
+        if result["metadatas"][0]:
+            params = json.loads(result["metadatas"][0][0].get("parameters", "[]"))
+            for p in params:
+                if p["name"] == param:
+                    param_type = p.get("schema", {}).get("type", "string")
+                    break
+        
+        _get_param_type.cache[cache_key] = param_type
+        return param_type
+      
     def _get_endpoint_requirements(self) -> str:
         """Generate dynamic requirement text from ChromaDB metadata"""
         requirements = []
