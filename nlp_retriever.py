@@ -207,42 +207,9 @@ class IntelligentPlanner:
         self.entity_lifecycle = defaultdict(list)  # Track entity creation/usage
 
     def generate_plan(self, query: str, entities: Dict, intents: Dict) -> Dict:
-        """Generate full plan structure with detailed debugging"""
-        print(f"\n{'='*30} GENERATING FULL PLAN {'='*30}")
-        print(f"📝 Initial Query: {query}")
-        print(f"🔍 Detected Entities: {json.dumps(entities, indent=2)}")
-        print(f"🎯 Detected Intents: {json.dumps(intents, indent=2)}")
-        
-        start_time = time.time()
-        try:
-            print("\n🔧 Starting plan validation process...")
-            validated_steps = self._generate_validated_steps(query)
-            plan = {
-                "plan": validated_steps,
-                "graph": self.execution_graph,
-                "metadata": {
-                    "generation_time": time.time() - start_time,
-                    "step_count": len(validated_steps)
-                }
-            }
-            
-            print(f"\n✅ Successfully generated plan with {len(validated_steps)} steps")
-            print(f"⏱️  Total generation time: {plan['metadata']['generation_time']:.2f}s")
-            print(f"\n📋 Final Plan Structure:")
-            print(json.dumps(plan, indent=2, default=str))
-            
-            return plan
-            
-        except Exception as e:
-            print(f"\n{'⚠️'*10} PLAN GENERATION FAILED {'⚠️'*10}")
-            print(f"Error Type: {type(e).__name__}")
-            print(f"Error Message: {str(e)}")
-            traceback.print_exc()
-            return {
-                "plan": [],
-                "graph": nx.DiGraph(),
-                "error": str(e)
-            }
+        """Generate plan with data step detection"""
+        plan = self._generate_llm_plan(query)
+        return self._enhance_with_data_steps(plan, entities, intents)
     
     def track_entity_flow(self, step: Dict):
         # Record entity production
@@ -262,6 +229,22 @@ class IntelligentPlanner:
                 })
     
     
+    def _enhance_with_data_steps(self, plan: Dict, entities: Dict, intents: Dict) -> Dict:
+        """Add required data retrieval steps with proper metadata"""
+        enhanced_plan = plan.copy()
+        for entity in entities:
+            if f"{entity}_id" in entities:
+                enhanced_plan['plan'].append({
+                    "step_id": f"data_{entity}",
+                    "description": f"Get {entity} details",
+                    "endpoint": f"/{entity}/{{{entity}_id}}",
+                    "method": "GET",
+                    "parameters": {f"{entity}_id": f"${entity}_id"},
+                    "operation_type": "data_retrieval",  # Critical metadata
+                    "output_entities": []
+                })
+        return enhanced_plan
+
     def _generate_llm_plan(self, query: str) -> Dict:   
         """Generate initial plan using LLM with structured prompting"""
         PLANNING_PROMPT = f"""
