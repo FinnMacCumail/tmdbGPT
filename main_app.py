@@ -13,10 +13,11 @@ from nlp_retriever import (
 )
 from entity_resolution import TMDBEntityResolver
 from intent_classifier import IntentClassifier
-from dependency_manager import DependencyManager, ExecutionState
+from dependency_manager import ExecutionState, DependencyManager
 import networkx as nx
 import traceback
 import requests
+from execution_orchestrator import ExecutionOrchestrator
 
 # Load environment variables first
 load_dotenv()
@@ -34,242 +35,122 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
-# Verify collection contents
-#print(f"Collection contains {collection.count()} embeddings")
-
 # Initialize core components
 intent_analyzer = EnhancedIntentAnalyzer()
 entity_resolver = TMDBEntityResolver(TMDB_API_KEY)
 intent_classifier = IntentClassifier(OPENAI_API_KEY)
 llm_client = OpenAILLMClient(OPENAI_API_KEY) 
 planner = IntelligentPlanner(collection, intent_analyzer, llm_client)
+dependency_manager = DependencyManager()
+execution_orchestrator = ExecutionOrchestrator(BASE_URL, HEADERS)
 
 class ControllerState(TypedDict):
     query: str
+    execution_state: ExecutionState
     raw_entities: Dict
-    resolved_entities: Dict
     detected_intents: Dict
-    api_plan: Dict  
-    execution_results: Dict
-    dependency_graph: Any  # NetworkX graph
-    execution_state: Dict
     final_response: str
 
 def initialize_state(query: str) -> ControllerState:
     return {
         "query": query,
         "raw_entities": {},
-        "resolved_entities": {},
-        "api_plan": [],
-        "execution_results": {},
+        "detected_intents": {},
+        "execution_state": ExecutionState(),
         "final_response": ""
     }
 
 # Define node functions
 def parse_query(state: ControllerState) -> ControllerState:
-    """Enhanced parsing with intent classification"""
-    #print("\n=== PARSING QUERY ===")
-    state["raw_entities"] = intent_analyzer.extract_entities(state["query"])
-    state["detected_intents"] = intent_classifier.classify(state["query"])
+    """Parse query and store in execution state"""
+    execution_state = state['execution_state']
+    
+    execution_state.raw_entities = intent_analyzer.extract_entities(state["query"])
+    execution_state.detected_intents = intent_classifier.classify(state["query"])
+    
     return state
 
 def resolve_entities(state: ControllerState) -> ControllerState:
-    """Entity resolution with detailed type checking"""
+    """Entity resolution with execution state integration"""
+    execution_state = state['execution_state']
+    
     print(f"\n{'='*30} ENTITY RESOLUTION {'='*30}")
-    raw_entities = state['raw_entities']
-    resolved = state['resolved_entities']
-    
     for ent_type in ["person", "movie", "tv"]:
-        if ent_type in raw_entities and raw_entities[ent_type]:
-            print(f"\n🔍 Processing {ent_type} entity:")
-            print(f"Raw value: {raw_entities[ent_type][0]}")
+        if ent_type in execution_state.raw_entities:
+            print(f"\n🔍 Processing {ent_type} entity...")
+            result = entity_resolver.resolve_entity(
+                execution_state.raw_entities[ent_type][0], 
+                ent_type
+            )
             
-            try:
-                result = entity_resolver.resolve_entity(
-                    raw_entities[ent_type][0], 
-                    ent_type
+            if result and 'id' in result:
+                id_key = f"{ent_type}_id"
+                execution_state.resolved_entities[id_key] = result['id']
+                execution_state.track_entity_activity(
+                    id_key, 
+                    'production', 
+                    {'step_id': 'entity_resolution', 'type': 'auto'}
                 )
-                
-                if result and 'id' in result:
-                    id_key = f"{ent_type}_id"
-                    resolved[id_key] = int(result['id'])  # Ensure integer conversion
-                    print(f"✅ Resolved {ent_type} ID: {resolved[id_key]} ({type(resolved[id_key])})")
-                else:
-                    print(f"⚠️ No ID found for {ent_type}: {raw_entities[ent_type][0]}")
-                    
-            except ValueError as e:
-                print(f"🚨 Type conversion failed: {str(e)}")
-                traceback.print_exc()
-    
-    print(f"\n📦 Final Resolved Entities:")
-    for k, v in resolved.items():
-        print(f"- {k}: {v} ({type(v)})")
-    
+                print(f"✅ Resolved {id_key}: {result['id']}")
+
     return state
 
-# Add new node for intent-aware planning
+
+#Updated planning node
 def plan_with_intent(state: ControllerState) -> ControllerState:
-    """Diagnostic planning node"""
+    """State-integrated planning"""
+    execution_state = state['execution_state']
+    
     print("\n=== INTENT-BASED PLANNING ===")
     try:
-        # Generate full plan structure
         full_plan = planner.generate_plan(
             state["query"], 
-            state["resolved_entities"],
-            state.get("detected_intents", {})
+            execution_state.resolved_entities,
+            execution_state.detected_intents
         )
         
-        # Store both plan and graph
-        state["api_plan"] = full_plan["plan"]
-        state["dependency_graph"] = planner.execution_graph
+        # Update execution state
+        execution_state.pending_steps = [
+            step for step in full_plan["plan"]
+            if not _should_skip_step(step, execution_state)
+        ]
         
-        print("\n🔗 Dependency Graph Structure:")
-        print(f"Nodes: {state['dependency_graph'].nodes(data=True)}")
-        print(f"Edges: {state['dependency_graph'].edges()}")
+        # Build dependency graph
+        dependency_manager.analyze_dependencies(execution_state.pending_steps)
+        execution_state.dependency_graph = dependency_manager.execution_state.dependency_graph
         
+        print(f"\n📋 Execution Plan Ready: {len(execution_state.pending_steps)} steps")
         return state
         
     except Exception as e:
         print(f"Planning error: {str(e)}")
-        state["api_plan"] = []
-        state["dependency_graph"] = nx.DiGraph()  # Empty graph as fallback
+        execution_state.pending_steps = []
         return state
-         
+
+# Helper functions
+def _should_skip_step(step: Dict, state: ExecutionState) -> bool:
+    """Enhanced skip logic considering data steps"""
+    # Never skip data retrieval steps
+    if step.get('operation_type') == 'data_retrieval':
+        return False
+        
+    # Only skip if ALL outputs exist
+    outputs = step.get('output_entities', [])
+    return all(e in state.resolved_entities for e in outputs)
+
 def execute_api_plan(state: ControllerState) -> ControllerState:
-    """Execute API plan with detailed step debugging and dependency resolution"""
+    """Execute using enhanced orchestration"""
+    execution_state = state['execution_state']
+    
     print(f"\n{'='*30} EXECUTION PLAN {'='*30}")
     
-    # Initialize execution state
-    state.setdefault('execution_results', {})
-    state.setdefault('execution_state', {
-        'completed_steps': [],
-        'available_entities': state.get('resolved_entities', {}).copy()
-    })
-    
-    # Validate dependency graph
-    dependency_graph = state.get('dependency_graph', nx.DiGraph())
-    print(f"\n🔗 Dependency Graph Structure:")
-    print(f"Nodes ({len(dependency_graph.nodes)}): {list(dependency_graph.nodes)}")
-    print(f"Edges ({len(dependency_graph.edges)}): {list(dependency_graph.edges)}")
-    
     try:
-        # Get execution order with cycle handling
-        try:
-            execution_order = list(nx.topological_sort(dependency_graph))
-        except nx.NetworkXUnfeasible:
-            print("⚠️ Circular dependencies detected, using insertion order")
-            execution_order = list(dependency_graph.nodes)
-            
-        print(f"\n🔀 Execution Order: {execution_order}")
-
-        print(f"\n📊 Pre-Execution Entity Registry:")
-        for k, v in state['execution_state']['available_entities'].items():
-            print(f"- {k}: {v} ({type(v)})")
-        
-        for step_id in execution_order:
-
-            step_data = dependency_graph.nodes[step_id]
-        
-            # Pre-execution entity check
-            required_entities = get_required_entities(step_data)
-            missing_entities = [e for e in required_entities 
-                            if e not in state['execution_state']['available_entities']]
-            
-            if missing_entities:
-                print(f"\n🔍 Missing entities for step {step_id}: {missing_entities}")
-                print("Attempting to resolve...")
-                resolve_missing_entities(missing_entities, state)
-
-            resolved_params = {}
-
-            # Resolve parameters with type conversion
-            for param, value in step_data.get('parameters', {}).items():
-                if isinstance(value, str) and value.startswith("$"):
-                    entity_key = value[1:]
-                    raw_value = state['execution_state']['available_entities'].get(entity_key)
-                    
-                    # Get parameter type from endpoint schema
-                    param_type = get_param_type(
-                        step_data['validated_endpoint'],
-                        param
-                    )
-                    
-                    # Convert entity value to required type
-                    try:
-                        resolved_value = convert_type(raw_value, param_type)
-                        resolved_params[param] = resolved_value
-                        print(f"✅ Resolved {value} → {resolved_value} ({type(resolved_value)})")
-                    except ValueError as e:
-                        print(f"🚨 Failed to convert {value}: {str(e)}")
-                        raise
-                else:
-                    resolved_params[param] = value
-
-
-            # Handle path parameters
-            path = step_data['validated_endpoint']
-            for match in re.finditer(r'{(\w+)}', path):
-                param_name = match.group(1)
-                if param_name not in resolved_params:
-                    raise ValueError(f"Missing path parameter: {param_name}")
-                path = path.replace(f'{{{param_name}}}', str(resolved_params[param_name]))
-            
-            print(f"\n🚀 Final Request Details:")
-            print(f"Resolved Path: {path}")
-            print(f"Query Parameters: {json.dumps(resolved_params, indent=2)}")
-
-            # Execute API call
-            try:
-                response = requests.request(
-                    method=step_data.get('method', 'GET'),
-                    url=f"{BASE_URL}{path}",
-                    headers=HEADERS,
-                    params=resolved_params
-                )
-                response.raise_for_status()
-                
-                result = {
-                    "status": response.status_code,
-                    "data": response.json(),
-                    "error": None
-                }
-                
-                print(f"\n✅ Success Response ({response.status_code}):")
-                print(json.dumps(result['data'], indent=2)[:500] + ("..." if len(result['data']) > 500 else ""))
-                
-            except Exception as e:
-                result = _handle_api_error(path, "Execution error", str(e))
-                print(f"\n❌ API Call Failed:")
-                print(f"Error: {str(e)}")
-                print(f"Request Details:")
-                print(f"- URL: {path}")
-                print(f"- Params: {json.dumps(resolved_params, indent=2)}")
-
-            # Store results and extract entities
-            state['execution_results'][step_id] = result
-            state['execution_state']['completed_steps'].append(step_id)
-            
-            if result['data']:
-                new_entities = _extract_entities_from_response(
-                    result['data'],
-                    step_data.get('output_entities', [])
-                )
-                print(f"\n📥 Extracted Entities:")
-                for k, v in new_entities.items():
-                    print(f"- {k}: {v}")
-                    state['execution_state']['available_entities'][k] = v
-
-        print(f"\n📊 Post-Execution Entity Registry:")
-        for k, v in state['execution_state']['available_entities'].items():
-            print(f"- {k}: {v} ({type(v)})")
-            
-        return state
-
+        state['execution_state'] = execution_orchestrator.execute_plan(execution_state)
     except Exception as e:
-        print(f"\n🚨 Execution Failed: {str(e)}")
-        traceback.print_exc()
-        state['execution_state']['error'] = str(e)
-        return state
+        # Use proper error field assignment
+        state['execution_state'].error = f"Critical execution error: {str(e)}"
+    
+    return state
 
 def get_param_type(self, endpoint: str, param: str) -> str:
     """Dynamic parameter type lookup"""
@@ -395,57 +276,94 @@ def _extract_entities_from_response(data: Dict, output_entities: List[str]) -> D
 
 
 def build_response(state: ControllerState) -> ControllerState:
-    """Node 5: Build final response"""
+    """Build response with fallback handling"""
+    execution_state = state['execution_state']
+    
     print("\n=== BUILDING FINAL RESPONSE ===")
-    llm_client = OpenAILLMClient(OPENAI_API_KEY)
     
-    prompt = f"""
-    Combine the following API results into a natural language response for the query:
-    Query: {state['query']}
+    if execution_state.data_registry:
+        state["final_response"] = _format_api_response(execution_state.data_registry)
+    elif execution_state.resolved_entities:
+        state["final_response"] = _format_entity_fallback(execution_state.resolved_entities)
+    else:
+        state["final_response"] = "No relevant information could be found."
     
-    API Results:
-    {json.dumps(state['execution_results'], indent=2)}
-    
-    Provide a concise, human-readable answer structured as follows:
-    1. Directly address the user's question
-    2. Present key information from the API responses
-    3. Cite sources where appropriate
-    """
-    
-    state["final_response"] = llm_client.generate_response(prompt)
     return state
 
-# Create workflow graph
+def _resolve_step_parameters(step: Dict, entities: Dict) -> Dict:
+    """Resolve parameters using execution state"""
+    resolved = {}
+    for param, value in step.get('parameters', {}).items():
+        if isinstance(value, str) and value.startswith("$"):
+            entity_key = value[1:]
+            resolved[param] = entities.get(entity_key, value)
+        else:
+            resolved[param] = value
+    return resolved
+
+def _execute_api_step(step: Dict, params: Dict) -> Dict:
+    """Execute single API step"""
+    try:
+        response = requests.request(
+            method=step.get('method', 'GET'),
+            url=f"{BASE_URL}{step['endpoint']}",
+            headers=HEADERS,
+            params=params
+        )
+        return {
+            "status": response.status_code,
+            "data": response.json() if response.ok else None,
+            "error": None
+        }
+    except Exception as e:
+        return {"status": None, "data": None, "error": str(e)}
+    
+def _format_api_response(data: Dict) -> str:
+    """Enhanced response formatting"""
+    responses = []
+    for step_id, result in data.items():
+        if result.get('data'):
+            responses.append(json.dumps(result['data'], indent=2))
+    return "\n\n".join(responses) if responses else "No API data available"
+
+def _format_entity_fallback(entities: Dict) -> str:
+    """Improved entity-based fallback"""
+    return "\n".join([
+        f"{k.replace('_', ' ').title()}: {v}"
+        for k, v in entities.items()
+        if v is not None
+    ]) or "No entity information available"
+
+# Updated workflow construction
 workflow = StateGraph(ControllerState)
 
-# Add nodes
+# Add nodes with updated names
 workflow.add_node("parse", parse_query)
 workflow.add_node("resolve", resolve_entities)
-workflow.add_node("intent_plan", plan_with_intent)  # New node
+workflow.add_node("plan", plan_with_intent)
 workflow.add_node("execute", execute_api_plan)
 workflow.add_node("respond", build_response)
 
-# Define edges
+# Set up edges
 workflow.set_entry_point("parse")
 workflow.add_edge("parse", "resolve")
-workflow.add_edge("resolve", "intent_plan")
-workflow.add_edge("intent_plan", "execute")
+workflow.add_edge("resolve", "plan")
+workflow.add_edge("plan", "execute")
 workflow.add_edge("execute", "respond")
 workflow.add_edge("respond", END)
 
-# Add conditional edges for error handling
-def handle_errors(state: ControllerState) -> str:
-    if "error" in state.get("execution_results", {}):
-        return "error_handler"
+# Conditional error handling
+def route_errors(state: ControllerState):
+    if state['execution_state'].error:
+        return "handle_error"
     return END
 
 workflow.add_conditional_edges(
     "execute",
-    handle_errors,
-    {"error_handler": "respond", END: END}
+    route_errors,
+    {"handle_error": "respond", END: END}
 )
 
-# Compile the graph
 app = workflow.compile()
 
 # Main application handler
