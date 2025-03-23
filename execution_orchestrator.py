@@ -1,15 +1,84 @@
 # execution_orchestrator.py
 import requests
-from typing import Dict, Any
-from dependency_manager import ExecutionState
+from typing import Dict, Any, List
+from dependency_manager import ExecutionState, DependencyManager
 import json
 from requests.exceptions import HTTPError
+import networkx as nx
+from collections import defaultdict
+import time
 
 class ExecutionOrchestrator:
     def __init__(self, base_url: str, headers: Dict):
         self.base_url = base_url
         self.headers = headers
+        self.dependency_manager = DependencyManager()  # Add this line
+
+    ENDPOINT_MAP = {
+        'person': {
+            'detail': '/person/{person_id}',
+            'credits': '/person/{person_id}/movie_credits'
+        },
+        'movie': {
+            'detail': '/movie/{movie_id}',
+            'similar': '/movie/{movie_id}/similar',
+            'recommendations': '/movie/{movie_id}/recommendations'
+        },
+        'trending': '/trending/{media_type}/{time_window}',
+        'discover': '/discover/movie'
+    }
+
+    def generate_steps(self, entities: Dict, intents: Dict) -> List[Dict]:
+        """Dynamically generate execution steps based on available entities"""
+        steps = []
         
+        # Entity-based steps
+        for entity_type in ['person', 'movie', 'tv']:
+            if f"{entity_type}_id" in entities:
+                steps.append(self._create_detail_step(entity_type, entities))
+                
+        # Intent-based steps
+        if 'trending' in intents.get('primary_intent', ''):
+            steps.append(self._create_trending_step(entities))
+        
+        if 'filtered_search' in intents.get('secondary_intents', []):
+            steps.append(self._create_discover_step(entities))
+            
+        return steps
+
+    def _create_detail_step(self, entity_type: str, entities: Dict) -> Dict:
+        return {
+            "step_id": f"{entity_type}_details",
+            "endpoint": self.ENDPOINT_MAP[entity_type]['detail'],
+            "method": "GET",
+            "parameters": {f"{entity_type}_id": f"${entity_type}_id"}
+        }
+
+    def _create_trending_step(self, entities: Dict) -> Dict:
+        media_type = self._detect_media_type(entities)
+        return {
+            "step_id": "trending",
+            "endpoint": self.ENDPOINT_MAP['trending'],
+            "method": "GET",
+            "parameters": {
+                "media_type": media_type,
+                "time_window": "week"
+            }
+        }
+
+    def _create_discover_step(self, entities: Dict) -> Dict:
+        params = {}
+        if 'genre' in entities:
+            params['with_genres'] = ",".join(entities['genre_ids'])
+        if 'year' in entities:
+            params['primary_release_year'] = entities['year'][0]
+        return {
+            "step_id": "discover",
+            "endpoint": self.ENDPOINT_MAP['discover'],
+            "method": "GET",
+            "parameters": params
+        }
+
     def execute(self, state: ExecutionState) -> ExecutionState:
         """Execute all API steps with proper parameter handling"""
         state.error = None
@@ -155,3 +224,30 @@ class ExecutionOrchestrator:
             "error": error_msg
         }
         print(f"🔥 {error_msg}")
+
+class WorkflowOrchestrator:
+    def __init__(self):
+        self.dependency_graph = nx.DiGraph()
+        self.entity_lifecycle = defaultdict(list)
+
+    def build_plan(self, steps: List[Dict]):
+        """Construct dependency graph with entity tracking"""
+        self.dependency_graph.clear()
+        
+        for step in steps:
+            step_id = step['step_id']
+            self.dependency_graph.add_node(step_id, **step)
+            
+            # Track entity production/consumption
+            if step['operation_type'] == 'entity_production':
+                for entity in step['output_entities']:
+                    self.entity_lifecycle[entity].append({
+                        'producer': step_id,
+                        'timestamp': time.time()
+                    })
+            
+            # Create edges for dependencies
+            for dep in step.get('requires_entities', []):
+                if dep in self.entity_lifecycle:
+                    latest_producer = self.entity_lifecycle[dep][-1]['producer']
+                    self.dependency_graph.add_edge(latest_producer, step_id)
