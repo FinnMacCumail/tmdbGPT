@@ -1,18 +1,24 @@
 # plan_validator.py
 from typing import List, Dict
+import re
+from dependency_manager import ExecutionState
 
 class PlanValidator:
     def __init__(self, resolved_entities: Dict):
         self.resolved_entities = resolved_entities
 
     def validate_plan(self, raw_plan: List[Dict]) -> List[Dict]:
-        """Ensure valid parameters for person endpoint"""
         validated = []
         for step in raw_plan:
-            step = self._fix_person_parameters(step)
-            validated.append(step)
+            if self._is_data_retrieval_step(step):
+                validated.append(step)  # Always keep data steps
+            elif not self._should_remove(step):
+                validated.append(step)
         return validated
 
+    def _is_data_retrieval_step(self, step: Dict) -> bool:
+        return step.get('operation_type') == 'data_retrieval'
+    
     def _should_remove(self, step: Dict) -> bool:
         """Filter redundant entity resolution steps"""
         return (
@@ -50,3 +56,15 @@ class PlanValidator:
         """Extract ID from endpoint or use resolved entity"""
         match = re.search(r"/person/(?:\{)?(\w+)(?:\})?", step["endpoint"])
         return match.group(1) if match else "person_id"
+    
+class StepValidator:
+    def validate_step(self, step: Dict, state: ExecutionState) -> bool:
+        """Check if all required entities exist"""
+        required_entities = step.get('requires_entities', [])
+        missing = [e for e in required_entities if e not in state.resolved_entities]
+        
+        # Differentiate entity vs data steps
+        if step['step_type'] == 'entity_production':
+            return len(missing) == 0  # Entity steps need all dependencies
+        else:
+            return True  # Data steps can proceed with partial data
