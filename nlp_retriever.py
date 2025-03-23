@@ -20,6 +20,12 @@ import uuid
 from plan_validator import PlanValidator
 from prompt_templates import PLAN_PROMPT 
 from fallback_handler import FallbackHandler
+from prompt_templates import PROMPT_TEMPLATES
+#from query_classifier import QueryClassifier
+
+from param_resolver import ParamResolver
+from llm_client import OpenAILLMClient
+from dependency_manager import DependencyManager
 
 
 
@@ -47,60 +53,129 @@ HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
 
 class EnhancedIntentAnalyzer:
-    """Enhanced entity recognition with genre and temporal analysis"""
-    
     def __init__(self):
         self.nlp = spacy.load("en_core_web_trf")
-        self._add_custom_patterns()
         self.genre_map = self._fetch_genre_mappings()
-    
+        self.media_types = ["movie", "tv", "film", "show", "series"]
+        self._add_custom_patterns()
+
+    def _fetch_genre_mappings(self) -> Dict[str, int]:
+        """Fetch genre IDs from TMDB with fallback"""
+        try:
+            response = requests.get(f"{BASE_URL}/genre/movie/list", headers=HEADERS)
+            response.raise_for_status()
+            return {
+                genre["name"].lower(): genre["id"]
+                for genre in response.json().get("genres", [])
+            }
+        except Exception as e:
+            print(f"⚠️ Failed to fetch genres, using fallback: {str(e)}")
+            return {
+                "action": 28, "comedy": 35, "drama": 18,
+                "horror": 27, "sci-fi": 878, "romance": 10749,
+                "thriller": 53, "documentary": 99
+            }
+
     def _add_custom_patterns(self):
-        """Add patterns for genre and date recognition"""
-        ruler = self.nlp.add_pipe("entity_ruler")
+        """Add custom entity recognition patterns"""
+        ruler = self.nlp.add_pipe("entity_ruler", before="ner")
         patterns = [
-            {"label": "GENRE", "pattern": [{"LOWER": {"IN": ["action", "comedy", "drama"]}}]},
-            {"label": "DATE", "pattern": [{"SHAPE": "dddd"}]},  # Years like 2023
-            {"label": "DATE", "pattern": [{"TEXT": {"REGEX": r"\d{4}s"}}]}  # Decades like 2010s
+            # Temporal patterns
+            {"label": "DATE", "pattern": [{"LOWER": {"IN": ["now", "current", "recent"]}}]},
+            {"label": "DATE", "pattern": [{"LOWER": "right"}, {"LOWER": "now"}]},
+
+            # Media type patterns
+            {"label": "MEDIA_TYPE", "pattern": [{"LEMMA": {"IN": self.media_types}}]},
+
+            # Popularity metrics
+            {"label": "POPULARITY", "pattern": [{"LEMMA": {"IN": ["popular", "trending"]}}]},
+
+            # Genre patterns
+            {"label": "GENRE", "pattern": [{"LOWER": {"IN": list(self.genre_map.keys())}}]},
         ]
         ruler.add_patterns(patterns)
-    
-    def _fetch_genre_mappings(self) -> Dict[str, int]:
-        """Fetch genre IDs from TMDB"""
-        response = requests.get(f"{BASE_URL}/genre/movie/list", headers=HEADERS)
-        return {genre["name"].lower(): genre["id"] for genre in response.json().get("genres", [])}
-    
-    def extract_entities(self, query: str) -> Dict[str, str]:
-        """Extract entities with enhanced recognition"""
-        doc = self.nlp(query)
-        entities = {
-            "person": [], "title": [], "genre": [], "date": [],
-            "year": [], "region": [], "numeric": []
-        }
-        
-        for ent in doc.ents:
-            if ent.label_ == "PERSON":
-                entities["person"].append(ent.text)
-            elif ent.label_ == "WORK_OF_ART":
-                entities["title"].append(ent.text)
-            elif ent.label_ == "GPE":
-                entities["region"].append(ent.text)
-            elif ent.label_ == "DATE":
-                if ent.text.endswith("s"):
-                    entities["date"].append(ent.text[:-1])  # Remove 's' from decades
-                else:
-                    entities["date"].append(ent.text)
-            elif ent.label_ == "GENRE":
-                entities["genre"].append(ent.text)
-            elif ent.label_ == "CARDINAL":
-                entities["numeric"].append(ent.text)
-        
-        # Extract year from dates
-        entities["year"] = [d for d in entities["date"] if d.isdigit() and len(d) == 4]
-        
-        #print(f"🔍 Extracted Entities: {json.dumps(entities, indent=2)}")
-        return entities
 
-  
+    def extract_entities(self, query: str) -> Dict[str, List]:
+        """Main entity extraction method"""
+        doc = self.nlp(query)
+        entities = defaultdict(list)
+        
+        # Process recognized entities
+        for ent in doc.ents:
+            self._process_core_entity(ent, entities)
+        
+        # Additional processing
+        self._detect_comparative_phrases(doc, entities)
+        self._extract_numeric_constraints(doc, entities)
+        self._detect_media_type(doc, entities)
+        self._extract_temporal_references(doc, entities)
+        
+        # Add intent-aware entity resolution
+        self._enrich_with_intent_context(entities, doc)
+        return dict(entities)
+    
+    def _enrich_with_intent_context(self, entities: Dict, doc):
+        """Enhance entities based on query structure"""
+        # Detect "most X" patterns
+        for token in doc:
+            if token.dep_ == 'amod' and token.head.dep_ == 'nsubj':
+                if token.text in ['popular', 'trending']:
+                    entities.setdefault('ranking_metric', []).append(token.text)
+                    
+        # Detect comparison patterns
+        if any(t.lemma_ in ['compare', 'versus'] for t in doc):
+            entities['comparison'] = [True]
+
+    def _process_core_entity(self, ent, entities):
+        """Process spaCy entities"""
+        label = ent.label_
+        if label == "PERSON":
+            entities["person"].append(ent.text)
+        elif label == "WORK_OF_ART":
+            entities["title"].append(ent.text)
+        elif label == "GPE":
+            entities["region"].append(ent.text)
+        elif label == "DATE":
+            entities["date"].append(ent.text)
+        elif label == "GENRE":
+            entities["genre"].append(ent.text)
+        elif label == "MEDIA_TYPE":
+            entities["media_type"].append(ent.text)
+        elif label == "POPULARITY":
+            entities["popularity"].append(ent.text)
+
+    def _detect_comparative_phrases(self, doc, entities):
+        """Detect phrases like 'most popular'"""
+        for token in doc:
+            if token.text.lower() in ["most", "best", "top"] and token.head.pos_ == "ADJ":
+                entities["comparative"].append(f"{token.text} {token.head.text}")
+
+    def _extract_numeric_constraints(self, doc, entities):
+        """Extract numeric ranges and comparisons"""
+        for token in doc:
+            if token.like_num or token.text in (">", "<", ">=", "<="):
+                next_token = doc[token.i + 1] if token.i + 1 < len(doc) else None
+                if next_token and next_token.like_num:
+                    entities["numeric_constraints"].append(f"{token.text}{next_token.text}")
+
+    def _detect_media_type(self, doc, entities):
+        """Detect implicit media type context"""
+        if not entities.get("media_type"):
+            media_terms = [t.text for t in doc if t.lemma_ in self.media_types]
+            if media_terms:
+                entities["media_type"].extend(media_terms)
+            elif "movie" in doc.text.lower():
+                entities["media_type"].append("movie")
+
+    def _extract_temporal_references(self, doc, entities):
+        """Extract time-related phrases"""
+        for chunk in doc.noun_chunks:
+            text = chunk.text.lower()
+            if any(kw in text for kw in ["this week", "this month", "current"]):
+                entities["temporal"].append(chunk.text)
+
+
+
 class ContextAwareParameterHandler:
     """Handles parameter mapping with endpoint context awareness"""
     def __init__(self, genre_map: Dict[str, int]):
@@ -201,29 +276,75 @@ class ContextAwareParameterHandler:
 class IntelligentPlanner:
     """Generates execution plans with context-aware resolution"""
     
-    def __init__(self, chroma_collection, intent_analyzer, llm_client):
+    def __init__(self, 
+                 chroma_collection: chromadb.Collection,  # Parameter name changed
+                 param_resolver: ParamResolver,
+                 llm_client: OpenAILLMClient,
+                 dependency_manager: DependencyManager):  # Added parameter
         self.collection = chroma_collection
-        self.intent_analyzer = intent_analyzer
+        self.param_resolver = param_resolver
         self.llm_client = llm_client
-        self.validator = None  # Will be initialized per request
+        self.dependency_manager = dependency_manager
 
     def generate_plan(self, query: str, entities: Dict, intents: Dict) -> Dict:
-        """Generate validated plan with fallbacks"""
+        """Generate validated plan with dependency tracking and enhanced fallbacks"""
         try:
-            # Generate initial plan
-            raw_plan = self._llm_planning(query, entities)
-            
-            # Validate and classify steps
-            validated = PlanValidator(entities).validate_plan(raw_plan.get("plan", []))
-            
-            # Add fallback steps if empty
-            if not validated:
-                validated = FallbackHandler.generate_direct_access([], entities)
-            
-            return {"plan": validated}
-            
+            # 1. Intent-aware initialization
+            query_type = self.query_classifier.classify(query)
+            template_hint = PROMPT_TEMPLATES.get(query_type, "")
+            context = {
+                'query': query,
+                'entities': entities,
+                'intents': intents,
+                'resolved': self.entity_registry
+            }
+
+            # 2. LLM Planning with dependency hints
+            raw_plan = self._llm_planning(
+                prompt=PLAN_PROMPT.format(**context),
+                dependencies=self.dependency_graph
+            )
+
+            # 3. Enhanced validation
+            validated_steps = PlanValidator(
+                entities=entities,
+                intents=intents,
+                query_type=query_type
+            ).validate_plan(raw_plan.get("plan", []))
+
+            # 4. Dependency graph update
+            self.dependency_manager.build_dependency_graph(validated_steps)
+
+            # 5. Context-aware fallback generation
+            if not validated_steps:
+                validated_steps = FallbackHandler.generate_steps(
+                    entities=entities,
+                    intents=intents,
+                    query_type=query_type
+                )
+
+            # 6. Parameter specialization
+            enhanced_plan = self._enhance_plan_with_context(
+                validated_steps,
+                query_type,
+                entities
+            )
+
+            return {
+                "plan": enhanced_plan,
+                "metadata": {
+                    "query_type": query_type,
+                    "dependency_graph": self.dependency_manager.serialize()
+                }
+            }
+
         except Exception as e:
-            return {"plan": FallbackHandler.generate_direct_access([], entities)}
+            # Graceful degradation with error context
+            return FallbackHandler.generate_error_aware_plan(
+                error=e,
+                entities=entities,
+                intents=intents
+            )
     
     def _llm_planning(self, query: str, entities: Dict) -> Dict:
         """LLM-powered plan generation"""
@@ -233,6 +354,13 @@ class IntelligentPlanner:
         )
         response = self.llm_client.generate_response(prompt)
         return json.loads(response)
+    
+    def _enhance_with_specialized_params(self, plan: Dict, query_type: str, entities: Dict) -> Dict:
+        resolved_params = self.param_resolver.resolve(query_type, entities)
+        for step in plan.get("plan", []):
+            if "/discover/" in step["endpoint"] or "/trending/" in step["endpoint"]:
+                step["parameters"].update(resolved_params)
+        return plan
     
     def track_entity_flow(self, step: Dict):
         # Record entity production
