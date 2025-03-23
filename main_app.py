@@ -18,6 +18,8 @@ import networkx as nx
 import traceback
 import requests
 from execution_orchestrator import ExecutionOrchestrator
+from fallback_handler import FallbackHandler
+from execution_orchestrator import ExecutionOrchestrator
 
 # Load environment variables first
 load_dotenv()
@@ -98,34 +100,35 @@ def resolve_entities(state: ControllerState) -> ControllerState:
 
 #Updated planning node
 def plan_with_intent(state: ControllerState) -> ControllerState:
-    """State-integrated planning"""
+    """Enhanced planning node"""
     execution_state = state['execution_state']
     
-    print("\n=== INTENT-BASED PLANNING ===")
     try:
-        full_plan = planner.generate_plan(
-            state["query"], 
+        raw_plan = planner.generate_plan(
+            state["query"],
             execution_state.resolved_entities,
             execution_state.detected_intents
         )
         
-        # Update execution state
         execution_state.pending_steps = [
-            step for step in full_plan["plan"]
-            if not _should_skip_step(step, execution_state)
+            step for step in raw_plan
+            if self._should_retain_step(step, execution_state)
         ]
         
-        # Build dependency graph
-        dependency_manager.analyze_dependencies(execution_state.pending_steps)
-        execution_state.dependency_graph = dependency_manager.execution_state.dependency_graph
-        
-        print(f"\n📋 Execution Plan Ready: {len(execution_state.pending_steps)} steps")
-        return state
-        
     except Exception as e:
-        print(f"Planning error: {str(e)}")
-        execution_state.pending_steps = []
-        return state
+        execution_state.error = f"Planning failed: {str(e)}"
+    
+    return state
+
+def _should_retain_step(step, state):
+    """Phase 2 retention logic"""
+    # Always keep data retrieval steps
+    if step.get('metadata', {}).get('produces_data'):
+        return True
+        
+    # Only keep entity steps with unresolved dependencies
+    required = step.get('metadata', {}).get('requires_entities', [])
+    return not all(e in state.resolved_entities for e in required)
 
 # Helper functions
 def _should_skip_step(step: Dict, state: ExecutionState) -> bool:
@@ -139,17 +142,24 @@ def _should_skip_step(step: Dict, state: ExecutionState) -> bool:
     return all(e in state.resolved_entities for e in outputs)
 
 def execute_api_plan(state: ControllerState) -> ControllerState:
-    """Execute using enhanced orchestration"""
+    """Phase 3: Proper execution workflow"""
     execution_state = state['execution_state']
     
-    print(f"\n{'='*30} EXECUTION PLAN {'='*30}")
+    # Ensure we have steps to execute
+    if not execution_state.pending_steps:
+        print("⚠️ No steps in plan - generating direct access")
+        execution_state.pending_steps = [{
+            "step_id": "direct_access",
+            "endpoint": f"/person/{execution_state.resolved_entities['person_id']}",
+            "method": "GET"
+        }]
     
-    try:
-        state['execution_state'] = execution_orchestrator.execute_plan(execution_state)
-    except Exception as e:
-        # Use proper error field assignment
-        state['execution_state'].error = f"Critical execution error: {str(e)}"
+    # Execute the plan
+    orchestrator = ExecutionOrchestrator(BASE_URL, HEADERS)
+    updated_state = orchestrator.execute(execution_state)
     
+    # Update state
+    state['execution_state'] = updated_state
     return state
 
 def get_param_type(self, endpoint: str, param: str) -> str:
@@ -276,17 +286,15 @@ def _extract_entities_from_response(data: Dict, output_entities: List[str]) -> D
 
 
 def build_response(state: ControllerState) -> ControllerState:
-    """Build response with fallback handling"""
+    """Final response with fallback"""
     execution_state = state['execution_state']
-    
-    print("\n=== BUILDING FINAL RESPONSE ===")
     
     if execution_state.data_registry:
         state["final_response"] = _format_api_response(execution_state.data_registry)
-    elif execution_state.resolved_entities:
-        state["final_response"] = _format_entity_fallback(execution_state.resolved_entities)
     else:
-        state["final_response"] = "No relevant information could be found."
+        state["final_response"] = FallbackHandler.format_fallback(
+            execution_state.resolved_entities
+        )
     
     return state
 
@@ -319,12 +327,26 @@ def _execute_api_step(step: Dict, params: Dict) -> Dict:
         return {"status": None, "data": None, "error": str(e)}
     
 def _format_api_response(data: Dict) -> str:
-    """Enhanced response formatting"""
-    responses = []
+    """Handle raw TMDB API structure"""
+    if not data:
+        return "No API data available"
+    
+    response = []
     for step_id, result in data.items():
-        if result.get('data'):
-            responses.append(json.dumps(result['data'], indent=2))
-    return "\n\n".join(responses) if responses else "No API data available"
+        if not isinstance(result, dict):
+            continue
+            
+        # Directly access TMDB's response structure
+        person_data = result.get('data', result)  # Handle both raw and wrapped responses
+        
+        response.append(
+            "=== Biography Details ===\n"
+            f"Name: {person_data.get('name', 'Unknown')}\n"
+            f"Born: {person_data.get('birthday', 'Unknown')}\n"
+            f"Bio: {person_data.get('biography', 'No biography available')[:300]}..."
+        )
+    
+    return "\n\n".join(response) if response else "No parseable data found"
 
 def _format_entity_fallback(entities: Dict) -> str:
     """Improved entity-based fallback"""
