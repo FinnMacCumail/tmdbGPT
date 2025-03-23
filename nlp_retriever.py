@@ -17,6 +17,9 @@ import time
 from collections import defaultdict
 from tabulate import tabulate
 import uuid
+from plan_validator import PlanValidator
+from prompt_templates import PLAN_PROMPT 
+from fallback_handler import FallbackHandler
 
 
 
@@ -202,14 +205,34 @@ class IntelligentPlanner:
         self.collection = chroma_collection
         self.intent_analyzer = intent_analyzer
         self.llm_client = llm_client
-        self.entity_registry = {}
-        self.execution_graph = nx.DiGraph()
-        self.entity_lifecycle = defaultdict(list)  # Track entity creation/usage
+        self.validator = None  # Will be initialized per request
 
     def generate_plan(self, query: str, entities: Dict, intents: Dict) -> Dict:
-        """Generate plan with data step detection"""
-        plan = self._generate_llm_plan(query)
-        return self._enhance_with_data_steps(plan, entities, intents)
+        """Generate validated plan with fallbacks"""
+        try:
+            # Generate initial plan
+            raw_plan = self._llm_planning(query, entities)
+            
+            # Validate and classify steps
+            validated = PlanValidator(entities).validate_plan(raw_plan.get("plan", []))
+            
+            # Add fallback steps if empty
+            if not validated:
+                validated = FallbackHandler.generate_direct_access([], entities)
+            
+            return {"plan": validated}
+            
+        except Exception as e:
+            return {"plan": FallbackHandler.generate_direct_access([], entities)}
+    
+    def _llm_planning(self, query: str, entities: Dict) -> Dict:
+        """LLM-powered plan generation"""
+        prompt = PLAN_PROMPT.format(
+            query=query,
+            entities=json.dumps(entities, indent=2)
+        )
+        response = self.llm_client.generate_response(prompt)
+        return json.loads(response)
     
     def track_entity_flow(self, step: Dict):
         # Record entity production
