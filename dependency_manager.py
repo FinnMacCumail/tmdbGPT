@@ -20,7 +20,8 @@ class ExecutionState(BaseModel):
     
     # Entity Handling
     raw_entities: Dict[str, Any] = {}  
-    resolved_entities: dict[str, Any] = {}
+    # Add explicit type declaration for resolved_entities
+    resolved_entities: Dict[str, int] = {}  # ID values should be integers
 
     # Execution Tracking
     detected_intents: Dict[str, Any] = {}
@@ -50,25 +51,21 @@ class DependencyManager:
         self.execution_state = ExecutionState()
 
     def analyze_dependencies(self, plan: List[Dict]):
-        """Enhanced dependency analysis with entity lifecycle tracking"""
+        """Build dependency graph for execution order"""
         self.execution_state.dependency_graph.clear()
         
-        # Build dependency graph
+        # Create node for each step
         for step in plan:
             step_id = step.get('step_id', str(uuid.uuid4()))
             self.execution_state.dependency_graph.add_node(step_id, **step)
             
-            # Track entity production
-            for entity in step.get('output_entities', []):
-                self.execution_state.track_entity_activity(
-                    entity, 'production', step)
+            # Link dependencies
+            required_entities = [
+                p[1:] for p in step.get('parameters', {}).values()
+                if isinstance(p, str) and p.startswith("$")
+            ]
+            for entity in required_entities:
                 self.execution_state.dependency_graph.add_edge(entity, step_id)
-                
-            # Track entity consumption
-            for param in self._get_entity_references(step):
-                self.execution_state.track_entity_activity(
-                    param, 'consumption', step)
-                self.execution_state.dependency_graph.add_edge(step_id, param)
 
     def _get_entity_references(self, step: Dict) -> List[str]:
         """Extract entity references from parameters"""
