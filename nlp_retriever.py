@@ -315,10 +315,13 @@ class IntelligentPlanner:
             )
 
             # 3. Enhanced validation
+            # validated_steps = PlanValidator(
+            #     entities=entities,
+            #     intents=intents,
+            #     query_type=query_type
+            # ).validate_plan(raw_plan.get("plan", []))
             validated_steps = PlanValidator(
-                entities=entities,
-                intents=intents,
-                query_type=query_type
+                resolved_entities=entities
             ).validate_plan(raw_plan.get("plan", []))
 
             # 4. Dependency graph update
@@ -356,10 +359,26 @@ class IntelligentPlanner:
             )
     
     def _llm_planning(self, prompt: str, dependencies: nx.DiGraph) -> Dict:
-        """LLM-powered plan generation with dependency context"""
         response = self.llm_client.generate_response(prompt)
-        return json.loads(response)
-        #return response
+        
+        try:
+            # Clean and extract JSON only
+            parsed_response = json.loads(response)
+        except json.JSONDecodeError:
+            print(f"LLM responded with invalid JSON: {response}")
+            # Attempt to extract JSON from text using regex as a fallback
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                try:
+                    parsed_response = json.loads(json_match.group(0))
+                except json.JSONDecodeError as e:
+                    print(f"Could not parse extracted JSON: {e}")
+                    return {"plan": []}
+            else:
+                return {"plan": []}
+        
+        return parsed_response
+
     
     def _enhance_with_specialized_params(self, plan: Dict, query_type: str, entities: Dict) -> Dict:
         resolved_params = self.param_resolver.resolve(query_type, entities)
