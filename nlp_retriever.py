@@ -21,7 +21,7 @@ import uuid
 from plan_validator import PlanValidator
 from prompt_templates import PLAN_PROMPT 
 from fallback_handler import FallbackHandler
-from prompt_templates import PROMPT_TEMPLATES
+from prompt_templates import PROMPT_TEMPLATES, DEFAULT_TEMPLATE
 #from query_classifier import QueryClassifier
 
 from param_resolver import ParamResolver
@@ -291,22 +291,29 @@ class IntelligentPlanner:
         self.entity_registry = {}
 
     def generate_plan(self, query: str, entities: Dict, intents: Dict) -> Dict:
-        """Generate validated plan with dependency tracking and enhanced fallbacks"""
+        """Generate validated plan with dependency tracking and enhanced fallbacks"""        
 
         query_type = intents.get('primary', {}).get('type', 'generic_search')
+        entity_id_key = next((k for k in entities.keys() if k.endswith('_id')), None)
         
         try:
-            # 1. Intent-aware initialization
-            #query_type = self.query_classifier.classify(query)
-            #template_hint = PROMPT_TEMPLATES.get(query_type, "")
-            # Include ALL template variables in context
+            # Determine primary entity type from resolved entities
+            entity_type = next(
+                (key.split('_')[0] for key in entities.keys() 
+                if key.endswith('_id')), 
+                'general'
+            )
+            
+            # 1. Intent-aware initialization            
             context = {
-                'query': query,
-                'entities': json.dumps(entities, indent=2),  # Format for readability
-                'intents': intents,
-                'resolved': json.dumps(self.entity_registry, indent=2),
-                'query_type': query_type,  # ✅ Add this
-                'template_hint': PROMPT_TEMPLATES.get(query_type, "")
+                "query": query,
+                "entities": json.dumps(entities, indent=2),
+                "entity_id": f"${entity_id_key}" if entity_id_key else "",
+                "entity_type": entity_id_key.split('_')[0] if entity_id_key else "item",
+                "intents": intents,
+                "resolved": json.dumps(self.entity_registry, indent=2),
+                "query_type": self.query_classifier.classify(query)["primary_intent"],
+                "template_hint": PROMPT_TEMPLATES.get(query_type, DEFAULT_TEMPLATE),               
             }
 
             # 2. LLM Planning with dependency hints
@@ -332,8 +339,7 @@ class IntelligentPlanner:
             if not validated_steps:
                 validated_steps = FallbackHandler.generate_steps(
                     entities=entities,
-                    intents=intents,
-                    query_type=query_type
+                    intents=intents
                 )
 
             # 6. Parameter specialization
@@ -386,25 +392,68 @@ class IntelligentPlanner:
         
         return parsed
     
-    def _enhance_plan_with_context(self, plan: List, query_type: str, entities: Dict) -> List[Dict]:
-        """Enhanced with type checking and validation"""
-        if not isinstance(plan, list):
-            raise ValueError("Plan must be a list of steps")
+    def _enhance_plan_with_context(
+        self, 
+        steps: List[Dict], 
+        query_type: str, 
+        entities: Dict
+    ) -> List[Dict]:
+        enhanced_steps = []
         
-        enhanced_plan = []
-        
-        for idx, step in enumerate(plan):
+        for step in steps:
             if not isinstance(step, dict):
-                print(f"⚠️ Invalid step at position {idx}: {type(step)} - {step}")
                 continue
-                
-            if not all(key in step for key in ['endpoint', 'method']):
-                print(f"🚨 Malformed step at position {idx}: {step}")
+
+            endpoint_meta = self._get_endpoint_metadata(step["endpoint"])
+            if not endpoint_meta:
+                enhanced_steps.append(step)
                 continue
-                
-            enhanced_plan.append(self._specialize_parameters(step, query_type, entities))
+
+            # Safely parse parameters metadata
+            params_value = endpoint_meta.get("parameters", "[]")
+            try:
+                all_params = json.loads(params_value) if isinstance(params_value, str) else params_value
+            except json.JSONDecodeError:
+                all_params = []
+
+            # Extract parameter types
+            path_params = re.findall(r"{(\w+)}", endpoint_meta["path"])
+            query_params = [
+                p["name"] for p in all_params 
+                if isinstance(p, dict) and p.get("in") == "query" and p.get("required", False)
+            ]
+
+            # Build parameter mapping
+            resolved_params = {}
+            
+            # 1. Handle path parameters
+            for param in path_params:
+                if param in entities:
+                    resolved_params[param] = f"${param}"
+                else:
+                    print(f"⚠️ Missing path parameter: {param}")
+
+            # 2. Handle required query parameters
+            for param in query_params:
+                if param not in step.get("parameters", {}):
+                    if param in entities:
+                        resolved_params[param] = f"${param}"
+                    else:
+                        print(f"⚠️ Missing required query parameter: {param}")
+
+            # 3. Merge parameters
+            merged_params = {
+                **step.get("parameters", {}),
+                **resolved_params
+            }
+
+            enhanced_steps.append({
+                **step,
+                "endpoint": endpoint_meta["path"],
+                "parameters": merged_params
+            })
         
-        return enhanced_plan
+        return enhanced_steps
 
     def _specialize_parameters(self, step: Dict, query_type: str, entities: Dict) -> Dict:
         """Add parameters only to supported endpoints using API schema"""
@@ -435,13 +484,26 @@ class IntelligentPlanner:
         return {**step, "parameters": params}
 
     def _get_endpoint_metadata(self, endpoint: str) -> Dict:
-        """Retrieve parameter schema from ChromaDB"""
+        """Retrieve parameter schema from ChromaDB with JSON deserialization"""
         results = self.collection.query(
             query_texts=[endpoint],
             n_results=1,
             include=["metadatas"]
         )
-        return results["metadatas"][0][0] if results["metadatas"][0] else {}
+        
+        if not results or not results["metadatas"][0]:
+            return {}
+        
+        metadata = results["metadatas"][0][0]
+        
+        # Deserialize JSON fields
+        if 'parameters' in metadata:
+            try:
+                metadata['parameters'] = json.loads(metadata['parameters'])
+            except json.JSONDecodeError:
+                metadata['parameters'] = []
+        
+        return metadata
     
 
     def track_entity_flow(self, step: Dict):
