@@ -5,7 +5,8 @@ class QueryClassifier:
     INTENT_PATTERNS = {
         "filmography": [
             r"\b(directed by|movies by|films of|filmography of)\b",
-            r"\b(starring|acted by|movies featuring)\b"
+            r"\b(starring|acted by|movies featuring)\b",
+            r"\bmovies directed\b"
         ],
         "trending": [
             r"\b(trending|popular|top|most watched)\b",
