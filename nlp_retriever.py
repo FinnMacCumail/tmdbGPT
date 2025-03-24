@@ -358,8 +358,8 @@ class IntelligentPlanner:
     def _llm_planning(self, prompt: str, dependencies: nx.DiGraph) -> Dict:
         """LLM-powered plan generation with dependency context"""
         response = self.llm_client.generate_response(prompt)
-        #return json.loads(response)
-        return response
+        return json.loads(response)
+        #return response
     
     def _enhance_with_specialized_params(self, plan: Dict, query_type: str, entities: Dict) -> Dict:
         resolved_params = self.param_resolver.resolve(query_type, entities)
