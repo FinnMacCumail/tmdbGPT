@@ -1,4 +1,5 @@
 import json
+import json5
 import chromadb
 import requests
 import os
@@ -359,34 +360,90 @@ class IntelligentPlanner:
             )
     
     def _llm_planning(self, prompt: str, dependencies: nx.DiGraph) -> Dict:
+        """Robust JSON parsing with validation"""
         response = self.llm_client.generate_response(prompt)
         
         try:
-            # Clean and extract JSON only
-            parsed_response = json.loads(response)
+            # First try strict JSON parsing
+            parsed = json.loads(response)
         except json.JSONDecodeError:
-            print(f"LLM responded with invalid JSON: {response}")
-            # Attempt to extract JSON from text using regex as a fallback
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                try:
-                    parsed_response = json.loads(json_match.group(0))
-                except json.JSONDecodeError as e:
-                    print(f"Could not parse extracted JSON: {e}")
-                    return {"plan": []}
-            else:
-                return {"plan": []}
+            try:
+                # Try JSON5 for more lenient parsing
+                
+                parsed = json5.loads(response)
+            except:
+                # Fallback to regex-based extraction
+                json_str = re.search(r'\{.*\}', response, re.DOTALL)
+                parsed = json.loads(json_str.group()) if json_str else {}
         
-        return parsed_response
+        # Validate root structure
+        if not isinstance(parsed, dict):
+            print(f"⚠️ LLM response is not a dictionary: {type(parsed)}")
+            return {"plan": []}
+        
+        # Normalize plan key
+        parsed["plan"] = parsed.get("plan") or parsed.get("steps") or []
+        
+        return parsed
+    
+    def _enhance_plan_with_context(self, plan: List, query_type: str, entities: Dict) -> List[Dict]:
+        """Enhanced with type checking and validation"""
+        if not isinstance(plan, list):
+            raise ValueError("Plan must be a list of steps")
+        
+        enhanced_plan = []
+        
+        for idx, step in enumerate(plan):
+            if not isinstance(step, dict):
+                print(f"⚠️ Invalid step at position {idx}: {type(step)} - {step}")
+                continue
+                
+            if not all(key in step for key in ['endpoint', 'method']):
+                print(f"🚨 Malformed step at position {idx}: {step}")
+                continue
+                
+            enhanced_plan.append(self._specialize_parameters(step, query_type, entities))
+        
+        return enhanced_plan
 
+    def _specialize_parameters(self, step: Dict, query_type: str, entities: Dict) -> Dict:
+        """Add parameters only to supported endpoints using API schema"""
+        params = step.get("parameters", {}).copy()
+        endpoint = step["endpoint"]
+        
+        # Get endpoint schema from ChromaDB metadata
+        endpoint_meta = self._get_endpoint_metadata(endpoint)
+        valid_params = [p["name"] for p in endpoint_meta.get("parameters", [])]
+        
+        # Genre parameters (only for discover endpoints)
+        if query_type == "discovery" and "with_genres" in valid_params:
+            if genres := entities.get("genre"):
+                params["with_genres"] = ",".join(
+                    str(self.param_resolver.resolve("genre", g)) 
+                    for g in genres
+                )
+        
+        # People parameters (only for discover endpoint)
+        if endpoint == "/discover/movie" and "with_people" in valid_params:
+            if person_id := entities.get("person_id"):
+                params["with_people"] = str(person_id)
+        
+        # Trending parameters (only for trending endpoints)
+        if "/trending/" in endpoint and "time_window" in valid_params:
+            params.setdefault("time_window", "week")
+        
+        return {**step, "parameters": params}
+
+    def _get_endpoint_metadata(self, endpoint: str) -> Dict:
+        """Retrieve parameter schema from ChromaDB"""
+        results = self.collection.query(
+            query_texts=[endpoint],
+            n_results=1,
+            include=["metadatas"]
+        )
+        return results["metadatas"][0][0] if results["metadatas"][0] else {}
     
-    def _enhance_with_specialized_params(self, plan: Dict, query_type: str, entities: Dict) -> Dict:
-        resolved_params = self.param_resolver.resolve(query_type, entities)
-        for step in plan.get("plan", []):
-            if "/discover/" in step["endpoint"] or "/trending/" in step["endpoint"]:
-                step["parameters"].update(resolved_params)
-        return plan
-    
+
     def track_entity_flow(self, step: Dict):
         # Record entity production
         for entity in step.get('output_entities', []):
@@ -646,6 +703,7 @@ class IntelligentPlanner:
     def _parse_llm_response(self, response: str) -> Dict:
         """Safely parse LLM JSON output"""
         try:
+            response = response.replace('"steps":', '"plan":')
             return json.loads(response.strip("`").replace("json\n", ""))
         except json.JSONDecodeError:
             print(f"⚠️ Failed to parse LLM response: {response}")
