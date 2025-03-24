@@ -1,5 +1,5 @@
 # plan_validator.py
-from typing import List, Dict
+from typing import List, Dict, Any
 import re
 from dependency_manager import ExecutionState
 
@@ -7,14 +7,26 @@ class PlanValidator:
     def __init__(self, resolved_entities: Dict):
         self.resolved_entities = resolved_entities
 
-    def validate_plan(self, raw_plan: List[Dict]) -> List[Dict]:
-        validated = []
-        for step in raw_plan:
-            if self._is_data_retrieval_step(step):
-                validated.append(step)  # Always keep data steps
-            elif not self._should_remove(step):
-                validated.append(step)
-        return validated
+    def validate_plan(self, raw_plan: Any) -> List[Dict]:
+        """Type-safe validation with error handling"""
+        valid_steps = []
+        
+        if not isinstance(raw_plan, list):
+            print(f"⚠️ Invalid plan format: {type(raw_plan)}")
+            return []
+        
+        for idx, step in enumerate(raw_plan):
+            if not isinstance(step, dict):
+                print(f"🚨 Invalid step type at position {idx}: {type(step)}")
+                continue
+                
+            if not step.get('endpoint') or not step.get('method'):
+                print(f"🚨 Malformed step at position {idx}: Missing endpoint/method")
+                continue
+                
+            valid_steps.append(step)
+        
+        return valid_steps
 
     def _is_data_retrieval_step(self, step: Dict) -> bool:
         return step.get('operation_type') == 'data_retrieval'
