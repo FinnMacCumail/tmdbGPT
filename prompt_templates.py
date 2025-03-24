@@ -1,4 +1,4 @@
-PLAN_PROMPT = """Generate API plan based on query type and these rules:
+PLAN_PROMPT = """Generate API plan based on query type and these rules. Generate a valid JSON API execution plan for the query provided.:
 1. Use $entity syntax for resolved IDs
 2. Prioritize {query_type} endpoints
 3. Include both entity resolution and data retrieval steps
