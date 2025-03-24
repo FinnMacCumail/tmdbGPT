@@ -26,7 +26,7 @@ from prompt_templates import PROMPT_TEMPLATES
 from param_resolver import ParamResolver
 from llm_client import OpenAILLMClient
 from dependency_manager import DependencyManager
-
+from query_classifier import QueryClassifier
 
 
 # Load API keys
@@ -280,29 +280,38 @@ class IntelligentPlanner:
                  chroma_collection: chromadb.Collection,  # Parameter name changed
                  param_resolver: ParamResolver,
                  llm_client: OpenAILLMClient,
-                 dependency_manager: DependencyManager):  # Added parameter
+                 dependency_manager: DependencyManager,
+                 query_classifier: QueryClassifier):  # Added parameter
         self.collection = chroma_collection
         self.param_resolver = param_resolver
         self.llm_client = llm_client
         self.dependency_manager = dependency_manager
+        self.query_classifier = query_classifier
+        self.entity_registry = {}
 
     def generate_plan(self, query: str, entities: Dict, intents: Dict) -> Dict:
         """Generate validated plan with dependency tracking and enhanced fallbacks"""
+
+        query_type = intents.get('primary', {}).get('type', 'generic_search')
+        
         try:
             # 1. Intent-aware initialization
-            query_type = self.query_classifier.classify(query)
-            template_hint = PROMPT_TEMPLATES.get(query_type, "")
+            #query_type = self.query_classifier.classify(query)
+            #template_hint = PROMPT_TEMPLATES.get(query_type, "")
+            # Include ALL template variables in context
             context = {
                 'query': query,
-                'entities': entities,
+                'entities': json.dumps(entities, indent=2),  # Format for readability
                 'intents': intents,
-                'resolved': self.entity_registry
+                'resolved': json.dumps(self.entity_registry, indent=2),
+                'query_type': query_type,  # ✅ Add this
+                'template_hint': PROMPT_TEMPLATES.get(query_type, "")
             }
 
             # 2. LLM Planning with dependency hints
             raw_plan = self._llm_planning(
                 prompt=PLAN_PROMPT.format(**context),
-                dependencies=self.dependency_graph
+                dependencies=self.dependency_manager.graph
             )
 
             # 3. Enhanced validation
@@ -346,14 +355,11 @@ class IntelligentPlanner:
                 intents=intents
             )
     
-    def _llm_planning(self, query: str, entities: Dict) -> Dict:
-        """LLM-powered plan generation"""
-        prompt = PLAN_PROMPT.format(
-            query=query,
-            entities=json.dumps(entities, indent=2)
-        )
+    def _llm_planning(self, prompt: str, dependencies: nx.DiGraph) -> Dict:
+        """LLM-powered plan generation with dependency context"""
         response = self.llm_client.generate_response(prompt)
-        return json.loads(response)
+        #return json.loads(response)
+        return response
     
     def _enhance_with_specialized_params(self, plan: Dict, query_type: str, entities: Dict) -> Dict:
         resolved_params = self.param_resolver.resolve(query_type, entities)
