@@ -6,6 +6,7 @@ from networkx import DiGraph
 import uuid
 import time
 import networkx as nx
+from networkx.readwrite import json_graph
 
 class EntityLifecycleEntry(TypedDict):
     type: str  # 'production' or 'consumption'
@@ -66,6 +67,10 @@ class DependencyManager:
     def __init__(self):
         self.execution_state = ExecutionState()
         self.graph = nx.DiGraph()
+
+    def serialize(self) -> dict:
+        """Serialize dependency graph to JSON-serializable format"""
+        return json_graph.node_link_data(self.graph)
 
     def analyze_dependencies(self, plan: List[Dict]) -> None:
         """Build comprehensive dependency graph considering both entity and step dependencies.
