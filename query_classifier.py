@@ -1,29 +1,32 @@
 import re
+from typing import Dict
 
 class QueryClassifier:
-    QUERY_PATTERNS = {
-        "trending": r"\b(trending|popular|top|hot|trend)\b",
-        "filmography": r"\b(directed by|starring|featuring|acted in|filmography)\b",
-        "filtered_search": r"\b(from|with|rated|released|between|genre|year|decade)\b",
-        "comparison": r"\b(most|best|highest|top-grossing|worst|lowest)\b",
-        "similarity": r"\b(similar to|like|recommendations|related to)\b",
-        "awards": r"\b(awards|oscars|emmys|nominations|won)\b",
-        "financial": r"\b(box office|revenue|budget|gross|earning)\b",
-        "multistep": r"\b(then|after that|followed by|next)\b"
+    INTENT_PATTERNS = {
+        "filmography": [
+            r"\b(directed by|movies by|films of|filmography of)\b",
+            r"\b(starring|acted by|movies featuring)\b"
+        ],
+        "trending": [
+            r"\b(trending|popular|top|most watched)\b",
+            r"\b(currently popular|what's hot)\b"
+        ],
+        "search": [
+            r"\b(find|search for|look up)\b",
+            r"\b(movies like|similar to)\b"
+        ]
     }
 
-    QUERY_PATTERN_PRIORITY = [
-        "multistep", "financial", "awards", "similarity",
-        "comparison", "filtered_search", "trending", "filmography"
-    ]
+    def classify(self, query: str) -> Dict:
+        """Dynamically classify query intent using regex patterns"""
+        query = query.lower()
+        matched_intents = []
 
-    def classify(self, query: str) -> str:
-        matches = []
-        for pattern_type, regex in self.QUERY_PATTERNS.items():
-            if re.search(regex, query, re.I):
-                matches.append(pattern_type)
-        
-        for p in self.QUERY_PATTERN_PRIORITY:
-            if p in matches:
-                return p
-        return "general_info"
+        for intent, patterns in self.INTENT_PATTERNS.items():
+            if any(re.search(pattern, query) for pattern in patterns):
+                matched_intents.append(intent)
+
+        return {
+            "primary_intent": matched_intents[0] if matched_intents else "generic_search",
+            "secondary_intents": matched_intents[1:]
+        }
