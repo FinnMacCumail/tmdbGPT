@@ -1,29 +1,60 @@
 PLAN_PROMPT = """
-Generate API plan based on query type and these rules. Generate a valid JSON API execution plan for the query provided.:
-1. Use $entity syntax for resolved IDs
-2. Prioritize generic_search endpoints
-3. Include both entity resolution and data retrieval steps
+Generate API execution plans using TMDB endpoints. Follow these rules:
 
-Combine search and details:
-    1. Search for entity using /search/{{resource}}
-    2. Get details using /{{resource}}/{{id}}
+1. Required structure for each step:
+{{
+  "step_id": "unique_name",
+  "endpoint": "/api/path/{{parameter}}",
+  "method": "GET",
+  "parameters": {{
+    "param": "$resolved_entity"
+  }}
+}}
 
-Current Entities: {entities}
-Query: {query}
+2. Dynamic patterns (replace CAPS):
+- Search: /search/ENTITY_TYPE?query=...
+- Details: /ENTITY_TYPE/{{ENTITY_TYPE_ID}}
+- Relationships: /ENTITY_TYPE/{{ENTITY_TYPE_ID}}/RELATIONSHIP
 
-Example JSON:
+3. Examples:
+=== Movie Example ===
 {{
   "plan": [
     {{
-      "step_id": "unique_id",
-      "endpoint": "/endpoint/{{param}}",
+      "step_id": "search_movie",
+      "endpoint": "/search/movie",
       "method": "GET",
-      "parameters": {{"param": "$entity"}}
+      "parameters": {{"query": "{query}"}}
+    }},
+    {{
+      "step_id": "get_details",
+      "endpoint": "/movie/{{movie_id}}",
+      "method": "GET",
+      "parameters": {{"movie_id": "$movie_id"}}
     }}
   ]
 }}
-"""
 
+=== TV Example ===
+{{
+  "plan": [
+    {{
+      "step_id": "discover_tv",
+      "endpoint": "/discover/tv",
+      "method": "GET",
+      "parameters": {{
+        "with_genres": "$genre_id",
+        "first_air_date_year": "2023"
+      }}
+    }}
+  ]
+}}
+
+Current Context:
+- Query: {query}
+- Resolved Entities: {entities}
+- Available Relationships: credits, similar, recommendations
+"""
 
 # PROMPT_TEMPLATES = {
 #     "trending": """Use trending endpoints:
