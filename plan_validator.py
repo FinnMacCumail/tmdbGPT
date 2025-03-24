@@ -8,26 +8,43 @@ class PlanValidator:
         self.resolved_entities = resolved_entities
 
     def validate_plan(self, raw_plan: Any) -> List[Dict]:
-        """Type-safe validation with error handling"""
         valid_steps = []
-        
-        if not isinstance(raw_plan, list):
-            print(f"⚠️ Invalid plan format: {type(raw_plan)}")
-            return []
         
         for idx, step in enumerate(raw_plan):
             if not isinstance(step, dict):
-                print(f"🚨 Invalid step type at position {idx}: {type(step)}")
+                print(f"⚠️ Invalid step type at position {idx}: {type(step)}")
                 continue
                 
-            if not step.get('endpoint') or not step.get('method'):
-                print(f"🚨 Malformed step at position {idx}: Missing endpoint/method")
+            # Check minimum required fields
+            if not all(key in step for key in ["step_id", "endpoint"]):
+                print(f"🚨 Malformed step at position {idx}: Missing step_id or endpoint")
                 continue
-                
-            valid_steps.append(step)
+
+            # Clean endpoint formatting
+            endpoint = step["endpoint"]
+            endpoint = endpoint.replace("{{", "{").replace("}}", "}")  # Fix JSON escapes
+            endpoint = endpoint.replace("{{{", "{").replace("}}}", "}")  # Handle triple escapes
+            
+            # Default to GET if method not specified
+            method = step.get("method", "GET")
+            
+            # Validate parameters format
+            parameters = {}
+            if "parameters" in step:
+                if isinstance(step["parameters"], dict):
+                    parameters = step["parameters"]
+                else:
+                    print(f"⚠️ Invalid parameters type in step {step['step_id']}")
+
+            valid_steps.append({
+                "step_id": step["step_id"],
+                "endpoint": endpoint,
+                "method": method,
+                "parameters": parameters
+            })
         
         return valid_steps
-
+    
     def _is_data_retrieval_step(self, step: Dict) -> bool:
         return step.get('operation_type') == 'data_retrieval'
     
