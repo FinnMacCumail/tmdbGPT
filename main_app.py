@@ -195,24 +195,45 @@ def execute_api_plan(state: ControllerState) -> ControllerState:
             execution_state.detected_intents
         )
     
-    # Execute the plan
+    # Dynamic path parameter injection
+    for step in execution_state.pending_steps:
+        # Extract path parameters from endpoint pattern
+        path_params = re.findall(r"{(\w+)}", step.get("endpoint", ""))
+        
+        # Auto-inject entity references for path parameters
+        step.setdefault("parameters", {})
+        for param in path_params:
+            if param in execution_state.resolved_entities:
+                step["parameters"][param] = f"${param}"
+            else:
+                print(f"⚠️ Missing required path parameter: {param}")
+
+    # Execute the plan with dynamic resolution
     updated_state = orchestrator.execute(execution_state)
     state['execution_state'] = updated_state
+    
     return state
 
 def build_response(state: ControllerState) -> ControllerState:
     execution_state = state['execution_state']
     response = []
     
-    # Format based on query type
-    query_type = execution_state.detected_intents.get('primary', 'generic')
-    formatter = {
+    # Extract intent type as string
+    query_type = execution_state.detected_intents.get('primary', {}).get('type', 'generic')
+    
+    # Define formatters with string keys
+    formatters = {
         'trending': _format_trending,
         'filmography': _format_filmography,
-        # Remove or implement missing formatters
-        'generic': _format_generic
-    }.get(query_type, _format_generic)  # Default to generic
+        'generic': _format_generic,
+        'financial': _format_financial,
+        'awards': _format_awards
+    }
     
+    # Get formatter using string key
+    formatter = formatters.get(query_type, _format_generic)
+    
+    # Format response data
     for step_id, data in execution_state.data_registry.items():
         if data and 'data' in data:
             response.append(formatter(data['data']))
