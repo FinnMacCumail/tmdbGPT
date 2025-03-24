@@ -7,6 +7,7 @@ from requests.exceptions import HTTPError
 import networkx as nx
 from collections import defaultdict
 import time
+import re
 
 class ExecutionOrchestrator:
     def __init__(self, base_url: str, headers: Dict):
@@ -116,22 +117,29 @@ class ExecutionOrchestrator:
         return state
 
     def _resolve_parameters(self, step: Dict, state: ExecutionState) -> Dict:
-        """Resolve $entity references to actual values"""
         params = {}
         for param, value in step.get("parameters", {}).items():
+            # Handle both $var and $$var formats
+            if isinstance(value, str):
+                value = value.replace("$$", "$")  # Normalize double $ signs
+                
             if isinstance(value, str) and value.startswith("$"):
                 entity_key = value[1:]
-                if entity_key not in state.resolved_entities:
-                    raise ValueError(f"Missing entity: {entity_key}")
-                params[param] = state.resolved_entities[entity_key]
+                params[param] = state.resolved_entities.get(entity_key)
             else:
                 params[param] = value
         return params
 
     def _format_endpoint(self, endpoint: str, params: Dict) -> str:
-        """Replace path parameters in endpoint URL"""
-        for key, value in params.items():
-            endpoint = endpoint.replace(f"{{{key}}}", str(value))
+        """Universal path parameter substitution"""
+        # Match both {param} and $param formats
+        for param_name in re.findall(r"{(\w+)}|\$(\w+)", endpoint):
+            clean_param = param_name[0] or param_name[1]
+            if clean_param in params:
+                endpoint = endpoint.replace(
+                    f"{{{clean_param}}}" if "{" in endpoint else f"${clean_param}",
+                    str(params[clean_param])
+                )
         return endpoint
     
     def _execute_single_step(self, step: Dict, state: ExecutionState) -> None:
