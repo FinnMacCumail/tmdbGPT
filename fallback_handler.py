@@ -4,7 +4,7 @@ from dependency_manager import ExecutionState
 
 class FallbackHandler:
     @staticmethod
-    def generate_steps(entities: Dict, intents: Dict) -> List[Dict]:
+    def generate_steps(entities: Dict, intents: Dict) -> List[Dict]:  # Remove query_type
         """Create fallback steps based on available entities"""
         steps = []
         
