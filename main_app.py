@@ -18,6 +18,8 @@ from execution_orchestrator import ExecutionOrchestrator
 from fallback_handler import FallbackHandler
 from query_classifier import QueryClassifier
 from param_resolver import ParamResolver
+from prompt_templates import PROMPT_TEMPLATES, DEFAULT_TEMPLATE
+
 
 
 # Load environment variables
@@ -32,6 +34,7 @@ HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 param_resolver = ParamResolver()
 llm_client = OpenAILLMClient(OPENAI_API_KEY)
 dependency_manager = DependencyManager()
+query_classifier = QueryClassifier()
 
 # Initialize core components
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
@@ -86,31 +89,88 @@ def resolve_entities(state: ControllerState) -> ControllerState:
                 print(f"✅ Resolved {id_key}: {result['id']}")
     return state
 
+# def plan_with_intent(state: ControllerState) -> ControllerState:
+#     execution_state = state['execution_state']
+#     dependency_manager = DependencyManager()
+#     # Initialize planner with correct parameters
+#     planner = IntelligentPlanner(
+#         chroma_collection=collection,
+#         param_resolver=param_resolver,
+#         llm_client=llm_client,
+#         dependency_manager=dependency_manager,
+#         query_classifier=query_classifier
+#     )
+
+#     # Sync resolved entities into the planner's registry
+#     planner.entity_registry = execution_state.resolved_entities.copy()
+    
+#     try:
+#         raw_plan = planner.generate_plan(
+#             state["query"],
+#             execution_state.resolved_entities,
+#             execution_state.detected_intents
+#         )
+#         execution_state.pending_steps = [
+#             step for step in raw_plan.get("plan", [])
+#             if _should_retain_step(step, execution_state)
+#         ]
+#     except Exception as e:
+#         execution_state.error = f"Planning failed: {str(e)}"
+    
+#     return state
 def plan_with_intent(state: ControllerState) -> ControllerState:
     execution_state = state['execution_state']
     dependency_manager = DependencyManager()
-    # Initialize planner with correct parameters
-    planner = IntelligentPlanner(
-        chroma_collection=collection,
-        param_resolver=param_resolver,
-        llm_client=llm_client,
-        dependency_manager=dependency_manager
-    )
     
     try:
+        # Get dynamic classification
+        classification = query_classifier.classify(state["query"])
+        template_hint = PROMPT_TEMPLATES.get(
+            classification["primary_intent"], 
+            DEFAULT_TEMPLATE
+        )
+
+        # Build context with proper typing
+        # context = {
+        #     "query": state["query"],
+        #     "entities": execution_state.resolved_entities,
+        #     "intents": classification,
+        #     "template_hint": template_hint
+        # }
+
+        planner = IntelligentPlanner(
+            chroma_collection=collection,
+            param_resolver=param_resolver,
+            llm_client=llm_client,
+            dependency_manager=dependency_manager,
+            query_classifier=query_classifier
+        )
+
+        # Handle JSON parsing safely
+        #raw_plan = planner.generate_plan(context)
         raw_plan = planner.generate_plan(
             state["query"],
             execution_state.resolved_entities,
             execution_state.detected_intents
         )
+
+        # Validate plan structure
+        if not isinstance(raw_plan, dict) or 'plan' not in raw_plan:
+            raise ValueError("Invalid plan structure")
+
         execution_state.pending_steps = [
-            step for step in raw_plan.get("plan", [])
-            if _should_retain_step(step, execution_state)
+            step for step in raw_plan['plan']
+            if _validate_step(step)  # Add your validation logic
         ]
+
     except Exception as e:
         execution_state.error = f"Planning failed: {str(e)}"
     
     return state
+
+def _validate_step(step: Dict) -> bool:
+    required_keys = {'step_id', 'endpoint', 'method'}
+    return all(key in step for key in required_keys)
 
 def _should_retain_step(step: Dict, state: ExecutionState) -> bool:
     """Dynamic step retention logic"""
