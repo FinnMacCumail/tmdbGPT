@@ -1,11 +1,29 @@
-PLAN_PROMPT = """Generate API plan based on query type and these rules. Generate a valid JSON API execution plan for the query provided.:
+PLAN_PROMPT = """
+Generate API plan based on query type and these rules. Generate a valid JSON API execution plan for the query provided.:
 1. Use $entity syntax for resolved IDs
-2. Prioritize {query_type} endpoints
+2. Prioritize generic_search endpoints
 3. Include both entity resolution and data retrieval steps
 
-{template_hint}  # 🚨 Missing in context
+Combine search and details:
+    1. Search for entity using /search/{{resource}}
+    2. Get details using /{{resource}}/{{id}}
+
 Current Entities: {entities}
-Query: {query}"""
+Query: {query}
+
+Example JSON:
+{{
+  "plan": [
+    {{
+      "step_id": "unique_id",
+      "endpoint": "/endpoint/{{param}}",
+      "method": "GET",
+      "parameters": {{"param": "$entity"}}
+    }}
+  ]
+}}
+"""
+
 
 # PROMPT_TEMPLATES = {
 #     "trending": """Use trending endpoints:
@@ -30,9 +48,10 @@ Query: {query}"""
 # }
 
 PROMPT_TEMPLATES = {
-    "filmography": """Use person movie credits endpoint:
-    1. First find person ID using /search/person
-    2. Then use /person/{{person_id}}/movie_credits""",
+    "filmography": """Use movie credits endpoint:
+    1. Use resolved person_id
+    2. Call /person/{person_id}/movie_credits
+    Required parameters: person_id=$person_id""",
     
     "trending": """Use trending endpoints:
     - /trending/{{media_type}}/{{time_window}}
