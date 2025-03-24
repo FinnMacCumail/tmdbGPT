@@ -67,22 +67,57 @@ class DependencyManager:
         self.execution_state = ExecutionState()
         self.graph = nx.DiGraph()
 
-    def analyze_dependencies(self, plan: List[Dict]):
-        """Build dependency graph for execution order"""
-        self.execution_state.dependency_graph.clear()
+    def analyze_dependencies(self, plan: List[Dict]) -> None:
+        """Build comprehensive dependency graph considering both entity and step dependencies.
         
-        # Create node for each step
+        Args:
+            plan: List of steps with potential dependencies. Each step should contain:
+                - parameters: For entity dependencies ($entity syntax)
+                - requires_steps: List of step_ids this step depends on (optional)
+                - produces_entities: List of entities this step generates (optional)
+        """
+        graph = self.execution_state.dependency_graph
+        graph.clear()
+
+        # First pass: Create nodes and entity relationships
         for step in plan:
-            step_id = step.get('step_id', str(uuid.uuid4()))
-            self.execution_state.dependency_graph.add_node(step_id, **step)
+            # Generate step ID if missing
+            step_id = step.setdefault('step_id', str(uuid.uuid4()))
             
-            # Link dependencies
+            # Add node with step metadata
+            graph.add_node(step_id, **step)
+            
+            # Track entity production
+            for entity in step.get('produces_entities', []):
+                graph.add_node(entity, type='entity')
+                graph.add_edge(step_id, entity)
+
+            # Entity dependencies from parameters
             required_entities = [
                 p[1:] for p in step.get('parameters', {}).values()
                 if isinstance(p, str) and p.startswith("$")
             ]
             for entity in required_entities:
-                self.execution_state.dependency_graph.add_edge(entity, step_id)
+                if entity not in graph:
+                    graph.add_node(entity, type='entity')
+                graph.add_edge(entity, step_id)
+
+        # Second pass: Handle step-to-step dependencies
+        for step in plan:
+            step_id = step['step_id']
+            
+            # Explicit step dependencies
+            for dep_id in step.get('requires_steps', []):
+                if dep_id in graph:
+                    graph.add_edge(dep_id, step_id)
+                else:
+                    print(f"⚠️ Missing step dependency: {dep_id} -> {step_id}")
+
+            # Implicit dependencies via produced entities
+            for entity in step.get('produces_entities', []):
+                for consumer in graph.successors(entity):
+                    if consumer != step_id:  # Avoid self-reference
+                        graph.add_edge(step_id, consumer)
 
     def _get_entity_references(self, step: Dict) -> List[str]:
         """Extract entity references from parameters"""
