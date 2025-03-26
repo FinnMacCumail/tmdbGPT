@@ -11,23 +11,6 @@ class TMDBEntityResolver:
         }
         self._load_genres()
 
-    def fuzzy_search(self, query: str, entity_type: str) -> Optional[int]:
-        """Returns integer ID directly"""
-        print(f"\n🔍 Fuzzy search for {entity_type}: {query}")
-        result = self._make_search_request(f"/search/{entity_type}", query)
-
-        if result and 'id' in result:
-            try:
-                return int(result['id'])
-            except (ValueError, TypeError):
-                print(f"🚨 Invalid ID format: {result['id']}")
-                return None
-        return None
-
-    def _spell_check(self, query: str) -> str:
-        """Simple spelling correction (placeholder for actual implementation)"""
-        return query  # Implement actual spell check here
-
     def _load_genres(self):
         """Preload genre lists for movies and TV shows using headers"""
         self.movie_genres = self._get_genres("movie")
@@ -41,34 +24,6 @@ class TMDBEntityResolver:
         )
         response.raise_for_status()
         return {g["name"].lower(): g["id"] for g in response.json().get("genres", [])}
-
-    # def resolve_entity(self, entity_name: str, entity_type: str) -> Optional[Dict]:
-    #     """
-    #     Unified entity resolution with proper authentication
-    #     """
-
-    #     print(f"\n🔎 Resolving {entity_type} entity: {entity_name}")
-    #     #print(f"Supported types: {self._get_entity_types()}")
-
-    #     # Add special handling for ID parameters
-    #     if entity_type.endswith('_id'):
-    #         return self._resolve_id_direct(entity_name)
-
-    #     resolver_map = {
-    #         "genre": self._resolve_genre,
-    #         "network": self._resolve_network,
-    #         "credit": lambda x: {"id": x},
-    #         "person": self._resolve_person,
-    #         "movie": self._resolve_movie,
-    #         "tv": self._resolve_tv,
-    #         "company": self._resolve_company,
-    #         "collection": self._resolve_collection,
-    #         "keyword": self._resolve_keyword
-    #     }
-
-    #     if entity_type in resolver_map:
-    #         return resolver_map[entity_type](entity_name)
-    #     return self._resolve_multi(entity_name)
 
     def resolve_entity(self, entity_name: str, entity_type: str) -> Dict:
         """Ensure resolved IDs are integers"""
@@ -105,34 +60,3 @@ class TMDBEntityResolver:
         except requests.exceptions.RequestException as e:
             print(f"API Error: {str(e)}")
             return None
-
-
-    # Simplified resolver methods using the generic search
-    def _resolve_genre(self, genre_name: str) -> Optional[Dict]:
-        genre_id = (self.movie_genres.get(genre_name.lower()) or
-                    self.tv_genres.get(genre_name.lower()))
-        return {"id": genre_id, "name": genre_name} if genre_id else None
-
-    def _resolve_network(self, network_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/network", network_name)
-
-    def _resolve_person(self, person_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/person", person_name)
-
-    def _resolve_movie(self, movie_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/movie", movie_name)
-
-    def _resolve_tv(self, tv_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/tv", tv_name)
-
-    def _resolve_company(self, company_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/company", company_name)
-
-    def _resolve_collection(self, collection_name: str) -> Optional[Dict]:
-        return self._make_search_request("/search/collection", collection_name)
-
-    def _resolve_keyword(self, keyword: str) -> Optional[Dict]:
-        return self._make_search_request("/search/keyword", keyword)
-
-    def _resolve_multi(self, query: str) -> Optional[Dict]:
-        return self._make_search_request("/search/multi", query)
