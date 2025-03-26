@@ -56,12 +56,6 @@ class ExecutionState(BaseModel):
         )
         self.entity_lifecycle.setdefault(entity, []).append(entry)    
     
-    def update_entity_lifecycle(self, step: Dict):
-        """Track entity production/consumption"""
-        if step['operation_type'] == 'entity_production':
-            for entity in step['output_entities']:
-                self.resolved_entities[entity] = step['result']
-                self.entity_dependencies[entity] = [step['step_id']]
 
 class DependencyManager:
     def __init__(self):
@@ -123,14 +117,6 @@ class DependencyManager:
                 for consumer in graph.successors(entity):
                     if consumer != step_id:  # Avoid self-reference
                         graph.add_edge(step_id, consumer)
-
-    def _get_entity_references(self, step: Dict) -> List[str]:
-        """Extract entity references from parameters"""
-        refs = []
-        for param, value in step.get('parameters', {}).items():
-            if isinstance(value, str) and value.startswith("$"):
-                refs.append(value[1:])
-        return refs
     
     def build_dependency_graph(self, steps: list):
         """Create execution order based on entity dependencies"""
