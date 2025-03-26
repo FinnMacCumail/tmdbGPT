@@ -56,28 +56,6 @@ Current Context:
 - Available Relationships: credits, similar, recommendations
 """
 
-# PROMPT_TEMPLATES = {
-#     "trending": """Use trending endpoints:
-#     - /trending/{{media_type}}/{{time_window}}
-#     Required parameters: media_type=movie|tv, time_window=day|week""",
-    
-#     "filtered_search": """Use discover endpoint with filters:
-#     - /discover/movie?with_genres=GENRE_ID&primary_release_year=YEAR
-#     - Sort by: vote_average.desc, revenue.desc""",
-    
-#     "similarity": """Use recommendations system:
-#     1. First find base entity ID
-#     2. Then use /movie/{{id}}/recommendations""",
-    
-#     "financial": """Combine movie details with financial data:
-#     1. Get movie ID
-#     2. Access /movie/{{id}}/revenue""",
-    
-#     "awards": """Use awards endpoints:
-#     - /movie/{{id}}/awards
-#     - /person/{{id}}/awards"""
-# }
-
 PROMPT_TEMPLATES = {
     "filmography": """Use movie credits endpoint:
     1. Use resolved person_id
