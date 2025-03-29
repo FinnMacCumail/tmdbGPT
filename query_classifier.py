@@ -4,16 +4,13 @@ from typing import Dict
 class QueryClassifier:
     INTENT_PATTERNS = {
         "filmography": [
-            r"\b(directed by|movies by|films of|filmography of)\b",
-            r"\b(starring|acted by|movies featuring)\b"
+            r"\b(directed by|movies by|films of|filmography of|starring|acted by|movies featuring)\b"
         ],
         "trending": [
-            r"\b(trending|popular|top|most watched)\b",
-            r"\b(currently popular|what's hot)\b"
+            r"\b(trending|popular|top|most watched|currently popular|what's hot|top rated|popular movies|popular films)\b"
         ],
         "search": [
-            r"\b(find|search for|look up)\b",
-            r"\b(movies like|similar to)\b"
+            r"\b(find|search for|look up|movies like|similar to|show me)\b"
         ]
     }
 
