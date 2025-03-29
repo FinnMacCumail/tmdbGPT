@@ -18,7 +18,7 @@ from execution_orchestrator import ExecutionOrchestrator
 from fallback_handler import FallbackHandler
 from query_classifier import QueryClassifier
 from param_resolver import ParamResolver
-from prompt_templates import PROMPT_TEMPLATES, DEFAULT_TEMPLATE
+from prompt_templates import PROMPT_TEMPLATES, DEFAULT_TEMPLATE, PLAN_PROMPT
 
 
 
@@ -63,10 +63,22 @@ def parse_query(state: ControllerState) -> ControllerState:
     
     # Extract entities and intents
     execution_state.raw_entities = intent_analyzer.extract_entities(state["query"])
-    execution_state.detected_intents = {
-        'primary': query_classifier.classify(state["query"])
-    }
+
+    # Classify intents dynamically using the hybrid approach
+    execution_state.detected_intents = classify_intent(state["query"])
+
     return state
+
+def classify_intent(query):
+    quick_result = query_classifier.classify(query)
+    
+    # Dynamically detect if deeper semantic analysis is needed
+    if quick_result["primary_intent"] == "generic_search":
+        intent_classifier = IntentClassifier(api_key=OPENAI_API_KEY)
+        advanced_result = intent_classifier.classify(query)
+        return advanced_result
+    
+    return quick_result
 
 def resolve_entities(state: ControllerState) -> ControllerState:
     execution_state = state['execution_state']
@@ -94,12 +106,15 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
     dependency_manager = DependencyManager()
     
     try:
-        # Get dynamic classification
-        classification = query_classifier.classify(state["query"])
-        template_hint = PROMPT_TEMPLATES.get(
-            classification["primary_intent"], 
-            DEFAULT_TEMPLATE
-        )
+        # Use already-classified intents (DRY, no repeated classification)
+        intent_context = execution_state.detected_intents
+        primary_intent = intent_context.get('primary_intent', 'generic_search')
+        secondary_intents = intent_context.get('secondary_intents', [])
+
+        # Dynamically build an intent description for LLM prompt
+        intent_description = f"Primary intent: {primary_intent}."
+        if secondary_intents:
+            intent_description += f" Secondary intents: {', '.join(secondary_intents)}."
 
         planner = IntelligentPlanner(
             chroma_collection=collection,
@@ -109,11 +124,17 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
             query_classifier=query_classifier
         )
 
-        # Handle JSON parsing safely        
-        raw_plan = planner.generate_plan(
-            state["query"],
-            execution_state.resolved_entities,
-            execution_state.detected_intents
+        # Dynamically build prompt context including secondary intents
+        custom_prompt = PLAN_PROMPT.format(
+            query=state["query"],
+            entities=json.dumps(execution_state.resolved_entities),
+            intents=intent_description
+        )
+
+        # Generate the execution plan dynamically from LLM
+        raw_plan = planner._llm_planning(
+            prompt=custom_prompt,
+            dependencies=dependency_manager.graph
         )
 
         # Validate plan structure
@@ -122,13 +143,14 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
 
         execution_state.pending_steps = [
             step for step in raw_plan['plan']
-            if _validate_step(step)  # Add your validation logic
+            if _validate_step(step)
         ]
 
     except Exception as e:
         execution_state.error = f"Planning failed: {str(e)}"
     
     return state
+
 
 def _validate_step(step: Dict) -> bool:
     required_keys = {'step_id', 'endpoint', 'method'}
