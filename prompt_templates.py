@@ -53,6 +53,7 @@ Generate API execution plans using TMDB endpoints. Follow these rules:
 Current Context:
 - Query: {query}
 - Resolved Entities: {entities}
+- Intent Context: {intents}
 - Available Relationships: credits, similar, recommendations
 """
 
