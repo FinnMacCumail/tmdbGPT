@@ -1,52 +1,76 @@
-import os
-import logging
-import json
 import chromadb
+import json
+import os
+from collections import Counter
+from datetime import datetime
+from typing import Dict
 
-def setup_file_logger(log_file: str) -> logging.Logger:
-    """
-    Configures and returns a logger that writes INFO-level logs to the specified file.
-    """
-    logger = logging.getLogger("ChromaLogger")
-    logger.setLevel(logging.INFO)
-    # Clear existing handlers to avoid duplicate logging
-    if logger.hasHandlers():
-        logger.handlers.clear()
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    return logger
+class ChromaEmbeddingLogger:
+    def __init__(self):
+        self.log_dir = "logs"
+        self.collection_name = "tmdb_endpoints"
+        self.client = chromadb.PersistentClient(path="./sec_intent_chroma_db")
 
-def log_chroma_collection_contents(collection, logger: logging.Logger):
-    """
-    Retrieves all records from the given ChromaDB collection and logs them.
-    """
-    try:
-        # Retrieve all stored records from the collection
-        results = collection.get()
-        # Log the results as a pretty-printed JSON string
-        logger.info("Chroma Collection Contents:\n%s", json.dumps(results, indent=2))
-    except Exception as e:
-        logger.error("Error retrieving collection contents: %s", str(e))
+    def _ensure_log_dir(self):
+        os.makedirs(self.log_dir, exist_ok=True)
 
-# Initialize ChromaDB client and access the collection used by semantic_embed.py
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection(
-    name="tmdb_endpoints",
-    metadata={"hnsw:space": "cosine"}
-)
+    def _get_collection(self):
+        return self.client.get_collection(name=self.collection_name)
 
-# Ensure the logs folder exists
-LOGS_FOLDER = "logs"
-os.makedirs(LOGS_FOLDER, exist_ok=True)
+    def _generate_filename(self):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"chroma_embeddings_{timestamp}.log"
 
-# Define the output log file path
-OUTPUT_LOG_FILE = os.path.join(LOGS_FOLDER, "chroma_embeddings.log")
+    def _format_entry(self, entry: Dict) -> str:
+        return (
+            f"ID: {entry['id']}\n"
+            f"Metadata: {json.dumps(entry['metadata'], indent=2)}\n"
+            f"Embedding: Vector of length {len(entry['embedding'])} "
+            f"(First 5 dims: {entry['embedding'][:5]})\n"
+            + "=" * 50 + "\n"
+        )
 
-# Setup the logger
-logger = setup_file_logger(OUTPUT_LOG_FILE)
+    def log_embeddings(self):
+        try:
+            self._ensure_log_dir()
+            collection = self._get_collection()
+            embeddings = collection.get(include=["embeddings", "metadatas"])
 
-# Log the contents of the ChromaDB collection
-log_chroma_collection_contents(collection, logger)
+            ids = embeddings.get("ids", [])
+            if not ids:
+                print("No embeddings found in collection")
+                return
+
+            # Count occurrences of each ID
+            id_counts = Counter(ids)
+            duplicates = {k: v for k, v in id_counts.items() if v > 1}
+
+            if duplicates:
+                print("🚨 Duplicate IDs detected:")
+                for dup_id, count in duplicates.items():
+                    print(f" - {dup_id} → {count} times")
+            else:
+                print("✅ No duplicate IDs found.")
+
+            # Proceed with logging anyway
+            log_content = []
+            for idx in range(len(ids)):
+                entry = {
+                    "id": ids[idx],
+                    "metadata": embeddings["metadatas"][idx],
+                    "embedding": embeddings["embeddings"][idx]
+                }
+                log_content.append(self._format_entry(entry))
+
+            filename = os.path.join(self.log_dir, self._generate_filename())
+            with open(filename, "w") as f:
+                f.writelines(log_content)
+
+            print(f"Successfully logged {len(log_content)} embeddings to {filename}")
+
+        except Exception as e:
+            print(f"Error logging embeddings: {str(e)}")
+
+if __name__ == "__main__":
+    logger = ChromaEmbeddingLogger()
+    logger.log_embeddings()
