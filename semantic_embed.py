@@ -1,223 +1,347 @@
 import json
-import re
+import os
 import chromadb
 from sentence_transformers import SentenceTransformer
-from typing import List, Dict, Any
-from collections import defaultdict
+from typing import Dict, List
+from tmdbv3api import TMDb, Genre, Company, Network, Person, Movie, TV
+from dotenv import load_dotenv
+from query_classifier import QueryClassifier
+import re
 
-# Constants
-GENRE_MAPPINGS = {
-    "movie": {
-        28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy',
-        80: 'Crime', 99: 'Documentary', 18: 'Drama', 10751: 'Family',
-        14: 'Fantasy', 36: 'History', 27: 'Horror', 10402: 'Music',
-        9648: 'Mystery', 10749: 'Romance', 878: 'Science Fiction',
-        10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western'
-    },
-    "tv": {
-        10759: 'Action & Adventure', 16: 'Animation', 35: 'Comedy',
-        80: 'Crime', 99: 'Documentary', 18: 'Drama', 10751: 'Family',
-        10762: 'Kids', 9648: 'Mystery', 10763: 'News', 10764: 'Reality',
-        10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk',
-        10768: 'War & Politics', 37: 'Western'
-    }
-}
+load_dotenv()
 
-# Initialize ChromaDB
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-endpoint_collection = chroma_client.get_or_create_collection(
-    name="tmdb_endpoints",
-    metadata={"hnsw:space": "cosine"}
-)
+# Initialize TMDB API
+tmdb = TMDb()
+tmdb.api_key = os.getenv("TMDB_API_KEY")
+tmdb.language = 'en'
 
-# Load embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2", cache_folder="./model_cache")
-
-# Load TMDB schema
-with open("./data/tmdb.json", "r", encoding="utf-8") as f:
-    tmdb_schema = json.load(f)
-
-api_endpoints = tmdb_schema.get("paths", {})
-
-def analyze_parameters(parameters: List) -> Dict:
-    """Enhanced parameter analysis capturing all parameter names and types"""
-    analysis = defaultdict(list)
-    param_details = []
-    
-    for param in parameters:
-        if not isinstance(param, dict):
-            continue
-            
-        param_info = {
-            "name": param.get("name", ""),
-            "in": param.get("in", ""),
-            "required": param.get("required", False),
-            "type": param.get("schema", {}).get("type", "string")
+class SemanticEmbedder:
+    def __init__(self, embedding_model: str = "all-MiniLM-L6-v2"):
+        self.client = chromadb.PersistentClient(path="./sec_intent_chroma_db")
+        self.collection = self.client.get_or_create_collection(
+            name="tmdb_endpoints",
+            metadata={"hnsw:space": "cosine"}
+        )
+        self.embedder = SentenceTransformer(embedding_model)
+        # Initialize TMDB API components
+        # self.tmdb = TMDb()
+        # self.tmdb.api_key = os.getenv("TMDB_API_KEY")
+        #self.tmdb.language = 'en'
+        self.genre = Genre()
+        self.company = Company()
+        self.network = Network()
+        self.person = Person()
+        self.movie = Movie()
+        self.tv = TV()
+        self.entity_config = {
+            "parameter_entities": self._get_parameter_entity_map(),
+            "value_maps": self._initialize_value_maps(),
+            "dynamic_resolvers": {
+                "company": self._fetch_company_map(),
+                "network": self._fetch_network_map(),
+                "person": self._fetch_person_map()
+            }
         }
-        param_details.append(param_info)
         
-        # Existing categorization logic
-        if param_info["name"] == "query":
-            analysis["search_params"].append(param_info)
-        elif "genre" in param_info["name"].lower():
-            analysis["genre_params"].append(param_info)
-        elif param_info["in"].lower() == "path":
-            analysis["id_params"].append(param_info)
-        elif param_info["in"].lower() == "query":
-            if "page" in param_info["name"]:
-                analysis["pagination_params"].append(param_info)
-            elif any(k in param_info["name"] for k in [".gte", ".lte", "date"]):
-                analysis["temporal_filters"].append(param_info)
-            elif "vote" in param_info["name"] or "rating" in param_info["name"]:
-                analysis["quality_filters"].append(param_info)
-            elif "with_" in param_info["name"]:
-                if "watch" in param_info["name"]:
-                    analysis["provider_filters"].append(param_info)
-                elif any(k in param_info["name"] for k in ["cast", "crew", "people"]):
-                    analysis["relationship_filters"].append(param_info)
-            elif "sort_by" in param_info["name"]:
-                sort_options = param.get("schema", {}).get("enum", [])
-                analysis["sort_options"].extend(sort_options)
-            elif "filter" in param_info["name"]:
-                analysis["content_filters"].append(param_info)
-                
-        if param_info["required"]:
-            analysis["required_params"].append(param_info)
-    
-    analysis["all_parameters"] = param_details  # Add comprehensive list of all parameters
-    return analysis
+        # Entity resolution mappings
+        self.entity_config = {
+            "parameter_entities": self._get_parameter_entity_map(),
+            "value_maps": self._initialize_value_maps(),
+            "dynamic_resolvers": {
+                "company": self._fetch_company_id,
+                "network": self._fetch_network_id,
+                "person": self._fetch_person_id
+            }
+        }
 
-def _get_operation_type(path: str, params: Dict) -> str:
-    """Hierarchical endpoint categorization"""
-    path = path.lower()
-    
-    if "/search/" in path:
-        return "Entity Discovery"
-    if "/discover/" in path:
-        return "Complex Filtering"
-    if "/trending/" in path or "popular" in path:
-        return "Trending Content"
-    if "/credits" in path or "/crew" in path:
-        return "Relationship Mapping"
-    if any(k in path for k in ["/images", "/videos", "/posters"]):
-        return "Media Asset Retrieval"
-    if "/list" in path or "genre" in path:
-        return "Static Data Access"
-        
-    if "/{" in path:
-        if any(k in path for k in ["/similar", "/recommendations"]):
-            return "Content Recommendations"
-        if "reviews" in path:
-            return "User Feedback"
-        return "Core Entity Details"
-    
-    if params["search_params"]:
-        return "Entity Discovery"
-    if params["sort_options"]:
-        return "Sorted Collection"
-        
-    return "General Access"
-
-def _get_search_targets(components: Dict) -> List[str]:
-    """Identify what entities this endpoint can help resolve"""
-    if components['parameters']['search_params']:
-        media_type = components['media_type']
-        if media_type in ['movie', 'tv', 'person']:
-            return [media_type]
-    return []
-
-def generate_embedding_components(path: str, method: str, method_data: dict) -> Dict[str, Any]:
-    """Generates enriched metadata components with search capabilities"""
-    parameters = method_data.get("parameters", [])
-    param_analysis = analyze_parameters(parameters)
-    
-    # Determine media type with person support
-    media_type = "other"
-    if "/movie" in path:
-        media_type = "movie"
-    elif "/tv" in path:
-        media_type = "tv"
-    elif "/person" in path:
-        media_type = "person"
-
-    components = {
-        "path": path,
-        "method": method.upper(),
-        "summary": method_data.get("summary", "No summary"),
-        "operation_type": _get_operation_type(path, param_analysis),
-        "media_type": media_type,
-        "parameters": param_analysis,
-        "resolution_dependencies": list(set(re.findall(r"{(\w+_id)}", path))),
-        "available_genres": list(GENRE_MAPPINGS.get(media_type, {}).values()),
-        "search_capable_for": _get_search_targets({
-            'parameters': param_analysis,
-            'media_type': media_type
-        })
-    }
-    return components
-
-def create_embedding_text(components: Dict) -> str:
-    """Generates structured semantic text for embeddings"""
-    return (
-        f"API Function: {components['summary']}\n"
-        f"Operation Type: {components['operation_type']}\n"
-        f"Media Focus: {components['media_type'].upper()}\n"
-        f"Search Capabilities: {', '.join(components['search_capable_for']) or 'None'}\n"
-        f"Requires IDs: {', '.join(components['resolution_dependencies']) or 'None'}\n"
-        f"Path Structure: {components['path']}\n"
-        f"Supported Filters: {_format_filter_types(components)}\n"
-        f"Complexity Level: {len(components['parameters']['required_params'])}"
-    )
-
-def _format_filter_types(components: Dict) -> str:
-    """Formats filter capabilities for embedding text"""
-    filters = []
-    if components['parameters']['temporal_filters']:
-        filters.append("Temporal")
-    if components['parameters']['genre_params']:
-        filters.append("Genre")
-    if components['parameters']['relationship_filters']:
-        filters.append("Relationships")
-    return ', '.join(filters) or "None"
-
-def store_api_embeddings():
-    """Batch process and store enhanced embeddings with Chroma-compatible metadata"""
-    batch_size = 50
-    ids, embeddings, metadatas = [], [], []
-
-    for path, methods in api_endpoints.items():
-        for method, method_data in methods.items():
-            components = generate_embedding_components(path, method, method_data)
+    def _get_parameter_entity_map(self) -> Dict:
+        """Defines semantic types for all API parameters"""
+        return {
+            # Content metadata
+            "with_genres": "genre",
+            "with_keywords": "keyword",
+            "with_companies": "company",
+            "with_networks": "network",
             
-            # Convert list-based fields to comma-separated strings
-            metadata = {
-                "path": path,
-                "method": components['method'],
-                "operation_type": components['operation_type'],
-                "media_type": components['media_type'],
-                "search_capable_for": ",".join(components['search_capable_for']),
-                "resolution_dependencies": ",".join(components['resolution_dependencies']),
-                "filter_temporal": str(bool(components['parameters']['temporal_filters'])),
-                "filter_genre": str(bool(components['parameters']['genre_params'])),
-                "filter_relationships": str(bool(components['parameters']['relationship_filters'])),
-                "complexity_score": len(components['parameters']['required_params']),
-                "requires_id_resolution": str(bool(components['resolution_dependencies'])),
-                "parameters": json.dumps(components['parameters']['all_parameters']),
-                "path_parameters": ",".join(components['resolution_dependencies']),
+            # Temporal filters
+            "year": "year",
+            "primary_release_year": "year",
+            "first_air_date_year": "year",
+            "air_date.gte": "date",
+            "release_date.gte": "date",
+            
+            # Geographic/Localization
+            "region": "country",
+            "certification_country": "country",
+            "with_original_language": "language",
+            
+            # Content ratings
+            "certification": "rating",
+            "certification.lte": "rating",
+            
+            # Technical specs
+            "with_runtime.gte": "duration",
+            "with_watch_providers": "provider",
+            
+            # Quality metrics
+            "vote_average.gte": "score",
+            "vote_count.gte": "count",
+            
+            # TV specific
+            "with_status": "tv_status",
+            "with_type": "tv_type",
+            
+            # Special filters
+            "with_watch_monetization_types": "monetization"
+        }
+
+    def _initialize_value_maps(self) -> Dict:
+        """Prepopulated and dynamic value mappings"""
+        return {
+            "genre": self._fetch_genre_map(),
+            "country": {'usa': 'US', 'france': 'FR'},
+            "language": {'english': 'en', 'spanish': 'es'},
+            "rating": {"G": "G", "PG": "PG"},
+            "tv_status": {"returning": 0, "ended": 3},
+            "monetization": {"stream": "flatrate"}
+        }
+
+    def _fetch_genre_map(self) -> Dict:  # Correct method name
+        """Fetch genre ID mappings"""
+        try:
+            return {g.name.lower(): g.id for g in self.genre.movie_list()}
+        except Exception as e:
+            print(f"⚠️ Failed to fetch genres: {str(e)}")
+            return {'action': 28, 'drama': 18}
+
+    # CORRECTED RESOLVER METHODS (now return full maps)
+    def _fetch_company_map(self) -> Dict:
+        """Fetch companies using movie details endpoint"""
+        try:
+            # Get details for a known movie with companies
+            movie = self.movie.details(299536)  # Avengers: Infinity War
+            return {c.name.lower(): c.id for c in movie.production_companies}
+        except Exception as e:
+            print(f"⚠️ Failed to fetch companies: {str(e)}")
+            return {'marvel studios': 420, 'pixar': 3}
+        
+    def _fetch_network_map(self) -> Dict:
+        """Fetch networks using TV details endpoint"""
+        try:
+            # Get details for a known TV show
+            show = self.tv.details(1399)  # Game of Thrones
+            return {n.name.lower(): n.id for n in show.networks}
+        except Exception as e:
+            print(f"⚠️ Failed to fetch networks: {str(e)}")
+            return {'hbo': 49, 'netflix': 213}
+        except Exception as e:
+            print(f"⚠️ Failed to fetch networks: {str(e)}")
+            return {'hbo': 49, 'netflix': 213}
+
+    def _fetch_person_map(self) -> Dict:
+        """Fetch popular people with proper data handling"""
+        try:
+            people = self.person.popular()
+            return {p.name.lower(): p.id for p in people}
+        except Exception as e:
+            print(f"⚠️ Failed to fetch people: {str(e)}")
+            return {'tom cruise': 500, 'meryl streep': 5064}
+    
+    def _fetch_country_map(self) -> Dict:
+        """ISO 3166-1 country codes"""
+        return {'usa': 'US', 'france': 'FR', 'germany': 'DE'}
+
+    def _fetch_language_map(self) -> Dict:
+        """ISO 639-1 language codes"""
+        return {'english': 'en', 'french': 'fr', 'spanish': 'es'}
+
+    def _fetch_company_id(self, company_name: str) -> int:
+        """Fetch company ID by name"""
+        try:
+            companies = self.company.search(company_name)
+            return companies[0].id if companies else None
+        except Exception as e:
+            print(f"⚠️ Failed to fetch company ID: {str(e)}")
+            return None
+        
+    def _fetch_person_id(self, person_name: str) -> int:
+        """Fetch TMDB person ID by name with fallback"""
+        try:
+            results = self.person.search(person_name)
+            if results:
+                return results[0].id
+            return None
+        except Exception as e:
+            print(f"⚠️ Failed to fetch person ID: {str(e)}")
+            # Fallback to manual mapping
+            manual_map = {
+                "tom cruise": 500,
+                "meryl streep": 5064,
+                "christopher nolan": 525
+            }
+            return manual_map.get(person_name.lower())
+
+    def _fetch_network_id(self, network_name: str) -> int:
+        """Fetch network ID by name"""
+        try:
+            networks = self.network.search(network_name)
+            return networks[0].id if networks else None
+        except Exception as e:
+            print(f"⚠️ Failed to fetch network ID: {str(e)}")
+            return None
+    
+    
+    def _fetch_dynamic_data(self, endpoint: str) -> Dict:
+        """Fetch API-driven value mappings"""
+        try:
+            if "genre" in endpoint:
+                return {g.name.lower(): g.id for g in Genre().movie_list()}
+            if "company" in endpoint:
+                return {c.name.lower(): c.id for c in Company().popular()}
+            if "network" in endpoint:
+                return {n.name.lower(): n.id for n in Network().popular()}
+        except Exception as e:
+            print(f"⚠️ Failed to fetch {endpoint}: {str(e)}")
+            return {}
+
+    def _enrich_parameters(self, params: List) -> List:
+        """Ensure value maps are always dictionaries"""
+        enriched = []
+        for param in params:
+            pname = param["name"]
+            param_info = {
+                "name": pname,
+                "type": param["schema"].get("type", "string"),
+                "required": param.get("required", False),
+                "description": param.get("description", ""),
+                "entity_type": self.entity_config["parameter_entities"].get(pname, "general"),
+                "value_map": self._get_value_map(pname),
+                "examples": self._generate_examples(pname)
+            }
+            
+            # Ensure value_map is always a dict
+            if not isinstance(param_info["value_map"], dict):
+                param_info["value_map"] = {}
+                
+            enriched.append(param_info)
+        return enriched
+
+    def _get_value_map(self, param_name: str) -> Dict:
+        """Get appropriate value map for parameter"""
+        entity_type = self.entity_config["parameter_entities"].get(param_name)
+        
+        if entity_type in self.entity_config["value_maps"]:
+            return self.entity_config["value_maps"][entity_type]
+            
+        if entity_type in self.entity_config["dynamic_resolvers"]:
+            # Return pre-fetched map directly
+            return self.entity_config["dynamic_resolvers"].get(entity_type, {})
+            
+        return {}
+
+    def _generate_examples(self, param_name: str) -> List:
+        """Create usage examples for parameters"""
+        examples = {
+            "with_genres": ["action", "drama", "comedy"],
+            "year": ["1999", "2005-2010", "2020"],
+            "region": ["US", "FR", "JP"]
+        }
+        return examples.get(param_name, [])
+
+    def _build_embedding_text(self, endpoint: str, metadata: Dict) -> str:
+        """Safe handling of value maps"""
+        components = [
+            f"## API Endpoint: {endpoint}",
+            f"**HTTP Method**: {metadata['method']}",
+            f"**Summary**: {metadata['summary']}"
+        ]
+
+        if metadata["parameters"]:
+            components.append("### Parameters:")
+            for param in json.loads(metadata["parameters"]):
+                param_desc = [
+                    f"**{param['name']}** ({param['type']})",
+                    f"- Required: {param['required']}",
+                    f"- Entity Type: {param['entity_type']}"
+                ]
+                
+                # Safe value map handling
+                value_map = param.get("value_map", {})
+                if isinstance(value_map, dict) and value_map:
+                    examples = ", ".join([f"{k}→{v}" for k,v in list(value_map.items())[:3]])
+                    param_desc.append(f"- Example Mappings: {examples}")
+                
+                components.append("\n".join(param_desc))
+
+        if metadata["intents"]:
+            components.append("### Supported Intents:")
+            components.append("- " + "\n- ".join(json.loads(metadata["intents"])))
+
+        return "\n\n".join(components)
+    
+    def process_endpoints(self, spec_path: str = "tmdb.json"):
+        """Main processing pipeline"""
+        with open(spec_path, "r") as f:
+            api_spec = json.load(f)
+
+        embeddings = []
+        metadatas = []
+        ids = []
+
+        for endpoint, details in api_spec["paths"].items():
+            verb_info = details["get"]
+            
+            # First build the base metadata
+            base_metadata = {
+                "path": endpoint,
+                "method": verb_info["method"],
+                "summary": verb_info["summary"],
+                "parameters": json.dumps(
+                    self._enrich_parameters(verb_info.get("parameters", [])),
+                    ensure_ascii=False
+                ),
+                "intents": json.dumps(detect_intents(endpoint))
             }
 
-            embedding_text = create_embedding_text(components)
+            # Now calculate entity types using the already-created parameters
+            entity_types = list({
+                p["entity_type"] for p in json.loads(base_metadata["parameters"])
+                if p["entity_type"] != "general"
+            })
             
-            ids.append(f"{path}-{method}")
-            embeddings.append(model.encode(embedding_text).tolist())
-            metadatas.append(metadata)
+            # Add entity_types to the metadata
+            full_metadata = {**base_metadata, "entity_types": json.dumps(entity_types)}
 
-            if len(ids) % batch_size == 0:
-                endpoint_collection.add(ids=ids, embeddings=embeddings, metadatas=metadatas)
-                ids, embeddings, metadatas = [], [], []
+            # Generate embedding text
+            embedding_text = self._build_embedding_text(endpoint, full_metadata)
+            embedding = self.embedder.encode(embedding_text).tolist()
 
-    if ids:
-        endpoint_collection.add(ids=ids, embeddings=embeddings, metadatas=metadatas)
-        
+            ids.append(endpoint)
+            embeddings.append(embedding)
+            metadatas.append(full_metadata)  # Use the full metadata
+
+        # Batch upsert to Chroma
+        self.collection.upsert(
+            ids=ids,
+            embeddings=embeddings,
+            metadatas=metadatas
+        )
+
+# Helper functions (implement according to your API)
+def detect_intents(endpoint: str) -> List[str]:
+    """Match endpoints to intents using pattern matching"""
+    matched_intents = []
+    
+    for intent_name, intent_data in QueryClassifier.INTENT_MAP.items():
+        for pattern in intent_data["endpoints"]:
+            # Convert OpenAPI path to regex
+            regex_pattern = re.sub(r"{[^}]+}", r"([^/]+)", pattern) + "$"
+            if re.fullmatch(regex_pattern, endpoint):
+                matched_intents.append(intent_name)
+                break  # No need to check other patterns for this intent
+    
+    return list(set(matched_intents))  # Deduplicate
+
 if __name__ == "__main__":
-    store_api_embeddings()
+    embedder = SemanticEmbedder()
+    embedder.process_endpoints(spec_path="data/tmdb.json")
