@@ -26,6 +26,7 @@ def clean_tmdb_schema(input_path, output_path):
             # Retain only necessary fields
             cleaned_details = {
                 "summary": details.get("summary", "No description available"),
+                "description":details.get("description", "No description available"),
                 "parameters": details.get("parameters", []),
                 "method": method.upper()
             }

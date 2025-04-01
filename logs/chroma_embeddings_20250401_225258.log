@@ -1,0 +1,486 @@
+ID: /collection/{collection_id}
+Metadata: {
+  "description": "Get collection details by id.\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| March 16, 2018 | Added the [translations](#endpoint:bhcsxEgRvyk3N7FnD) method. |",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/collection/{collection_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.01746305264532566, 0.11176762729883194, -0.03291776403784752, -0.00570162246003747, -0.0707789808511734])
+==================================================
+ID: /collection/{collection_id}/images
+Metadata: {
+  "description": "Get the images for a collection by id.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/collection/{collection_id}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.007418339140713215, 0.12623384594917297, -0.042870692908763885, 0.025103511288762093, 0.036935482174158096])
+==================================================
+ID: /company/{company_id}
+Metadata: {
+  "description": "Get a companies details by id.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/company/{company_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.028935322538018227, 0.13229969143867493, -0.05486346408724785, 0.0027763191610574722, 0.005966839846223593])
+==================================================
+ID: /company/{company_id}/images
+Metadata: {
+  "description": "Get a companies logos by id.\n\nThere are two image formats that are supported for companies, PNG's and SVG's. You can see which type the original file is by looking at the `file_type` field. We prefer SVG's as they are resolution independent and as such, the width and height are only there to reflect the original asset that was uploaded. An SVG can be scaled properly beyond those dimensions if you call them as a PNG.\n\nFor more information about how SVG's and PNG's can be used, take a read through [this document](#docTextSection:mXP9B2uzoDJFguDZv).",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/company/{company_id}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.003466279013082385, 0.08832439035177231, -0.033482860773801804, -0.0057151708751916885, 0.11422641575336456])
+==================================================
+ID: /credit/{credit_id}
+Metadata: {
+  "description": "Get a movie or film or TV credit details by id.\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| July 13, 2018 | Movie credits are now supported. |",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/credit/{credit_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.0739818587899208, 0.029634062200784683, -0.04602900147438049, -0.03228767216205597, 0.05741264671087265])
+==================================================
+ID: /discover/movie
+Metadata: {
+  "description": "Discover movies by different types of data like average rating, number of votes, genres and certifications. You can get a valid list of certifications from the [certifications list](#endpoint:faFKjuKG2HnwexAWM) method.\n\nDiscover also supports a nice list of sort options. See below for all of the available options.\n\nPlease note, when using `certification` \\ `certification.lte` you must also specify `certification_country`. These two parameters work together in order to filter the results. You can only filter results with the countries we have added to our [certifications list](#endpoint:faFKjuKG2HnwexAWM).\n\nIf you specify the `region` parameter, the regional release date will be used instead of the primary release date. The date returned will be the first date based on your query (ie. if a `with_release_type` is specified). It's important to note the order of the release types that are used. Specifying \"2|3\" would return the limited theatrical release date as opposed to \"3|2\" which would return the theatrical date.\n\nAlso note that a number of filters support being comma (`,`) or pipe (`|`) separated. Comma's are treated like an `AND` and query while pipe's are an `OR`. \n\nSome examples of what can be done with discover can be found [here](https://www.themoviedb.org/documentation/api/discover).",
+  "entity_types": "[\"language\", \"genre\", \"company\", \"keyword\", \"person\", \"country\"]",
+  "parameters": "[{\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}, {\"name\": \"sort_by\", \"type\": \"string\", \"description\": \"Choose from one of the many available sort options.\", \"entity_type\": \"general\"}, {\"name\": \"certification_country\", \"type\": \"string\", \"description\": \"Used in conjunction with the certification filter, use this to specify a country with a valid certification.\", \"entity_type\": \"general\"}, {\"name\": \"certification\", \"type\": \"string\", \"description\": \"Filter results with a valid certification from the 'certification_country' field.\", \"entity_type\": \"general\"}, {\"name\": \"certification.lte\", \"type\": \"string\", \"description\": \"Filter and only include movies that have a certification that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"certification.gte\", \"type\": \"string\", \"description\": \"Filter and only include movies that have a certification that is greater than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"include_adult\", \"type\": \"boolean\", \"description\": \"A filter and include or exclude adult movies.\", \"entity_type\": \"general\"}, {\"name\": \"include_video\", \"type\": \"boolean\", \"description\": \"A filter to include or exclude videos.\", \"entity_type\": \"general\"}, {\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify the page of results to query.\", \"entity_type\": \"general\"}, {\"name\": \"primary_release_year\", \"type\": \"integer\", \"description\": \"A filter to limit the results to a specific primary release year.\", \"entity_type\": \"general\"}, {\"name\": \"primary_release_date.gte\", \"type\": \"string\", \"description\": \"Filter and only include movies that have a primary release date that is greater or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"primary_release_date.lte\", \"type\": \"string\", \"description\": \"Filter and only include movies that have a primary release date that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"release_date.gte\", \"type\": \"string\", \"description\": \"Filter and only include movies that have a release date (looking at all release dates) that is greater or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"release_date.lte\", \"type\": \"string\", \"description\": \"Filter and only include movies that have a release date (looking at all release dates) that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"with_release_type\", \"type\": \"integer\", \"description\": \"Specify a comma (AND) or pipe (OR) separated value to filter release types by. These release types map to the same values found on the movie release date method.\", \"entity_type\": \"general\"}, {\"name\": \"year\", \"type\": \"integer\", \"description\": \"A filter to limit the results to a specific year (looking at all release dates).\", \"entity_type\": \"general\"}, {\"name\": \"vote_count.gte\", \"type\": \"integer\", \"description\": \"Filter and only include movies that have a vote count that is greater or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"vote_count.lte\", \"type\": \"integer\", \"description\": \"Filter and only include movies that have a vote count that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"vote_average.gte\", \"type\": \"number\", \"description\": \"Filter and only include movies that have a rating that is greater or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"vote_average.lte\", \"type\": \"number\", \"description\": \"Filter and only include movies that have a rating that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"with_cast\", \"type\": \"string\", \"description\": \"A comma separated list of person ID's. Only include movies that have one of the ID's added as an actor.\", \"entity_type\": \"person\"}, {\"name\": \"with_crew\", \"type\": \"string\", \"description\": \"A comma separated list of person ID's. Only include movies that have one of the ID's added as a crew member.\", \"entity_type\": \"person\"}, {\"name\": \"with_people\", \"type\": \"string\", \"description\": \"A comma separated list of person ID's. Only include movies that have one of the ID's added as a either a actor or a crew member.\", \"entity_type\": \"general\"}, {\"name\": \"with_companies\", \"type\": \"string\", \"description\": \"A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.\", \"entity_type\": \"company\"}, {\"name\": \"with_genres\", \"type\": \"string\", \"description\": \"Comma separated value of genre ids that you want to include in the results.\", \"entity_type\": \"genre\"}, {\"name\": \"without_genres\", \"type\": \"string\", \"description\": \"Comma separated value of genre ids that you want to exclude from the results.\", \"entity_type\": \"general\"}, {\"name\": \"with_keywords\", \"type\": \"string\", \"description\": \"A comma separated list of keyword ID's. Only includes movies that have one of the ID's added as a keyword.\", \"entity_type\": \"keyword\"}, {\"name\": \"without_keywords\", \"type\": \"string\", \"description\": \"Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.\", \"entity_type\": \"general\"}, {\"name\": \"with_runtime.gte\", \"type\": \"integer\", \"description\": \"Filter and only include movies that have a runtime that is greater or equal to a value.\", \"entity_type\": \"general\"}, {\"name\": \"with_runtime.lte\", \"type\": \"integer\", \"description\": \"Filter and only include movies that have a runtime that is less than or equal to a value.\", \"entity_type\": \"general\"}, {\"name\": \"with_original_language\", \"type\": \"string\", \"description\": \"Specify an ISO 639-1 string to filter results by their original language value.\", \"entity_type\": \"language\"}, {\"name\": \"with_watch_providers\", \"type\": \"string\", \"description\": \"A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.\", \"entity_type\": \"general\"}, {\"name\": \"watch_region\", \"type\": \"string\", \"description\": \"An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.\", \"entity_type\": \"general\"}, {\"name\": \"with_watch_monetization_types\", \"type\": \"string\", \"description\": \"In combination with `watch_region`, you can filter by monetization type.\", \"entity_type\": \"general\"}, {\"name\": \"without_companies\", \"type\": \"string\", \"description\": \"Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported.\", \"entity_type\": \"general\"}]",
+  "path": "/discover/movie"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.030789101496338844, -0.03999878466129303, -0.03145483881235123, 0.009749443270266056, 0.039682552218437195])
+==================================================
+ID: /discover/tv
+Metadata: {
+  "description": "Discover TV shows by different types of data like average rating, number of votes, genres, the network they aired on and air dates.\n\nDiscover also supports a nice list of sort options. See below for all of the available options.\n\nAlso note that a number of filters support being comma (`,`) or pipe (`|`) separated. Comma's are treated like an `AND` and query while pipe's are an `OR`. \n\nSome examples of what can be done with discover can be found [here](https://www.themoviedb.org/documentation/api/discover).",
+  "entity_types": "[\"language\", \"genre\", \"network\", \"company\", \"keyword\"]",
+  "parameters": "[{\"name\": \"sort_by\", \"type\": \"string\", \"description\": \"Choose from one of the many available sort options.\", \"entity_type\": \"general\"}, {\"name\": \"air_date.gte\", \"type\": \"string\", \"description\": \"Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"air_date.lte\", \"type\": \"string\", \"description\": \"Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"first_air_date.gte\", \"type\": \"string\", \"description\": \"Filter and only include TV shows that have a original air date that is greater or equal to the specified value. Can be used in conjunction with the \\\"include_null_first_air_dates\\\" filter if you want to include items with no air date.\", \"entity_type\": \"general\"}, {\"name\": \"first_air_date.lte\", \"type\": \"string\", \"description\": \"Filter and only include TV shows that have a original air date that is less than or equal to the specified value. Can be used in conjunction with the \\\"include_null_first_air_dates\\\" filter if you want to include items with no air date.\", \"entity_type\": \"general\"}, {\"name\": \"first_air_date_year\", \"type\": \"integer\", \"description\": \"Filter and only include TV shows that have a original air date year that equal to the specified value. Can be used in conjunction with the \\\"include_null_first_air_dates\\\" filter if you want to include items with no air date.\", \"entity_type\": \"general\"}, {\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify the page of results to query.\", \"entity_type\": \"general\"}, {\"name\": \"timezone\", \"type\": \"string\", \"description\": \"Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.\", \"entity_type\": \"general\"}, {\"name\": \"vote_average.gte\", \"type\": \"number\", \"description\": \"Filter and only include movies that have a rating that is greater or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"vote_count.gte\", \"type\": \"integer\", \"description\": \"Filter and only include movies that have a rating that is less than or equal to the specified value.\", \"entity_type\": \"general\"}, {\"name\": \"with_genres\", \"type\": \"string\", \"description\": \"Comma separated value of genre ids that you want to include in the results.\", \"entity_type\": \"genre\"}, {\"name\": \"with_networks\", \"type\": \"string\", \"description\": \"Comma separated value of network ids that you want to include in the results.\", \"entity_type\": \"network\"}, {\"name\": \"without_genres\", \"type\": \"string\", \"description\": \"Comma separated value of genre ids that you want to exclude from the results.\", \"entity_type\": \"general\"}, {\"name\": \"with_runtime.gte\", \"type\": \"integer\", \"description\": \"Filter and only include TV shows with an episode runtime that is greater than or equal to a value.\", \"entity_type\": \"general\"}, {\"name\": \"with_runtime.lte\", \"type\": \"integer\", \"description\": \"Filter and only include TV shows with an episode runtime that is less than or equal to a value.\", \"entity_type\": \"general\"}, {\"name\": \"include_null_first_air_dates\", \"type\": \"boolean\", \"description\": \"Use this filter to include TV shows that don't have an air date while using any of the \\\"first_air_date\\\" filters.\", \"entity_type\": \"general\"}, {\"name\": \"with_original_language\", \"type\": \"string\", \"description\": \"Specify an ISO 639-1 string to filter results by their original language value.\", \"entity_type\": \"language\"}, {\"name\": \"without_keywords\", \"type\": \"string\", \"description\": \"Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.\", \"entity_type\": \"general\"}, {\"name\": \"screened_theatrically\", \"type\": \"boolean\", \"description\": \"Filter results to include items that have been screened theatrically.\", \"entity_type\": \"general\"}, {\"name\": \"with_companies\", \"type\": \"string\", \"description\": \"A comma separated list of production company ID's. Only include movies that have one of the ID's added as a production company.\", \"entity_type\": \"company\"}, {\"name\": \"with_keywords\", \"type\": \"string\", \"description\": \"A comma separated list of keyword ID's. Only includes TV shows that have one of the ID's added as a keyword.\", \"entity_type\": \"keyword\"}, {\"name\": \"with_watch_providers\", \"type\": \"string\", \"description\": \"A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.\", \"entity_type\": \"general\"}, {\"name\": \"watch_region\", \"type\": \"string\", \"description\": \"An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.\", \"entity_type\": \"general\"}, {\"name\": \"with_watch_monetization_types\", \"type\": \"string\", \"description\": \"In combination with `watch_region`, you can filter by monetization type.\", \"entity_type\": \"general\"}, {\"name\": \"with_status\", \"type\": \"string\", \"description\": \"Filter TV shows by their status.\\n\\nReturning Series: 0\\nPlanned: 1\\nIn Production: 2\\nEnded: 3\\nCancelled: 4\\nPilot: 5\", \"entity_type\": \"general\"}, {\"name\": \"with_type\", \"type\": \"string\", \"description\": \"Filter TV shows by their type.\\n\\nDocumentary: 0\\nNews: 1\\nMiniseries: 2\\nReality: 3\\nScripted: 4\\nTalk Show: 5\\nVideo: 6\", \"entity_type\": \"general\"}, {\"name\": \"without_companies\", \"type\": \"string\", \"description\": \"Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported.\", \"entity_type\": \"general\"}]",
+  "path": "/discover/tv"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.018659211695194244, 0.004034267272800207, -0.0060648368671536446, 0.03958037495613098, 0.03462357446551323])
+==================================================
+ID: /genre/movie/list
+Metadata: {
+  "description": "Get the list of official genres for movies.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/genre/movie/list"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.018232544884085655, -0.08834081888198853, -0.10273411124944687, -0.02081887051463127, 0.023939790204167366])
+==================================================
+ID: /genre/tv/list
+Metadata: {
+  "description": "Get the list of official genres for TV shows.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/genre/tv/list"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.042738236486911774, -0.09579835087060928, -0.07580551505088806, -0.03857993707060814, 0.028089560568332672])
+==================================================
+ID: /movie/latest
+Metadata: {
+  "description": "Get the most newly created movie. This is a live response and will continuously change.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/movie/latest"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.017344875261187553, -0.07829536497592926, -0.06905034184455872, -0.043016593903303146, 0.02307402715086937])
+==================================================
+ID: /movie/now_playing
+Metadata: {
+  "description": "Get a list of movies in theatres. This is a release type query that looks for all movies that have a release type of 2 or 3 within the specified date range.\n\nYou can optionally specify a `region` prameter which will narrow the search to only look for theatrical release dates within the specified country.",
+  "entity_types": "[\"country\"]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}]",
+  "path": "/movie/now_playing"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.08297930657863617, 0.013915540650486946, -0.02315240167081356, -0.02620316669344902, -0.009060565382242203])
+==================================================
+ID: /movie/popular
+Metadata: {
+  "description": "Get a list of the current popular movies on TMDb. This list updates daily.",
+  "entity_types": "[\"country\"]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}]",
+  "path": "/movie/popular"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.01880255527794361, -0.0185271967202425, -0.03856891766190529, -0.054954320192337036, -0.005038528703153133])
+==================================================
+ID: /movie/top_rated
+Metadata: {
+  "description": "Get the top rated movies on TMDb.",
+  "entity_types": "[\"country\"]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}]",
+  "path": "/movie/top_rated"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.03352084010839462, 0.010176208801567554, -0.0629124641418457, -0.044829364866018295, 0.009203769266605377])
+==================================================
+ID: /movie/upcoming
+Metadata: {
+  "description": "Get a list of upcoming movies in theatres. This is a release type query that looks for all movies that have a release type of 2 or 3 within the specified date range.\n\nYou can optionally specify a `region` prameter which will narrow the search to only look for theatrical release dates within the specified country.",
+  "entity_types": "[\"country\"]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}]",
+  "path": "/movie/upcoming"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.0626029297709465, 0.029442790895700455, -0.0017913125921040773, -0.01821790635585785, -0.014546197839081287])
+==================================================
+ID: /movie/{movie_id}
+Metadata: {
+  "description": "Get the primary information about a movie or film.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"append_to_response\", \"type\": \"string\", \"description\": \"Append requests within the same namespace to the response.\", \"entity_type\": \"general\"}]",
+  "path": "/movie/{movie_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.032534413039684296, -0.0075644501484930515, -0.04893118888139725, 0.00822957418859005, 0.01716560125350952])
+==================================================
+ID: /movie/{movie_id}/credits
+Metadata: {
+  "description": "Get the cast and crew for a movie or film.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/movie/{movie_id}/credits"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.05339593440294266, -0.002086181892082095, -0.0776955708861351, -0.013723118230700493, 0.031618136912584305])
+==================================================
+ID: /movie/{movie_id}/images
+Metadata: {
+  "description": "Get the images that belong to a movie or film.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"include_image_language\", \"type\": \"string\", \"description\": \"\", \"entity_type\": \"general\"}]",
+  "path": "/movie/{movie_id}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.026832442730665207, 0.030693262815475464, -0.010396499186754227, -0.01790853589773178, 0.08137716352939606])
+==================================================
+ID: /movie/{movie_id}/keywords
+Metadata: {
+  "description": "Get the keywords that have been added to a movie or film or film.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/movie/{movie_id}/keywords"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.018822789192199707, -0.045532189309597015, -0.0873577892780304, -0.0019956580363214016, 0.03882340341806412])
+==================================================
+ID: /movie/{movie_id}/recommendations
+Metadata: {
+  "description": "Get a list of recommended movies for a movie or film.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/movie/{movie_id}/recommendations"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.013239513151347637, -0.021472640335559845, -0.08503921329975128, 0.01859178952872753, 0.007985088042914867])
+==================================================
+ID: /movie/{movie_id}/release_dates
+Metadata: {
+  "description": "Get the release date along with the certification for a movie or film.\n\nRelease dates support different types:\n\n1. Premiere\n2. Theatrical (limited)\n3. Theatrical\n4. Digital\n5. Physical\n6. TV",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/movie/{movie_id}/release_dates"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.011016172356903553, -0.024768728762865067, -0.03319098800420761, -0.03596567362546921, 0.006708372384309769])
+==================================================
+ID: /movie/{movie_id}/reviews
+Metadata: {
+  "description": "Get the user reviews for a movie or film or film.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/movie/{movie_id}/reviews"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.029431568458676338, 0.04391911253333092, -0.12421891838312149, 0.017092369496822357, -0.02173716016113758])
+==================================================
+ID: /movie/{movie_id}/similar
+Metadata: {
+  "description": "Get a list of similar movies. This is **not** the same as the \"Recommendation\" system you see on the website.\n\nThese items are assembled by looking at keywords and genres.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/movie/{movie_id}/similar"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.045654796063899994, -0.02471538633108139, -0.09084717184305191, 0.009274600073695183, 0.02619561180472374])
+==================================================
+ID: /network/{network_id}
+Metadata: {
+  "description": "Get the details of a network.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/network/{network_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.02161378040909767, 0.11781556159257889, -0.05520997941493988, 0.041219744831323624, 0.012473235838115215])
+==================================================
+ID: /network/{network_id}/images
+Metadata: {
+  "description": "Get the TV network logos by id.\n\nThere are two image formats that are supported for networks, PNG's and SVG's. You can see which type the original file is by looking at the `file_type` field. We prefer SVG's as they are resolution independent and as such, the width and height are only there to reflect the original asset that was uploaded. An SVG can be scaled properly beyond those dimensions if you call them as a PNG.\n\nFor more information about how SVG's and PNG's can be used, take a read through [this document](#docTextSection:mXP9B2uzoDJFguDZv).",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/network/{network_id}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.03533978760242462, 0.05773662030696869, 0.01994333788752556, -0.03360310196876526, 0.12835311889648438])
+==================================================
+ID: /person/popular
+Metadata: {
+  "description": "Get the list of popular people on TMDb. This list updates daily.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/person/popular"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.0008971731876954436, 0.014659389853477478, -0.05211936682462692, -0.03257212042808533, -0.021302707493305206])
+==================================================
+ID: /person/{person_id}
+Metadata: {
+  "description": "Get the primary person details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| July 17, 2018 | Added the `known_for_department` field. |\n| April 26, 2018 | Added the [translations](#endpoint:CSaMjCxXAtGpxNGfS) method. |\n| November 9, 2016 | Biographies are now translatable on TMDb. This means you can query person details with a language parameter. |",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/person/{person_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.07071636617183685, 0.050233226269483566, -0.048861678689718246, -0.05542203038930893, -0.040124792605638504])
+==================================================
+ID: /person/{person_id}/images
+Metadata: {
+  "description": "Get the images for a person.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/person/{person_id}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.02667543850839138, 0.12274113297462463, -0.026575962081551552, 0.004102485254406929, 0.04597882181406021])
+==================================================
+ID: /person/{person_id}/movie_credits
+Metadata: {
+  "description": "Get the movie credits for a person, the results contains various information such as popularity and release date.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/person/{person_id}/movie_credits"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.03286662697792053, 0.03774688392877579, -0.07347752153873444, -0.022996213287115097, 0.02887900546193123])
+==================================================
+ID: /person/{person_id}/tv_credits
+Metadata: {
+  "description": "Get the TV show credits for a person.\n\nYou can query for some extra details about the credit with the [credit method](#endpoint:xPWdEBLkvCNZSicLN).",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/person/{person_id}/tv_credits"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.06362573802471161, 0.056748390197753906, -0.05419158563017845, -0.06292501837015152, 0.04026857390999794])
+==================================================
+ID: /review/{review_id}
+Metadata: {
+  "description": "No description available",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/review/{review_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.043926022946834564, 0.10244905948638916, -0.08655840158462524, 0.0418110117316246, 0.01359712053090334])
+==================================================
+ID: /search/collection
+Metadata: {
+  "description": "Search for collections.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"query\", \"type\": \"string\", \"description\": \"Pass a text query to search. This value should be URI encoded.\", \"entity_type\": \"general\"}, {\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/search/collection"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.03551769256591797, 0.10090108960866928, -0.07973804324865341, 0.011310087516903877, -0.07538770139217377])
+==================================================
+ID: /search/company
+Metadata: {
+  "description": "Search for companies.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"query\", \"type\": \"string\", \"description\": \"Pass a text query to search. This value should be URI encoded.\", \"entity_type\": \"general\"}, {\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/search/company"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.03353991359472275, 0.08484043180942535, -0.06617584824562073, 0.009539692662656307, -0.07223746180534363])
+==================================================
+ID: /search/movie
+Metadata: {
+  "description": "Search for movies.",
+  "entity_types": "[\"country\"]",
+  "parameters": "[{\"name\": \"query\", \"type\": \"string\", \"description\": \"Pass a text query to search. This value should be URI encoded.\", \"entity_type\": \"general\"}, {\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"include_adult\", \"type\": \"boolean\", \"description\": \"Choose whether to inlcude adult (pornography) content in the results.\", \"entity_type\": \"general\"}, {\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}, {\"name\": \"year\", \"type\": \"integer\", \"description\": \"\", \"entity_type\": \"general\"}, {\"name\": \"primary_release_year\", \"type\": \"integer\", \"description\": \"\", \"entity_type\": \"general\"}]",
+  "path": "/search/movie"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.02796517126262188, 0.06980131566524506, -0.03652084991335869, -0.01102397870272398, -0.03127003833651543])
+==================================================
+ID: /search/person
+Metadata: {
+  "description": "Search for people.",
+  "entity_types": "[\"country\"]",
+  "parameters": "[{\"name\": \"query\", \"type\": \"string\", \"description\": \"Pass a text query to search. This value should be URI encoded.\", \"entity_type\": \"general\"}, {\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"include_adult\", \"type\": \"boolean\", \"description\": \"Choose whether to inlcude adult (pornography) content in the results.\", \"entity_type\": \"general\"}, {\"name\": \"region\", \"type\": \"string\", \"description\": \"Specify a ISO 3166-1 code to filter release dates. Must be uppercase.\", \"entity_type\": \"country\"}]",
+  "path": "/search/person"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.013037245720624924, 0.11046352237462997, -0.03757518529891968, 0.012598435394465923, -0.0441737174987793])
+==================================================
+ID: /search/tv
+Metadata: {
+  "description": "Search for a TV show.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}, {\"name\": \"query\", \"type\": \"string\", \"description\": \"Pass a text query to search. This value should be URI encoded.\", \"entity_type\": \"general\"}, {\"name\": \"include_adult\", \"type\": \"boolean\", \"description\": \"Choose whether to inlcude adult (pornography) content in the results.\", \"entity_type\": \"general\"}, {\"name\": \"first_air_date_year\", \"type\": \"integer\", \"description\": \"\", \"entity_type\": \"general\"}]",
+  "path": "/search/tv"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.020093005150556564, 0.06463394314050674, -0.052490703761577606, 0.002762037795037031, -0.024607760831713676])
+==================================================
+ID: /trending/{media_type}/{time_window}
+Metadata: {
+  "description": "Get the daily or weekly trending items. The daily trending list tracks items over the period of a day while items have a 24 hour half life. The weekly list tracks items over a 7 day period, with a 7 day half life.\n\n#### Valid Media Types\n\n| **Media Type** | **Description** |\n| - | - |\n| all | Include all movies, TV shows and people in the results as a global trending list. |\n| movie | Show the trending movies in the results. |\n| tv | Show the trending TV shows in the results. |\n| person | Show the trending people in the results. |\n\n#### Valid Time Windows\n\n| **Time Window** | **Description** |\n| - | - |\n| day | View the trending list for the day. |\n| week | View the trending list for the week. |",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/trending/{media_type}/{time_window}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.02259129285812378, -0.010051351971924305, -0.05449880287051201, 0.03852161765098572, 0.04866351559758186])
+==================================================
+ID: /tv/airing_today
+Metadata: {
+  "description": "Get a list of TV shows that are airing today. This query is purely day based as we do not currently support airing times.\n\nYou can specify a [timezone](endpoint:KQ4CDdEoWKJYLkrhS) to offset the day calculation. Without a specified timezone, this query defaults to EST (Eastern Time UTC-05:00).",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/airing_today"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.03252105042338371, 0.06069120019674301, 0.012721261009573936, -0.006705485284328461, -0.05267598479986191])
+==================================================
+ID: /tv/latest
+Metadata: {
+  "description": "Get the most newly created TV show. This is a live response and will continuously change.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/latest"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.008796004578471184, -0.09267616271972656, -0.03449249640107155, -0.051623277366161346, 0.004734684247523546])
+==================================================
+ID: /tv/on_the_air
+Metadata: {
+  "description": "Get a list of shows that are currently on the air.\n\nThis query looks for any TV show that has an episode with an air date in the next 7 days.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/on_the_air"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.014512051828205585, -0.06309651583433151, -0.01918579265475273, 0.028144897893071175, 0.03551138937473297])
+==================================================
+ID: /tv/popular
+Metadata: {
+  "description": "Get a list of the current popular TV shows on TMDb. This list updates daily.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/popular"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.027526933699846268, -0.04770161211490631, -0.02620062790811062, -0.0624350942671299, -0.00013041197962593287])
+==================================================
+ID: /tv/top_rated
+Metadata: {
+  "description": "Get a list of the top rated TV shows on TMDb.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/top_rated"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.0458710603415966, -0.01935518905520439, -0.06357802450656891, -0.03980451822280884, 0.01563034951686859])
+==================================================
+ID: /tv/{tv_id}
+Metadata: {
+  "description": "Get the primary TV show details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| July 17, 2018 | We now return `last_episode_to_air` and `next_episode_to_air` fields. |\n| March 12, 2018 | Networks return proper logos and we introduced SVG support. |\n| March 8, 2018 | The `seasons` field now returns the translated names and overviews. |",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.024506086483597755, -0.019960161298513412, -0.012199564836919308, -0.02082044817507267, 0.07688619196414948])
+==================================================
+ID: /tv/{tv_id}/credits
+Metadata: {
+  "description": "Get the credits (cast and crew) that have been added to a TV show.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/credits"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.07196731120347977, -0.011487574316561222, -0.01729155145585537, -0.02735060453414917, 0.06997095793485641])
+==================================================
+ID: /tv/{tv_id}/images
+Metadata: {
+  "description": "Get the images that belong to a TV show.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.03830604627728462, 0.028341233730316162, -0.0019799889996647835, -0.0501738041639328, 0.08996007591485977])
+==================================================
+ID: /tv/{tv_id}/keywords
+Metadata: {
+  "description": "Get the keywords that have been added to a TV show.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/keywords"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.011373564600944519, -0.04730590060353279, -0.030771620571613312, -0.026377500966191292, 0.053396858274936676])
+==================================================
+ID: /tv/{tv_id}/recommendations
+Metadata: {
+  "description": "Get the list of TV show recommendations for this item.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/{tv_id}/recommendations"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.009912155568599701, 0.024532141163945198, -0.054896894842386246, 0.009023147635161877, 0.005011625122278929])
+==================================================
+ID: /tv/{tv_id}/reviews
+Metadata: {
+  "description": "Get the reviews for a TV show.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/{tv_id}/reviews"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.009219920262694359, 0.0684870108962059, -0.07792222499847412, 0.0041268812492489815, -0.011015355587005615])
+==================================================
+ID: /tv/{tv_id}/season/{season_number}
+Metadata: {
+  "description": "Get the TV season details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/season/{season_number}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.018168466165661812, 0.050350502133369446, 0.0027839383110404015, 0.014487285166978836, 0.06672214716672897])
+==================================================
+ID: /tv/{tv_id}/season/{season_number}/credits
+Metadata: {
+  "description": "Get the credits for TV season.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/season/{season_number}/credits"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.03806505724787712, 0.04118066281080246, -0.0029400570783764124, -0.03034481778740883, 0.09549928456544876])
+==================================================
+ID: /tv/{tv_id}/season/{season_number}/episode/{episode_number}
+Metadata: {
+  "description": "Get the TV episode details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| June 1, 2018 | Added the [translations](#endpoint:5SFwZar3LkP99QMp7) method. |",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.015615911222994328, 0.014092115685343742, 0.0014062590198591352, -0.015656940639019012, 0.04823192581534386])
+==================================================
+ID: /tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits
+Metadata: {
+  "description": "Get the credits (cast, crew and guest stars) for a TV episode.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits"
+}
+Embedding: Vector of length 384 (First 5 dims: [-0.04770132526755333, 0.03478461131453514, -0.009471316821873188, -0.021696507930755615, 0.06585990637540817])
+==================================================
+ID: /tv/{tv_id}/season/{season_number}/episode/{episode_number}/images
+Metadata: {
+  "description": "Get the images that belong to a TV episode.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.02430214360356331, 0.01945709064602852, 0.01216671522706747, -0.022225020453333855, 0.09779965132474899])
+==================================================
+ID: /tv/{tv_id}/season/{season_number}/images
+Metadata: {
+  "description": "Get the images that belong to a TV season.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
+  "entity_types": "[]",
+  "parameters": "[]",
+  "path": "/tv/{tv_id}/season/{season_number}/images"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.029804980382323265, 0.03885341063141823, 0.01797402650117874, -0.01566343754529953, 0.11616318672895432])
+==================================================
+ID: /tv/{tv_id}/similar
+Metadata: {
+  "description": "Get a list of similar TV shows. These items are assembled by looking at keywords and genres.",
+  "entity_types": "[]",
+  "parameters": "[{\"name\": \"page\", \"type\": \"integer\", \"description\": \"Specify which page to query.\", \"entity_type\": \"general\"}]",
+  "path": "/tv/{tv_id}/similar"
+}
+Embedding: Vector of length 384 (First 5 dims: [0.002994780894368887, -0.003406910691410303, -0.06210654228925705, -0.027998941019177437, -0.0009131562546826899])
+==================================================

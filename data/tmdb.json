@@ -3,6 +3,7 @@
         "/movie/{movie_id}/keywords": {
             "get": {
                 "summary": "Get Keywords",
+                "description": "Get the keywords that have been added to a movie or film or film.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -10,6 +11,7 @@
         "/tv/popular": {
             "get": {
                 "summary": "Get Popular",
+                "description": "Get a list of the current popular TV shows on TMDb. This list updates daily.",
                 "parameters": [
                     {
                         "name": "page",
@@ -27,6 +29,7 @@
         "/person/{person_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get the primary person details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| July 17, 2018 | Added the `known_for_department` field. |\n| April 26, 2018 | Added the [translations](#endpoint:CSaMjCxXAtGpxNGfS) method. |\n| November 9, 2016 | Biographies are now translatable on TMDb. This means you can query person details with a language parameter. |",
                 "parameters": [],
                 "method": "GET"
             }
@@ -34,6 +37,7 @@
         "/movie/{movie_id}/reviews": {
             "get": {
                 "summary": "Get Reviews",
+                "description": "Get the user reviews for a movie or film or film.",
                 "parameters": [
                     {
                         "name": "page",
@@ -51,6 +55,7 @@
         "/movie/{movie_id}/release_dates": {
             "get": {
                 "summary": "Get Release Dates",
+                "description": "Get the release date along with the certification for a movie or film.\n\nRelease dates support different types:\n\n1. Premiere\n2. Theatrical (limited)\n3. Theatrical\n4. Digital\n5. Physical\n6. TV",
                 "parameters": [],
                 "method": "GET"
             }
@@ -58,6 +63,7 @@
         "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits": {
             "get": {
                 "summary": "Get Credits",
+                "description": "Get the credits (cast, crew and guest stars) for a TV episode.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -65,6 +71,7 @@
         "/movie/{movie_id}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the images that belong to a movie or film.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
                 "parameters": [
                     {
                         "name": "include_image_language",
@@ -80,6 +87,7 @@
         "/search/tv": {
             "get": {
                 "summary": "Search TV Shows",
+                "description": "Search for a TV show.",
                 "parameters": [
                     {
                         "name": "page",
@@ -122,6 +130,7 @@
         "/tv/{tv_id}/season/{season_number}/episode/{episode_number}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get the TV episode details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| June 1, 2018 | Added the [translations](#endpoint:5SFwZar3LkP99QMp7) method. |",
                 "parameters": [],
                 "method": "GET"
             }
@@ -129,6 +138,7 @@
         "/network/{network_id}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the TV network logos by id.\n\nThere are two image formats that are supported for networks, PNG's and SVG's. You can see which type the original file is by looking at the `file_type` field. We prefer SVG's as they are resolution independent and as such, the width and height are only there to reflect the original asset that was uploaded. An SVG can be scaled properly beyond those dimensions if you call them as a PNG.\n\nFor more information about how SVG's and PNG's can be used, take a read through [this document](#docTextSection:mXP9B2uzoDJFguDZv).",
                 "parameters": [],
                 "method": "GET"
             }
@@ -136,6 +146,7 @@
         "/genre/tv/list": {
             "get": {
                 "summary": "Get TV List",
+                "description": "Get the list of official genres for TV shows.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -143,6 +154,7 @@
         "/search/movie": {
             "get": {
                 "summary": "Search Movies",
+                "description": "Search for movies.",
                 "parameters": [
                     {
                         "name": "query",
@@ -200,6 +212,7 @@
         "/discover/movie": {
             "get": {
                 "summary": "Movie Discover",
+                "description": "Discover movies by different types of data like average rating, number of votes, genres and certifications. You can get a valid list of certifications from the [certifications list](#endpoint:faFKjuKG2HnwexAWM) method.\n\nDiscover also supports a nice list of sort options. See below for all of the available options.\n\nPlease note, when using `certification` \\ `certification.lte` you must also specify `certification_country`. These two parameters work together in order to filter the results. You can only filter results with the countries we have added to our [certifications list](#endpoint:faFKjuKG2HnwexAWM).\n\nIf you specify the `region` parameter, the regional release date will be used instead of the primary release date. The date returned will be the first date based on your query (ie. if a `with_release_type` is specified). It's important to note the order of the release types that are used. Specifying \"2|3\" would return the limited theatrical release date as opposed to \"3|2\" which would return the theatrical date.\n\nAlso note that a number of filters support being comma (`,`) or pipe (`|`) separated. Comma's are treated like an `AND` and query while pipe's are an `OR`. \n\nSome examples of what can be done with discover can be found [here](https://www.themoviedb.org/documentation/api/discover).",
                 "parameters": [
                     {
                         "name": "region",
@@ -516,6 +529,7 @@
         "/movie/upcoming": {
             "get": {
                 "summary": "Get Upcoming",
+                "description": "Get a list of upcoming movies in theatres. This is a release type query that looks for all movies that have a release type of 2 or 3 within the specified date range.\n\nYou can optionally specify a `region` prameter which will narrow the search to only look for theatrical release dates within the specified country.",
                 "parameters": [
                     {
                         "name": "page",
@@ -541,6 +555,7 @@
         "/credit/{credit_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get a movie or film or TV credit details by id.\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| July 13, 2018 | Movie credits are now supported. |",
                 "parameters": [],
                 "method": "GET"
             }
@@ -548,6 +563,7 @@
         "/person/{person_id}/tv_credits": {
             "get": {
                 "summary": "Get TV Credits",
+                "description": "Get the TV show credits for a person.\n\nYou can query for some extra details about the credit with the [credit method](#endpoint:xPWdEBLkvCNZSicLN).",
                 "parameters": [],
                 "method": "GET"
             }
@@ -555,6 +571,7 @@
         "/tv/latest": {
             "get": {
                 "summary": "Get Latest",
+                "description": "Get the most newly created TV show. This is a live response and will continuously change.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -562,6 +579,7 @@
         "/company/{company_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get a companies details by id.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -569,6 +587,7 @@
         "/tv/{tv_id}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the images that belong to a TV show.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -576,6 +595,7 @@
         "/tv/{tv_id}/season/{season_number}/credits": {
             "get": {
                 "summary": "Get Credits",
+                "description": "Get the credits for TV season.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -583,6 +603,7 @@
         "/movie/now_playing": {
             "get": {
                 "summary": "Get Now Playing",
+                "description": "Get a list of movies in theatres. This is a release type query that looks for all movies that have a release type of 2 or 3 within the specified date range.\n\nYou can optionally specify a `region` prameter which will narrow the search to only look for theatrical release dates within the specified country.",
                 "parameters": [
                     {
                         "name": "page",
@@ -608,6 +629,7 @@
         "/review/{review_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "No description available",
                 "parameters": [],
                 "method": "GET"
             }
@@ -615,6 +637,7 @@
         "/tv/on_the_air": {
             "get": {
                 "summary": "Get TV On The Air",
+                "description": "Get a list of shows that are currently on the air.\n\nThis query looks for any TV show that has an episode with an air date in the next 7 days.",
                 "parameters": [
                     {
                         "name": "page",
@@ -632,6 +655,7 @@
         "/movie/{movie_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get the primary information about a movie or film.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).",
                 "parameters": [
                     {
                         "name": "append_to_response",
@@ -648,6 +672,7 @@
         "/tv/{tv_id}/season/{season_number}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the images that belong to a TV season.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -655,6 +680,7 @@
         "/company/{company_id}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get a companies logos by id.\n\nThere are two image formats that are supported for companies, PNG's and SVG's. You can see which type the original file is by looking at the `file_type` field. We prefer SVG's as they are resolution independent and as such, the width and height are only there to reflect the original asset that was uploaded. An SVG can be scaled properly beyond those dimensions if you call them as a PNG.\n\nFor more information about how SVG's and PNG's can be used, take a read through [this document](#docTextSection:mXP9B2uzoDJFguDZv).",
                 "parameters": [],
                 "method": "GET"
             }
@@ -662,6 +688,7 @@
         "/tv/{tv_id}/reviews": {
             "get": {
                 "summary": "Get Reviews",
+                "description": "Get the reviews for a TV show.",
                 "parameters": [
                     {
                         "name": "page",
@@ -679,6 +706,7 @@
         "/tv/{tv_id}/similar": {
             "get": {
                 "summary": "Get Similar TV Shows",
+                "description": "Get a list of similar TV shows. These items are assembled by looking at keywords and genres.",
                 "parameters": [
                     {
                         "name": "page",
@@ -696,6 +724,7 @@
         "/network/{network_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get the details of a network.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -703,6 +732,7 @@
         "/tv/{tv_id}/recommendations": {
             "get": {
                 "summary": "Get Recommendations",
+                "description": "Get the list of TV show recommendations for this item.",
                 "parameters": [
                     {
                         "name": "page",
@@ -720,6 +750,7 @@
         "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the images that belong to a TV episode.\n\nQuerying images with a `language` parameter will filter the results. If you want to include a fallback language (especially useful for backdrops) you can use the `include_image_language` parameter. This should be a comma seperated value like so: `include_image_language=en,null`.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -727,6 +758,7 @@
         "/movie/popular": {
             "get": {
                 "summary": "Get Popular",
+                "description": "Get a list of the current popular movies on TMDb. This list updates daily.",
                 "parameters": [
                     {
                         "name": "page",
@@ -752,6 +784,7 @@
         "/tv/airing_today": {
             "get": {
                 "summary": "Get TV Airing Today",
+                "description": "Get a list of TV shows that are airing today. This query is purely day based as we do not currently support airing times.\n\nYou can specify a [timezone](endpoint:KQ4CDdEoWKJYLkrhS) to offset the day calculation. Without a specified timezone, this query defaults to EST (Eastern Time UTC-05:00).",
                 "parameters": [
                     {
                         "name": "page",
@@ -769,6 +802,7 @@
         "/tv/{tv_id}/keywords": {
             "get": {
                 "summary": "Get Keywords",
+                "description": "Get the keywords that have been added to a TV show.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -776,6 +810,7 @@
         "/search/person": {
             "get": {
                 "summary": "Search People",
+                "description": "Search for people.",
                 "parameters": [
                     {
                         "name": "query",
@@ -819,6 +854,7 @@
         "/search/company": {
             "get": {
                 "summary": "Search Companies",
+                "description": "Search for companies.",
                 "parameters": [
                     {
                         "name": "query",
@@ -845,6 +881,7 @@
         "/discover/tv": {
             "get": {
                 "summary": "TV Discover",
+                "description": "Discover TV shows by different types of data like average rating, number of votes, genres, the network they aired on and air dates.\n\nDiscover also supports a nice list of sort options. See below for all of the available options.\n\nAlso note that a number of filters support being comma (`,`) or pipe (`|`) separated. Comma's are treated like an `AND` and query while pipe's are an `OR`. \n\nSome examples of what can be done with discover can be found [here](https://www.themoviedb.org/documentation/api/discover).",
                 "parameters": [
                     {
                         "name": "sort_by",
@@ -1106,6 +1143,7 @@
         "/movie/top_rated": {
             "get": {
                 "summary": "Get Top Rated",
+                "description": "Get the top rated movies on TMDb.",
                 "parameters": [
                     {
                         "name": "page",
@@ -1131,6 +1169,7 @@
         "/movie/latest": {
             "get": {
                 "summary": "Get Latest",
+                "description": "Get the most newly created movie. This is a live response and will continuously change.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1138,6 +1177,7 @@
         "/tv/top_rated": {
             "get": {
                 "summary": "Get Top Rated",
+                "description": "Get a list of the top rated TV shows on TMDb.",
                 "parameters": [
                     {
                         "name": "page",
@@ -1155,6 +1195,7 @@
         "/trending/{media_type}/{time_window}": {
             "get": {
                 "summary": "Get Trending",
+                "description": "Get the daily or weekly trending items. The daily trending list tracks items over the period of a day while items have a 24 hour half life. The weekly list tracks items over a 7 day period, with a 7 day half life.\n\n#### Valid Media Types\n\n| **Media Type** | **Description** |\n| - | - |\n| all | Include all movies, TV shows and people in the results as a global trending list. |\n| movie | Show the trending movies in the results. |\n| tv | Show the trending TV shows in the results. |\n| person | Show the trending people in the results. |\n\n#### Valid Time Windows\n\n| **Time Window** | **Description** |\n| - | - |\n| day | View the trending list for the day. |\n| week | View the trending list for the week. |",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1162,6 +1203,7 @@
         "/genre/movie/list": {
             "get": {
                 "summary": "Get Movie List",
+                "description": "Get the list of official genres for movies.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1169,6 +1211,7 @@
         "/tv/{tv_id}/season/{season_number}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get the TV season details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1176,6 +1219,7 @@
         "/collection/{collection_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get collection details by id.\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| March 16, 2018 | Added the [translations](#endpoint:bhcsxEgRvyk3N7FnD) method. |",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1183,6 +1227,7 @@
         "/person/{person_id}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the images for a person.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1190,6 +1235,7 @@
         "/tv/{tv_id}": {
             "get": {
                 "summary": "Get Details",
+                "description": "Get the primary TV show details by id.\n\nSupports `append_to_response`. Read more about this [here](#docTextSection:JdZq8ctmcxNqyLQjp).\n\n#### Recent Changes\n\n| **Date** | **Change** |\n| - | - |\n| July 17, 2018 | We now return `last_episode_to_air` and `next_episode_to_air` fields. |\n| March 12, 2018 | Networks return proper logos and we introduced SVG support. |\n| March 8, 2018 | The `seasons` field now returns the translated names and overviews. |",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1197,6 +1243,7 @@
         "/person/popular": {
             "get": {
                 "summary": "Get Popular",
+                "description": "Get the list of popular people on TMDb. This list updates daily.",
                 "parameters": [
                     {
                         "name": "page",
@@ -1214,6 +1261,7 @@
         "/collection/{collection_id}/images": {
             "get": {
                 "summary": "Get Images",
+                "description": "Get the images for a collection by id.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1221,6 +1269,7 @@
         "/tv/{tv_id}/credits": {
             "get": {
                 "summary": "Get Credits",
+                "description": "Get the credits (cast and crew) that have been added to a TV show.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1228,6 +1277,7 @@
         "/person/{person_id}/movie_credits": {
             "get": {
                 "summary": "Get Movie Credits",
+                "description": "Get the movie credits for a person, the results contains various information such as popularity and release date.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1235,6 +1285,7 @@
         "/movie/{movie_id}/recommendations": {
             "get": {
                 "summary": "Get Recommendations",
+                "description": "Get a list of recommended movies for a movie or film.",
                 "parameters": [
                     {
                         "name": "page",
@@ -1252,6 +1303,7 @@
         "/search/collection": {
             "get": {
                 "summary": "Search Collections",
+                "description": "Search for collections.",
                 "parameters": [
                     {
                         "name": "query",
@@ -1278,6 +1330,7 @@
         "/movie/{movie_id}/credits": {
             "get": {
                 "summary": "Get Credits",
+                "description": "Get the cast and crew for a movie or film.",
                 "parameters": [],
                 "method": "GET"
             }
@@ -1285,6 +1338,7 @@
         "/movie/{movie_id}/similar": {
             "get": {
                 "summary": "Get Similar Movies",
+                "description": "Get a list of similar movies. This is **not** the same as the \"Recommendation\" system you see on the website.\n\nThese items are assembled by looking at keywords and genres.",
                 "parameters": [
                     {
                         "name": "page",
