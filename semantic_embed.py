@@ -245,7 +245,16 @@ class SemanticEmbedder:
                 p["entity_type"] for p in json.loads(base_metadata["parameters"])
                 if p["entity_type"] != "general"
             })
-            full_metadata = {**base_metadata, "entity_types": json.dumps(entity_types)}
+            temp_metadata = {
+                **base_metadata,
+                "entity_types": json.dumps(entity_types)
+            }
+            embedding_text = self._build_embedding_text(endpoint, temp_metadata)
+
+            full_metadata = {
+                **temp_metadata,
+                "embedding_text": embedding_text
+            }
             embedding_text = self._build_embedding_text(endpoint, full_metadata)
             embedding = self.embedder.encode(embedding_text).tolist()
             ids.append(endpoint)
