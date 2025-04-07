@@ -7,13 +7,11 @@ import re
 from dotenv import load_dotenv
 from nlp_retriever import (
     EnhancedIntentAnalyzer, 
-    IntelligentPlanner,
-    OpenAILLMClient
+    IntelligentPlanner
 )
+from llm_client import OpenAILLMClient
 from entity_resolution import TMDBEntityResolver
-from intent_classifier import IntentClassifier
 from dependency_manager import ExecutionState, DependencyManager
-import requests
 from execution_orchestrator import ExecutionOrchestrator
 from fallback_handler import FallbackHandler
 from query_classifier import QueryClassifier
@@ -32,9 +30,9 @@ BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
 param_resolver = ParamResolver()
-llm_client = OpenAILLMClient(OPENAI_API_KEY)
+llm_client = OpenAILLMClient()
 dependency_manager = DependencyManager()
-query_classifier = QueryClassifier()
+query_classifier = QueryClassifier(api_key=OPENAI_API_KEY)
 
 # Initialize core components
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
@@ -43,23 +41,35 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
+llm_client = OpenAILLMClient()
+planner = IntelligentPlanner(
+    chroma_collection=collection,
+    param_resolver=param_resolver,
+    llm_client=llm_client,
+    dependency_manager=dependency_manager,
+    query_classifier=query_classifier
+)
+
 class ControllerState(TypedDict):
     query: str
     execution_state: ExecutionState
     final_response: str
+    api_context: str
 
 def initialize_state(query: str) -> ControllerState:
     return {
         "query": query,
         "execution_state": ExecutionState(),
-        "final_response": ""
+        "final_response": "",
+        "api_context": ""
     }
 
 # Node implementations
 def parse_query(state: ControllerState) -> ControllerState:
+    log_state_transition("parse", state)
     execution_state = state['execution_state']
-    intent_analyzer = EnhancedIntentAnalyzer()
-    query_classifier = QueryClassifier()
+    intent_analyzer = EnhancedIntentAnalyzer(llm_client)
+    #query_classifier = QueryClassifier()
     
     # Extract entities and intents
     execution_state.raw_entities = intent_analyzer.extract_entities(state["query"])
@@ -116,26 +126,15 @@ def plan_with_intent(state: ControllerState) -> ControllerState:
         if secondary_intents:
             intent_description += f" Secondary intents: {', '.join(secondary_intents)}."
 
-        planner = IntelligentPlanner(
-            chroma_collection=collection,
-            param_resolver=param_resolver,
-            llm_client=llm_client,
-            dependency_manager=dependency_manager,
-            query_classifier=query_classifier
-        )
-
-        # Dynamically build prompt context including secondary intents
-        custom_prompt = PLAN_PROMPT.format(
-            query=state["query"],
-            entities=json.dumps(execution_state.resolved_entities),
-            intents=intent_description
-        )
-
-        # Generate the execution plan dynamically from LLM
-        raw_plan = planner._llm_planning(
-            prompt=custom_prompt,
+        raw_plan = planner._llm_planning(  # Use pre-initialized planner
+            prompt=PLAN_PROMPT.format(
+                query=state["query"],
+                entities=json.dumps(execution_state.resolved_entities),
+                intents=intent_description,
+                api_context=state["api_context"]
+            ),
             dependencies=dependency_manager.graph
-        )
+        )        
 
         # Validate plan structure
         if not isinstance(raw_plan, dict) or 'plan' not in raw_plan:
@@ -185,6 +184,30 @@ def execute_api_plan(state: ControllerState) -> ControllerState:
     # Execute the plan with dynamic resolution
     updated_state = orchestrator.execute(execution_state)
     state['execution_state'] = updated_state
+    
+    return state
+
+def retrieve_api_context(state: ControllerState) -> ControllerState:
+    log_state_transition("retrieve_context", state)
+    execution_state = state['execution_state']
+    #planner = IntelligentPlanner(collection, ...)  # Your existing initialization
+    #intent = execution_state.detected_intents.get('primary_intent') or "generic_search"
+
+
+    # Get valid entity IDs only
+    resolved_entities = {
+        k: v for k, v in execution_state.resolved_entities.items() 
+        if isinstance(v, (int, str))
+    }
+    
+    try:
+        state['api_context'] = planner.retriever.retrieve_context(
+            query=state["query"],
+            intent=execution_state.detected_intents.get('primary_intent', 'generic_search'),
+            entities=execution_state.resolved_entities
+        )
+    except Exception as e:
+        state["execution_state"].error = f"Context retrieval failed: {str(e)}"
     
     return state
 
@@ -260,35 +283,63 @@ def _format_awards(data: Dict) -> str:
         formatted.append(f"- {award.get('title')} ({award.get('year')})")
     return "\n".join(formatted)
 
-# Update workflow construction
+def log_state_transition(node_name: str, state: ControllerState):
+    print(f"\n🔄 State After {node_name.upper()} Node 🔄")
+    print(f"| Query: {state['query']}")
+    print(f"| API Context: {state['api_context'][:100] + '...' if state['api_context'] else '<empty>'}")
+    print(f"| Resolved Entities: {state['execution_state'].resolved_entities}")
+    print(f"| Pending Steps: {len(state['execution_state'].pending_steps)}")
+    print(f"| Error: {state['execution_state'].error or '<none>'}")
+
+# Update workflow construction with RAG retrieval
 workflow = StateGraph(ControllerState)
 
-# Define nodes
+# Define nodes (add retrieve_context node)
 workflow.add_node("parse", parse_query)
 workflow.add_node("resolve", resolve_entities)
+workflow.add_node("retrieve_context", retrieve_api_context)  # New RAG node
 workflow.add_node("plan", plan_with_intent)
 workflow.add_node("execute", execute_api_plan)
 workflow.add_node("respond", build_response)
 
-# Configure edges
+# Configure edges with RAG sequence
 workflow.set_entry_point("parse")
 workflow.add_edge("parse", "resolve")
-workflow.add_edge("resolve", "plan")
+workflow.add_edge("resolve", "retrieve_context")  # Entity resolution first
+workflow.add_edge("retrieve_context", "plan")     # Then RAG retrieval
 workflow.add_edge("plan", "execute")
 workflow.add_edge("execute", "respond")
-workflow.add_edge("respond", END)  # Explicit END reference
+workflow.add_edge("respond", END)
 
-# Error handling
+# Enhanced error handling with RAG context
 def route_errors(state: ControllerState):
-    """Handle both success and error cases"""
-    if state['execution_state'].error:
-        return "respond"  # Route errors to response builder
+    """Handle both success and error cases with RAG awareness"""
+    execution_state = state['execution_state']
+    
+    if execution_state.error:
+        # If RAG context exists, try to use it for error recovery
+        if 'api_context' in state and execution_state.pending_steps:
+            return "execute"  # Retry with existing context
+        return "respond"  # Final fallback to error response
+    
+    # Check for empty plan even after RAG
+    if not execution_state.pending_steps and not execution_state.data_registry:
+        return "retrieve_context"  # Try different retrieval strategy
+    
     return END
 
+# Add conditional edges for error recovery
 workflow.add_conditional_edges(
     "execute",
     route_errors,
-    {"respond": "respond", END: END}  # Valid transitions
+    {"respond": "respond", "retrieve_context": "retrieve_context", END: END}
+)
+
+# Add error path for RAG failures
+workflow.add_conditional_edges(
+    "retrieve_context",
+    lambda s: "plan" if s.get('api_context') else "respond",
+    {"plan": "plan", "respond": "respond"}
 )
 
 app = workflow.compile()
