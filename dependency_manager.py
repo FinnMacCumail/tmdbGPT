@@ -14,37 +14,27 @@ class EntityLifecycleEntry(TypedDict):
     timestamp: float
 
 class ExecutionState(BaseModel):
-    """Central state container for workflow execution"""
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    
-    # Add error tracking field
+    class Config:
+        arbitrary_types_allowed = True
+
     error: Optional[str] = None
-    
-    # Entity Handling
-    raw_entities: Dict[str, Any] = {}  
-    # Add explicit type declaration for resolved_entities
+
+    raw_entities: Dict[str, Any] = {}
     resolved_entities: Dict[str, Any] = {}
     entity_dependencies: Dict[str, List[str]] = {}
 
-    # Execution Tracking
     detected_intents: Dict[str, Any] = {}
-    data_registry: dict[str, Any] = {}
-    pending_steps: list[dict] = []
-    completed_steps: list[dict] = []
-
-    # System Internals
-    entity_lifecycle: dict[str, list[EntityLifecycleEntry]] = {}
-    dependency_graph: DiGraph = DiGraph()
-
-    query_type: str = "general_info"
-    specialized_params: dict = {}
-    response_format: str = "standard_biography"
-
-    # Step management
+    data_registry: Dict[str, Any] = {}
     pending_steps: List[Dict] = []
     completed_steps: List[Dict] = []
 
-    # Data storage
+    entity_lifecycle: Dict[str, List[Any]] = {}  # Assuming EntityLifecycleEntry elsewhere
+    dependency_graph: DiGraph = DiGraph()
+
+    query_type: str = "general_info"
+    specialized_params: Dict = {}
+    response_format: str = "standard_biography"
+
     api_results: Dict[str, Any] = {}
 
     def track_entity_activity(self, entity: str, activity_type: str, step: Dict):
