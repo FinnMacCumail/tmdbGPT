@@ -22,12 +22,15 @@ from plan_validator import PlanValidator
 from prompt_templates import PLAN_PROMPT 
 from fallback_handler import FallbackHandler
 from prompt_templates import PROMPT_TEMPLATES, DEFAULT_TEMPLATE
+from llm_client import OpenAILLMClient
 #from query_classifier import QueryClassifier
 
 from param_resolver import ParamResolver
 from llm_client import OpenAILLMClient
 from dependency_manager import DependencyManager
 from query_classifier import QueryClassifier
+from json import JSONDecodeError
+
 
 
 # Load API keys
@@ -54,10 +57,11 @@ HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
 
 class EnhancedIntentAnalyzer:
-    def __init__(self):
+    def __init__(self, llm_client: OpenAILLMClient):
         self.nlp = spacy.load("en_core_web_trf")
         self.genre_map = self._fetch_genre_mappings()
         self.media_types = ["movie", "tv", "film", "show", "series"]
+        self.classifier = HybridIntentClassifier(llm_client)
         self._add_custom_patterns()
 
     def _fetch_genre_mappings(self) -> Dict[str, int]:
@@ -96,8 +100,12 @@ class EnhancedIntentAnalyzer:
         ]
         ruler.add_patterns(patterns)
 
-    def extract_entities(self, query: str) -> Dict[str, List]:
-        """Main entity extraction method"""
+    def extract_entities(self, query: str) -> Dict:
+        """Hybrid entity extraction pipeline"""    
+
+        # Get LLM-enhanced classification
+        intent_result = self.classifier.classify(query)
+
         doc = self.nlp(query)
         entities = defaultdict(list)
         
@@ -113,7 +121,27 @@ class EnhancedIntentAnalyzer:
         
         # Add intent-aware entity resolution
         self._enrich_with_intent_context(entities, doc)
-        return dict(entities)
+
+        # Merge results
+        merged_entities = self._merge_entities(
+            intent_result["entities"],
+            entities
+        )
+
+        return dict(merged_entities)
+    
+    def _merge_entities(self, llm_entities: Dict[str, List[str]], spacy_entities: Dict[str, List[str]]) -> Dict[str, List[str]]:
+        """Merge LLM-derived and spaCy-derived entities with deduplication"""
+        merged = {}
+
+        # Merge by entity type
+        all_keys = set(llm_entities) | set(spacy_entities)
+        for key in all_keys:
+            llm_vals = set(llm_entities.get(key, []))
+            spacy_vals = set(spacy_entities.get(key, []))
+            merged[key] = list(llm_vals.union(spacy_vals))
+
+        return merged
     
     def _enrich_with_intent_context(self, entities: Dict, doc):
         """Enhance entities based on query structure"""
@@ -190,37 +218,29 @@ class IntelligentPlanner:
         self.dependency_manager = dependency_manager
         self.query_classifier = query_classifier
         self.entity_registry = {}
+        self.retriever = SemanticAPIRetriever(chroma_collection)
 
     def generate_plan(self, query: str, entities: Dict, intents: Dict) -> Dict:
         """Generate validated plan with dependency tracking and enhanced fallbacks"""        
-
-        query_type = intents.get('primary', {}).get('type', 'generic_search')
-        entity_id_key = next((k for k in entities.keys() if k.endswith('_id')), None)
-        
+                
         try:
-            # Determine primary entity type from resolved entities
-            entity_type = next(
-                (key.split('_')[0] for key in entities.keys() 
-                if key.endswith('_id')), 
-                'general'
-            )
-            
+            # Determine primary entity type from resolved entities                        
             # 1. Intent-aware initialization            
-            context = {
-                "query": query,
-                "entities": json.dumps(entities, indent=2),
-                "entity_id": f"${entity_id_key}" if entity_id_key else "",
-                "entity_type": entity_id_key.split('_')[0] if entity_id_key else "item",
-                "intents": intents,
-                "resolved": json.dumps(self.entity_registry, indent=2),
-                "query_type": self.query_classifier.classify(query)["primary_intent"],
-                "template_hint": PROMPT_TEMPLATES.get(query_type, DEFAULT_TEMPLATE),               
-            }
+            context = self.retriever.retrieve_context(
+                query=query,
+                intent=intents["primary_intent"],
+                entities=entities
+            )
 
             # 2. LLM Planning with dependency hints
+            # Generate plan with LLM using RAG context
             raw_plan = self._llm_planning(
-                prompt=PLAN_PROMPT.format(**context),
-                dependencies=self.dependency_manager.graph
+                prompt=PLAN_PROMPT.format(
+                    query=query,
+                    entities=entities,
+                    intents=intents,
+                    api_context=context
+                )
             )
 
             # 3. Plan validation and normalization
@@ -263,30 +283,30 @@ class IntelligentPlanner:
     
     def _llm_planning(self, prompt: str, dependencies: nx.DiGraph) -> Dict:
         """Robust JSON parsing with validation"""
+
+        print("\n🧠 LLM Planning Debug 🧠")
+        print("| Prompt Input:")
+        print(prompt[:500] + "..." if len(prompt) > 500 else prompt)
+
         response = self.llm_client.generate_response(prompt)
-        
+        print("\n🤖 LLM Raw Response:")
+        print(response)
         try:
-            # First try strict JSON parsing
-            parsed = json.loads(response)
-        except json.JSONDecodeError:
-            try:
-                # Try JSON5 for more lenient parsing
-                
-                parsed = json5.loads(response)
-            except:
-                # Fallback to regex-based extraction
-                json_str = re.search(r'\{.*\}', response, re.DOTALL)
-                parsed = json.loads(json_str.group()) if json_str else {}
-        
-        # Validate root structure
-        if not isinstance(parsed, dict):
-            print(f"⚠️ LLM response is not a dictionary: {type(parsed)}")
+            parsed = json5.loads(response)
+            print("✅ Successfully parsed LLM response")
+            return parsed
+        except JSONDecodeError:
+            print("⚠️ Failed to parse JSON, attempting extraction")
+            json_str = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_str:
+                try:
+                    parsed = json5.loads(json_str.group())
+                    print("✅ Extracted valid JSON from response")
+                    return parsed
+                except:
+                    pass
+            print("🔥 Falling back to empty plan")
             return {"plan": []}
-        
-        # Normalize plan key
-        parsed["plan"] = parsed.get("plan") or parsed.get("steps") or []
-        
-        return parsed
     
     def _enhance_plan_with_context(
         self, 
@@ -372,21 +392,84 @@ class IntelligentPlanner:
                 metadata['parameters'] = []
         
         return metadata
-    
-class OpenAILLMClient:
-    """Uses OpenAI LLM to generate execution plans dynamically."""
+      
+class HybridIntentClassifier:
+    """Combines rule-based and LLM classification"""
+    def __init__(self, llm_client: OpenAILLMClient):
+        self.rule_classifier = QueryClassifier()
+        self.llm = llm_client
+        self.intent_prompt = """Classify the query intent and extract entities:
+        Query: {query}
+        
+        Return JSON format:
+        {{
+            "primary_intent": "movie_details|tv_details|search|...",
+            "entities": {{
+                "entity_type": ["values"],
+                "genre": ["action"],
+                "person": ["Tom Hanks"]
+            }}
+        }}"""
 
-    def __init__(self, api_key, model="gpt-4-turbo"):
-        self.client = OpenAI(api_key=api_key)
-        self.model = model
+    def classify(self, query: str) -> Dict:
+        # First pass: Rule-based classification
+        rule_result = self.rule_classifier.classify(query)
+        
+        # Use LLM fallback if generic intent or ambiguous
+        if rule_result["primary_intent"] == "generic_search":
+            return self._llm_classification(query)
+        return rule_result
 
-    def generate_response(self, prompt):
-        """Generates a response using OpenAI with logging."""
-        print(f"📝 LLM Prompt:\n{prompt}\n")
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "system", "content": prompt}]
-        )
-        output = response.choices[0].message.content.strip()
-        print(f"🤖 LLM Response:\n{output}\n")
-        return output
+    def _llm_classification(self, query: str) -> Dict:
+        prompt = self.intent_prompt.format(query=query)
+        response = self.llm.generate_response(prompt)
+        try:
+            return json5.loads(response)
+        except:
+            return {"primary_intent": "generic_search", "entities": {}}
+        
+class SemanticAPIRetriever:
+    """Retrieves relevant API endpoints using hybrid search"""
+    def __init__(self, collection: chromadb.Collection):
+        self.collection = collection
+
+    def retrieve_context(self, query: str, intent: str, entities: Dict) -> str:
+        print(f"\n🔍 RAG Retrieval Debug 🔍")
+        print(f"| Query: {query}")
+        print(f"| Intent: {intent}")
+        print(f"| Entities: {entities}")
+        
+        try:
+            # Build ChromaDB filter
+            intent_filter = intent or "generic_search"
+            where_clause = {
+                "$or": [
+                    {"intents": {"$eq": intent_filter}},
+                    {"intents": {"$in": [intent_filter]}}
+                ]
+            }
+            print(f"📦 ChromaDB Where Clause: {json.dumps(where_clause, indent=2)}")
+
+            results = self.collection.query(
+                query_texts=[f"Intent: {intent}\nQuery: {query}"],
+                n_results=5,
+                where=where_clause,
+                include=["metadatas"]
+            )
+            
+            print("📊 ChromaDB Results:")
+            print(f"| Found {len(results['ids'][0])} endpoints")
+            for i, (endpoint, metadata) in enumerate(zip(results['ids'][0], results['metadatas'][0])):
+                print(f"| Result {i+1}: {endpoint}")
+                print(f"| Metadata: {json.dumps(metadata, indent=2)}")
+
+            # Fallback if no results
+            if not results['ids'][0]:
+                print("⚠️ No endpoints found, using fallback context")
+                return self._generate_fallback_context(entities)
+                
+            return self._format_context(results['metadatas'][0])
+            
+        except Exception as e:
+            print(f"🔥 RAG Retrieval Error: {str(e)}")
+            return ""
