@@ -445,7 +445,7 @@ class SemanticAPIRetriever:
             where_clause = {
                 "$or": [
                     {"intents": {"$eq": intent_filter}},
-                    {"intents": {"$in": [intent_filter]}}
+                    {"entity_types": {"$contains": list(entities.keys())[0]}}
                 ]
             }
             print(f"📦 ChromaDB Where Clause: {json.dumps(where_clause, indent=2)}")
