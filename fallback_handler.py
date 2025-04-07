@@ -41,6 +41,15 @@ class FallbackHandler:
             for k, v in entities.items()
         )
     
+    @staticmethod
+    def rag_fallback(query: str) -> List[Dict]:
+        """Basic search+details plan when RAG fails"""
+        return [{
+            "step_id": "fallback_search",
+            "endpoint": "/search/multi",
+            "parameters": {"query": query}
+        }]
+    
 class AdaptiveFallback:
     def generate_fallback(self, state: ExecutionState) -> List[Dict]:
         """Generate steps based on available entities and intents"""
