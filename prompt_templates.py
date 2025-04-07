@@ -1,60 +1,15 @@
 PLAN_PROMPT = """
-Generate API execution plans using TMDB endpoints. Follow these rules:
+Generate API execution plans USING THESE AVAILABLE ENDPOINTS:
+{api_context}
 
-1. Required structure for each step:
-{{
-  "step_id": "unique_name",
-  "endpoint": "/api/path/{{parameter}}",
-  "method": "GET",
-  "parameters": {{
-    "param": "$resolved_entity"
-  }}
-}}
+Follow these rules:
+1. Only use endpoints listed above
+2. Required parameters must match endpoint specs
+3. Steps must be chained using $entity references
 
-2. Dynamic patterns (replace CAPS):
-- Search: /search/ENTITY_TYPE?query=...
-- Details: /ENTITY_TYPE/{{ENTITY_TYPE_ID}}
-- Relationships: /ENTITY_TYPE/{{ENTITY_TYPE_ID}}/RELATIONSHIP
-
-3. Examples:
-=== Movie Example ===
-{{
-  "plan": [
-    {{
-      "step_id": "search_movie",
-      "endpoint": "/search/movie",
-      "method": "GET",
-      "parameters": {{"query": "{query}"}}
-    }},
-    {{
-      "step_id": "get_details",
-      "endpoint": "/movie/{{movie_id}}",
-      "method": "GET",
-      "parameters": {{"movie_id": "$movie_id"}}
-    }}
-  ]
-}}
-
-=== TV Example ===
-{{
-  "plan": [
-    {{
-      "step_id": "discover_tv",
-      "endpoint": "/discover/tv",
-      "method": "GET",
-      "parameters": {{
-        "with_genres": "$genre_id",
-        "first_air_date_year": "2023"
-      }}
-    }}
-  ]
-}}
-
-Current Context:
-- Query: {query}
-- Resolved Entities: {entities}
-- Intent Context: {intents}
-- Available Relationships: credits, similar, recommendations
+Current Query: {query}
+Resolved Entities: {entities}
+Intent: {intents}
 """
 
 PROMPT_TEMPLATES = {
