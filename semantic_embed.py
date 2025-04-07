@@ -240,7 +240,10 @@ class SemanticEmbedder:
                 "description": verb_info.get("description", ""),
                 "parameters": json.dumps(enriched_params),
                 "entity_types": json.dumps(all_entities),  # Now never empty
-                "intents": json.dumps(self._detect_intents(endpoint, enriched_params))
+                "intents": json.dumps(
+                    self._detect_intents(endpoint, enriched_params),
+                    ensure_ascii=False
+                ),
             }
 
             embedding_text = self._build_embedding_text(endpoint, metadata)
