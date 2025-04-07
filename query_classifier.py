@@ -1,5 +1,7 @@
 import re
+import json
 from typing import Dict
+from openai import OpenAI
 
 class QueryClassifier:
     INTENT_MAP = {
@@ -248,16 +250,54 @@ class QueryClassifier:
         "collection_operations"
     ]
     
+    def __init__(self, api_key: str = None):
+        self.llm_client = OpenAI(api_key=api_key) if api_key else None
+        self.intent_labels = [
+            "biographical", "discovery", "comparative", 
+            "temporal", "multimedia", "credits",
+            "recommendation", "popularity", "combined"
+        ]
+
     def classify(self, query: str) -> Dict:
-        """Dynamically classify query intent using regex patterns"""
+        """Hybrid classification with LLM fallback"""
+        rule_result = self._rule_based_classification(query)
+        
+        if rule_result["primary_intent"] == "generic_search" and self.llm_client:
+            return self._llm_classification(query)
+            
+        return rule_result
+
+    def _llm_classification(self, query: str) -> Dict:
+        """LLM-based intent classification"""
+        prompt = f"""Analyze this media query and return JSON with:
+        - primary_intent (from {self.intent_labels})
+        - secondary_intents
+        - implied_entities
+        
+        Query: {query}"""
+        
+        try:
+            response = self.llm_client.chat.completions.create(
+                model="gpt-4-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            print(f"⚠️ LLM Classification Error: {str(e)}")
+            return self._rule_based_classification(query)
+
+    def _rule_based_classification(self, query: str) -> Dict:
+        """Original regex-based classification"""
+        matched = []
         query = query.lower()
-        matched_intents = []
-
-        for intent, patterns in self.INTENT_PATTERNS.items():
-            if any(re.search(pattern, query) for pattern in patterns):
-                matched_intents.append(intent)
-
+        
+        for intent, config in self.INTENT_MAP.items():
+            if any(re.search(p, query) for p in config["patterns"]):
+                matched.append(intent)
+        
         return {
-            "primary_intent": matched_intents[0] if matched_intents else "generic_search",
-            "secondary_intents": matched_intents[1:]
+            "primary_intent": matched[0] if matched else "generic_search",
+            "secondary_intents": matched[1:] if matched else [],
+            "implied_entities": []
         }
