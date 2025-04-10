@@ -442,12 +442,7 @@ class SemanticAPIRetriever:
         try:
             # Build ChromaDB filter
             intent_filter = intent or "generic_search"
-            where_clause = {
-                "$or": [
-                    {"intents": {"$eq": intent_filter}},
-                    {"entity_types": {"$contains": list(entities.keys())[0]}}
-                ]
-            }
+            where_clause = { "$or": [ {"intents": {"$eq": intent_filter}}, {"entity_types": {"$in": [list(entities.keys())[0]]}} ] }
             print(f"📦 ChromaDB Where Clause: {json.dumps(where_clause, indent=2)}")
 
             results = self.collection.query(
