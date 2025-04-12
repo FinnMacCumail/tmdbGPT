@@ -1,4 +1,4 @@
-# semantic_embed.py (Fully Corrected & Commented)
+# semantic_embed.py (Fully Refactored with Search Handling, Normalized Scoring, and Dynamic Query Generation)
 import json
 import os
 import re
@@ -24,19 +24,13 @@ class SemanticEmbedder:
         self.param_entity_map = self._build_parameter_entity_map()
         self.openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.path_entity_map = {
-            "/movie": "movie",
-            "/tv": "tv",
-            "/person": "person",
-            "/company": "company",
-            "/collection": "collection",
-            "/network": "network",
-            "/genre/movie": "movie",
-            "/genre/tv": "tv",
-            "/review": "review",
-            "/credit": "credit"
+            "/movie": "movie", "/tv": "tv", "/person": "person",
+            "/company": "company", "/collection": "collection",
+            "/network": "network", "/genre/movie": "movie",
+            "/genre/tv": "tv", "/review": "review", "/credit": "credit",
+            "/search/movie": "movie", "/search/tv": "tv", "/search/person": "person"
         }
 
-    # -- Intent and Entity Taxonomy
     def _define_entity_hierarchy(self) -> Dict:
         return {
             "intents": {
@@ -64,32 +58,20 @@ class SemanticEmbedder:
 
     def _build_parameter_entity_map(self) -> Dict:
         base_patterns = {
-            r"person_id$": "person",
-            r"movie_id$": "movie",
-            r"tv_id$": "tv",
-            r"credit_id$": "credit",
-            r"company_id$": "company",
-            r"network_id$": "network",
-            r"collection_id$": "collection",
-            r"season_number$": "tv.season",
-            r"episode_number$": "tv.episode",
-            r"with_genres$": "genre",
-            r"with_keywords$": "keyword",
-            r"with_companies$": "company",
-            r"year$": "date",
-            r"primary_release_year$": "date",
-            r"first_air_date_year$": "date",
-            r"region$": "country",
-            r"language$": "language",
-            r"vote_average.*": "rating",
-            r"primary_release_date.*": "date",
-            r"release_date.*": "date"
+            r"person_id$": "person", r"movie_id$": "movie", r"tv_id$": "tv",
+            r"credit_id$": "credit", r"company_id$": "company", r"network_id$": "network",
+            r"collection_id$": "collection", r"season_number$": "tv.season",
+            r"episode_number$": "tv.episode", r"with_genres$": "genre",
+            r"with_keywords$": "keyword", r"with_companies$": "company",
+            r"year$": "date", r"primary_release_year$": "date",
+            r"first_air_date_year$": "date", r"region$": "country", r"language$": "language",
+            r"vote_average.*": "rating", r"primary_release_date.*": "date", r"release_date.*": "date",
+            r"with_people$": "person", r"query$": "keyword"
         }
-        entity_map = dict(base_patterns)
         for parent, children in self.entity_hierarchy["entities"].items():
             for child in children:
-                entity_map[f"{parent}.{child}"] = f"{parent}.{child}"
-        return entity_map
+                base_patterns[f"{parent}.{child}"] = f"{parent}.{child}"
+        return base_patterns
 
     def _parse_llm_response(self, response) -> List[str]:
         try:
@@ -98,49 +80,34 @@ class SemanticEmbedder:
         except:
             return []
 
+    def _fallback_template_queries(self, param_names: List[str]) -> List[str]:
+        fallback = []
+        if any("person" in p for p in param_names):
+            fallback.append("Search for movies starring a specific actor.")
+        if any("genre" in p for p in param_names):
+            fallback.append("List action movies released in 2020.")
+        if any("keyword" in p for p in param_names):
+            fallback.append("Find movies with the keyword 'space'.")
+        return fallback
+
     def _generate_query_examples(self, endpoint: str, details: Dict) -> List[str]:
-        """
-        Generate rich, diverse user-style queries to represent this endpoint's usage for semantic embedding.
-        Incorporates template rotation and fallback diversity.
-        """
         fallback_queries = [
             f"Find related content using {endpoint}",
             f"Example query for {endpoint}",
             f"Sample request for {endpoint.split('/')[1]}"
         ]
-
-        # Extract parameter names for dynamic templating
         param_names = [p.get("name", "") for p in details.get("parameters", [])]
-        has_genre = any("genre" in p for p in param_names)
-        has_date = any("year" in p or "date" in p for p in param_names)
         has_person = any("person" in p or "with_people" in p for p in param_names)
-        has_rating = any("vote_average" in p for p in param_names)
-        has_keyword = any("keyword" in p for p in param_names)
-
-        # Construct dynamic prompt with styles
-        prompt_variants = [
-            "Generate 2 search queries a user might type to get data from this endpoint.",
-            "Give 2 natural language questions that match this endpoint's use case.",
-            "Write 2 user prompts that filter by genre and date.",
-            "List 2 examples a user might ask to get results from this TMDB API path."
-        ]
-
-        meta_context = f"""
-        Endpoint: {endpoint}
-        Description: {details.get('description', '')}
-        Parameters: {json.dumps(details.get('parameters', []), indent=2)}
-        """
-
-        # Compose final prompt
         prompt = f"""
         You are a TMDB assistant.
 
-        {meta_context}
+        Endpoint: {endpoint}
+        Description: {details.get('description', '')}
+        Parameters: {json.dumps(details.get('parameters', []), indent=2)}
 
-        {prompt_variants[0] if has_person else prompt_variants[1]}
+        Generate 2 example user queries that match the purpose of this endpoint.
         Return a numbered list only.
         """
-
         try:
             response = self.openai.chat.completions.create(
                 model="gpt-4-turbo",
@@ -155,28 +122,9 @@ class SemanticEmbedder:
             print(f"⚠️ LLM Query Generation Failed: {str(e)}")
             return fallback_queries + self._fallback_template_queries(param_names)
 
-    def _fallback_template_queries(self, param_names: List[str]) -> List[str]:
-        """Hardcoded query patterns in case LLM generation fails."""
-        examples = []
-        if "genre" in " ".join(param_names):
-            examples.append("Top-rated sci-fi movies from 2023")
-            examples.append("Best action movies of the 2010s")
-        if "vote_average" in " ".join(param_names):
-            examples.append("Movies rated above 8.0")
-        if "person" in " ".join(param_names):
-            examples.append("Films directed by Christopher Nolan")
-        if "with_keywords" in " ".join(param_names):
-            examples.append("Movies about space exploration")
-        if not examples:
-            examples.append("Popular movies this week")
-            examples.append("What are the trending shows right now?")
-        return examples
-
-    
     def _detect_intents(self, endpoint: str, params: List[Dict]) -> List[Dict]:
         intent_scores = defaultdict(float)
 
-        # Exact match path-based intent recognition (strong signals)
         path_intent_map = {
             r"^/movie/{movie_id}$": ["details.movie"],
             r"^/tv/{tv_id}$": ["details.tv"],
@@ -196,15 +144,16 @@ class SemanticEmbedder:
             r"^/tv/{tv_id}/images$": ["media_assets.image"],
             r"^/person/{person_id}/images$": ["media_assets.image"],
             r"^/tv/{tv_id}/reviews$": ["reviews"],
-            r"^/movie/{movie_id}/reviews$": ["reviews"],
+            r"^/movie/{movie_id}/reviews$": ["reviews"]
         }
+
         for pattern, mapped in path_intent_map.items():
             if re.fullmatch(pattern, endpoint):
                 for intent in mapped:
                     intent_scores[intent] += 1.0
 
-        # Substring fallback patterns (medium confidence)
         fallback_path_patterns = {
+            r"/search": ["search.multi"],
             r"/images": ["media_assets.image"],
             r"/videos": ["media_assets.video"],
             r"/credits": ["credits"],
@@ -215,31 +164,33 @@ class SemanticEmbedder:
             r"/company": ["companies.studio"],
             r"/network": ["companies.network"]
         }
+
         for pattern, mapped in fallback_path_patterns.items():
             if re.search(pattern, endpoint):
                 for intent in mapped:
                     intent_scores[intent] += 0.3
 
-        # Parameter-based heuristics
         for param in params:
-            etype = param.get("entity_type", "")
             pname = param.get("name", "").lower()
-            if etype == "genre":
+            etype = param.get("entity_type", "")
+
+            if "with_genres" in pname or etype == "genre":
                 intent_scores["discovery.genre_based"] += 0.6
+            if "vote_average.gte" in pname or "rating" in pname:
+                intent_scores["discovery.filtered"] += 0.6
+            if "with_people" in pname or etype == "person":
+                intent_scores["credits.person"] += 0.6
             if etype == "date" or "year" in pname:
                 intent_scores["discovery.temporal"] += 0.6
-            if etype == "person" or "with_people" in pname:
-                intent_scores["credits.person"] += 0.6
             if "certification" in pname:
                 intent_scores["discovery.filtered"] += 0.5
-            if "sort_by" in pname or "vote_average" in pname or "rating" in pname:
-                intent_scores["discovery.filtered"] += 0.6
+            if "sort_by" in pname:
+                intent_scores["discovery.filtered"] += 0.4
             if "region" in pname or etype == "country":
                 intent_scores["regional"] += 0.5
             if "keyword" in pname:
                 intent_scores["search.multi"] += 0.5
 
-        # General heuristics
         if "/search/" in endpoint:
             intent_scores["search.multi"] += 0.4
         if "/discover/" in endpoint:
@@ -251,30 +202,40 @@ class SemanticEmbedder:
 
         if not intent_scores:
             return [{"intent": "general", "confidence": 0.3}]
+
+        max_score = max(intent_scores.values())
         return [
-            {"intent": k, "confidence": round(v, 2)}
+            {"intent": k, "confidence": round(v / max_score, 2)}
             for k, v in sorted(intent_scores.items(), key=lambda x: -x[1])
-        ]    
-    
+            if v >= 0.3
+        ]
+
     def _map_param_to_entity(self, pname: str) -> str:
         for pattern, entity in self.param_entity_map.items():
             if re.search(pattern, pname):
                 return entity
         return "general"
 
+    def _fallback_entities_with_confidence(self, endpoint: str) -> Dict[str, float]:
+        scores = defaultdict(float)
+        for fragment, entity in self.path_entity_map.items():
+            if fragment in endpoint:
+                score = len(fragment.split("/")) / 10
+                scores[entity] = max(scores[entity], round(score, 2))
+        return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
+
     def _detect_entities(self, params: List[Dict], endpoint: str) -> List[str]:
         entities = set()
-
         for param in params:
-            entity = self._map_param_to_entity(param["name"])
+            entity = self._map_param_to_entity(param.get("name", ""))
             if entity != "general":
-                entities.add(entity.split('.')[0])
+                entities.add(entity.split(".")[0])
 
         path_params = re.findall(r"{(\w+)}", endpoint)
         for p in path_params:
             entity = self._map_param_to_entity(p)
             if entity != "general":
-                entities.add(entity.split('.')[0])
+                entities.add(entity.split(".")[0])
 
         fallback_scores = self._fallback_entities_with_confidence(endpoint)
         for entity, score in fallback_scores.items():
@@ -283,25 +244,16 @@ class SemanticEmbedder:
 
         return list(entities)
 
-    def _fallback_entities_with_confidence(self, endpoint: str) -> Dict[str, float]:
-        scores = defaultdict(float)
-        for fragment, entity in self.path_entity_map.items():
-            if fragment in endpoint:
-                score = len(fragment.split("/")) / 10
-                scores[entity] = max(scores[entity], round(score, 2))
-        if not scores:
-            scores["general"] = 0.2
-        return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
-    
     def _create_embedding_text(self, endpoint: str, details: Dict) -> str:
         examples = self._generate_query_examples(endpoint, details)
-        intents = [i["intent"] for i in self._detect_intents(endpoint, details.get("parameters", []))]
+        intents = self._detect_intents(endpoint, details.get("parameters", []))
         entities = self._detect_entities(details.get("parameters", []), endpoint)
+        top_intents = sorted(intents, key=lambda i: -i["confidence"])[:3]
         return "\n".join([
             f"Endpoint: {endpoint}",
             f"Description: {details.get('description', '')[:250]}...",
-            f"Intents: {', '.join(intents)}",
-            f"Entities: {', '.join(entities)}",
+            f"Key Intents: {', '.join(f'{i['intent']} (conf: {i['confidence']})' for i in top_intents)}",
+            f"Key Entities: {', '.join(entities)}",
             "Example Queries:",
             *[f"- {q}" for q in examples[:3]]
         ])
@@ -333,7 +285,5 @@ class SemanticEmbedder:
 
         self.collection.upsert(ids=ids, metadatas=metadatas, embeddings=embeddings)
 
-
 if __name__ == "__main__":
-    embedder = SemanticEmbedder()
-    embedder.process_endpoints()
+    SemanticEmbedder().process_endpoints()
