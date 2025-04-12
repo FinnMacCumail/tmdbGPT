@@ -81,6 +81,9 @@ class SemanticEmbedder:
             r"first_air_date_year$": "date",
             r"region$": "country",
             r"language$": "language",
+            r"vote_average.*": "rating",
+            r"primary_release_date.*": "date",
+            r"release_date.*": "date"
         }
         entity_map = dict(base_patterns)
         for parent, children in self.entity_hierarchy["entities"].items():
@@ -96,31 +99,80 @@ class SemanticEmbedder:
             return []
 
     def _generate_query_examples(self, endpoint: str, details: Dict) -> List[str]:
+        """
+        Generate rich, diverse user-style queries to represent this endpoint's usage for semantic embedding.
+        Incorporates template rotation and fallback diversity.
+        """
         fallback_queries = [
             f"Find related content using {endpoint}",
             f"Example query for {endpoint}",
             f"Sample request for {endpoint.split('/')[1]}"
         ]
-        try:
-            prompt = f"""Generate 3 concise user queries for this API endpoint:
 
-            Endpoint: {endpoint}
-            Description: {details.get('description', '')}
-            Parameters: {json.dumps(details.get('parameters', []), indent=2)}
-            Return only a numbered list of queries."""
+        # Extract parameter names for dynamic templating
+        param_names = [p.get("name", "") for p in details.get("parameters", [])]
+        has_genre = any("genre" in p for p in param_names)
+        has_date = any("year" in p or "date" in p for p in param_names)
+        has_person = any("person" in p or "with_people" in p for p in param_names)
+        has_rating = any("vote_average" in p for p in param_names)
+        has_keyword = any("keyword" in p for p in param_names)
+
+        # Construct dynamic prompt with styles
+        prompt_variants = [
+            "Generate 2 search queries a user might type to get data from this endpoint.",
+            "Give 2 natural language questions that match this endpoint's use case.",
+            "Write 2 user prompts that filter by genre and date.",
+            "List 2 examples a user might ask to get results from this TMDB API path."
+        ]
+
+        meta_context = f"""
+        Endpoint: {endpoint}
+        Description: {details.get('description', '')}
+        Parameters: {json.dumps(details.get('parameters', []), indent=2)}
+        """
+
+        # Compose final prompt
+        prompt = f"""
+        You are a TMDB assistant.
+
+        {meta_context}
+
+        {prompt_variants[0] if has_person else prompt_variants[1]}
+        Return a numbered list only.
+        """
+
+        try:
             response = self.openai.chat.completions.create(
                 model="gpt-4-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a helpful TMDB API assistant."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": "You generate helpful search queries for TMDB endpoints."},
+                    {"role": "user", "content": prompt.strip()}
                 ],
                 temperature=0.3,
             )
             return self._parse_llm_response(response)
         except Exception as e:
             print(f"⚠️ LLM Query Generation Failed: {str(e)}")
-            return fallback_queries
+            return fallback_queries + self._fallback_template_queries(param_names)
 
+    def _fallback_template_queries(self, param_names: List[str]) -> List[str]:
+        """Hardcoded query patterns in case LLM generation fails."""
+        examples = []
+        if "genre" in " ".join(param_names):
+            examples.append("Top-rated sci-fi movies from 2023")
+            examples.append("Best action movies of the 2010s")
+        if "vote_average" in " ".join(param_names):
+            examples.append("Movies rated above 8.0")
+        if "person" in " ".join(param_names):
+            examples.append("Films directed by Christopher Nolan")
+        if "with_keywords" in " ".join(param_names):
+            examples.append("Movies about space exploration")
+        if not examples:
+            examples.append("Popular movies this week")
+            examples.append("What are the trending shows right now?")
+        return examples
+
+    
     def _detect_intents(self, endpoint: str, params: List[Dict]) -> List[Dict]:
         intent_scores = defaultdict(float)
 
@@ -176,12 +228,12 @@ class SemanticEmbedder:
                 intent_scores["discovery.genre_based"] += 0.6
             if etype == "date" or "year" in pname:
                 intent_scores["discovery.temporal"] += 0.6
-            if etype == "person" and "with" in pname:
-                intent_scores["credits.person"] += 0.5
+            if etype == "person" or "with_people" in pname:
+                intent_scores["credits.person"] += 0.6
             if "certification" in pname:
                 intent_scores["discovery.filtered"] += 0.5
-            if "sort_by" in pname or "vote_average" in pname:
-                intent_scores["discovery.filtered"] += 0.4
+            if "sort_by" in pname or "vote_average" in pname or "rating" in pname:
+                intent_scores["discovery.filtered"] += 0.6
             if "region" in pname or etype == "country":
                 intent_scores["regional"] += 0.5
             if "keyword" in pname:
