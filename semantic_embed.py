@@ -66,7 +66,7 @@ class SemanticEmbedder:
             r"year$": "date", r"primary_release_year$": "date",
             r"first_air_date_year$": "date", r"region$": "country", r"language$": "language",
             r"vote_average.*": "rating", r"primary_release_date.*": "date", r"release_date.*": "date",
-            r"with_people$": "person", r"query$": "keyword"
+            r"with_people$": "person", r"query$": "keyword", r"name$": "keyword"
         }
         for parent, children in self.entity_hierarchy["entities"].items():
             for child in children:
@@ -76,8 +76,16 @@ class SemanticEmbedder:
     def _parse_llm_response(self, response) -> List[str]:
         try:
             content = response.choices[0].message.content
-            return [line.split(". ", 1)[1] for line in content.strip().split("\n") if line.strip()]
-        except:
+            lines = content.strip().split("\n")
+            cleaned = []
+            for line in lines:
+                if ". " in line:
+                    cleaned.append(line.split(". ", 1)[1])
+                else:
+                    cleaned.append(line.strip())
+            return cleaned
+        except Exception as e:
+            print(f"⚠️ LLM Response Parse Error: {str(e)}")
             return []
 
     def _fallback_template_queries(self, param_names: List[str]) -> List[str]:
@@ -91,13 +99,20 @@ class SemanticEmbedder:
         return fallback
 
     def _generate_query_examples(self, endpoint: str, details: Dict) -> List[str]:
-        fallback_queries = [
-            f"Find related content using {endpoint}",
-            f"Example query for {endpoint}",
-            f"Sample request for {endpoint.split('/')[1]}"
-        ]
         param_names = [p.get("name", "") for p in details.get("parameters", [])]
-        has_person = any("person" in p or "with_people" in p for p in param_names)
+        fallback_queries = []
+
+        if any("person" in p for p in param_names):
+            fallback_queries.append("Search for movies starring Brad Pitt.")
+        if any("genre" in p for p in param_names):
+            fallback_queries.append("List action movies released in 2020.")
+        if any("vote_average" in p for p in param_names):
+            fallback_queries.append("Show movies with rating above 8.")
+
+        # Boost /search/* endpoints
+        if endpoint.startswith("/search/") or any(p in ["query", "name"] for p in param_names):
+            fallback_queries.append("Find a movie called Inception.")
+
         prompt = f"""
         You are a TMDB assistant.
 
@@ -117,15 +132,16 @@ class SemanticEmbedder:
                 ],
                 temperature=0.3,
             )
+            content = response.choices[0].message.content
             return self._parse_llm_response(response)
         except Exception as e:
             print(f"⚠️ LLM Query Generation Failed: {str(e)}")
-            return fallback_queries + self._fallback_template_queries(param_names)
+            return fallback_queries
 
     def _detect_intents(self, endpoint: str, params: List[Dict]) -> List[Dict]:
         intent_scores = defaultdict(float)
 
-        path_intent_map = {
+        exact_patterns = {
             r"^/movie/{movie_id}$": ["details.movie"],
             r"^/tv/{tv_id}$": ["details.tv"],
             r"^/person/{person_id}$": ["credits.person"],
@@ -147,12 +163,7 @@ class SemanticEmbedder:
             r"^/movie/{movie_id}/reviews$": ["reviews"]
         }
 
-        for pattern, mapped in path_intent_map.items():
-            if re.fullmatch(pattern, endpoint):
-                for intent in mapped:
-                    intent_scores[intent] += 1.0
-
-        fallback_path_patterns = {
+        fuzzy_patterns = {
             r"/search": ["search.multi"],
             r"/images": ["media_assets.image"],
             r"/videos": ["media_assets.video"],
@@ -165,11 +176,19 @@ class SemanticEmbedder:
             r"/network": ["companies.network"]
         }
 
-        for pattern, mapped in fallback_path_patterns.items():
+        # Match exact endpoint patterns
+        for pattern, intents in exact_patterns.items():
+            if re.fullmatch(pattern, endpoint):
+                for intent in intents:
+                    intent_scores[intent] += 1.0
+
+        # Match fallback patterns by partial inclusion
+        for pattern, intents in fuzzy_patterns.items():
             if re.search(pattern, endpoint):
-                for intent in mapped:
+                for intent in intents:
                     intent_scores[intent] += 0.3
 
+        # Parameter-based intent boosts
         for param in params:
             pname = param.get("name", "").lower()
             etype = param.get("entity_type", "")
@@ -191,6 +210,7 @@ class SemanticEmbedder:
             if "keyword" in pname:
                 intent_scores["search.multi"] += 0.5
 
+        # Additional endpoint context boosts
         if "/search/" in endpoint:
             intent_scores["search.multi"] += 0.4
         if "/discover/" in endpoint:
