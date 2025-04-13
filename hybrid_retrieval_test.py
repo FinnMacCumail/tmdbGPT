@@ -78,12 +78,23 @@ def score_match(user_extraction, candidate_metadata):
         intent_score /= len(matched_intents)
     intent_score = min(intent_score, 1.0)
 
-    # --- Weighted entity score
+    # --- Dynamic entity weighting
     weights = {"movie": 0.5, "year": 0.3, "genre": 0.4, "rating": 0.4, "person": 0.4, "date": 0.3}
+    if "discovery.filtered" in user_intents:
+        weights.update({"rating": 0.6, "year": 0.5})
+    elif "trending.popular" in user_intents:
+        weights.update({"year": 0.1, "rating": 0.1})
+
     entity_score = sum(weights.get(e, 0.1) for e in user_entities & endpoint_entities)
 
-    # --- Parameter compatibility / overlap bonus
-    param_boost = len(user_entities & endpoint_entities) / max(1, len(user_entities))
+    # --- Parameter compatibility score
+    try:
+        endpoint_params = json.loads(candidate_metadata.get("parameters", "[]"))
+        param_names = {p.get("name", "") for p in endpoint_params if isinstance(p, dict)}
+    except Exception:
+        param_names = set()
+    param_overlap = len([e for e in user_entities if e in param_names])
+    param_boost = param_overlap / max(1, len(user_entities))
 
     # --- Boost for entrypoint paths
     if any(e in user_entities for e in {"person", "movie", "tv"}) and "search" in path:
@@ -92,6 +103,10 @@ def score_match(user_extraction, candidate_metadata):
     # --- Boost discover/movie if genre + rating present
     if "/discover/movie" in path and {"genre", "rating"}.issubset(user_entities):
         entity_score += 0.3
+
+    # --- Boost discover/movie if genre + rating + year all present
+    if "/discover/movie" in path and {"genre", "rating", "year"}.issubset(user_entities):
+        entity_score += 0.4
 
     # --- Entity mismatch penalty
     generic = {"keyword", "date", "rating", "country"}
@@ -104,6 +119,10 @@ def score_match(user_extraction, candidate_metadata):
 
     # --- Penalize search endpoints for trending intent
     if any(i.startswith("trending") for i in user_intents) and "/search" in path:
+        mismatch_penalty += 0.2
+
+    # --- Penalize general intent unless no other match
+    if "general" in [i.get("intent") for i in endpoint_intents]:
         mismatch_penalty += 0.2
 
     score = intent_score + entity_score + 0.5 * param_boost - mismatch_penalty
