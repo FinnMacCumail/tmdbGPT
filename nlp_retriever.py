@@ -56,6 +56,58 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
+class JoinStepExpander:
+    @staticmethod
+    def suggest_join_steps(resolved_entities: dict, extraction_result: dict, top_k: int = 10) -> list:
+        from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
+
+        entity_keys = list(resolved_entities.keys())
+        query = extraction_result.get("query_entities", [""])[0] or ""
+
+        join_prompts = []
+
+        # Cross-type joins (original logic)
+        for i in range(len(entity_keys)):
+            for j in range(i + 1, len(entity_keys)):
+                e1, e2 = entity_keys[i], entity_keys[j]
+                prompt = f"Find endpoints that can accept both {e1} and {e2} to answer queries like: '{query}'"
+                print(f"🔍 Join prompt: {prompt}")
+                join_prompts.append(prompt)
+
+        # Same-type joins: e.g. multiple person_id, genre_id
+        JOIN_PARAM_MAP = {
+            "person_id": "with_people",
+            "genre_id": "with_genres",
+            "company_id": "with_companies",
+            "keyword_id": "with_keywords",
+            "network_id": "with_networks",
+            "collection_id": "with_collection",
+            "tv_id": "with_tv",
+            "movie_id": "with_movies"
+        }
+
+        for entity_key, id_list in resolved_entities.items():
+            if isinstance(id_list, list) and len(id_list) > 1:
+                param = JOIN_PARAM_MAP.get(entity_key)
+                if param:
+                    prompt = f"Find endpoints that support {param} for answering: '{query}'"
+                    print(f"🔍 Join prompt: {prompt}")
+                    join_prompts.append(prompt)
+
+        join_matches = []
+        for prompt in join_prompts:
+            results = hybrid_search(prompt, top_k=top_k)
+            join_matches.extend(results)
+
+        seen = set()
+        unique = []
+        for m in join_matches:
+            eid = m.get("endpoint")
+            if eid and eid not in seen:
+                seen.add(eid)
+                unique.append(m)
+
+        return convert_matches_to_execution_steps(unique, extraction_result, resolved_entities)
 
 class ResponseFormatter:
     @staticmethod
