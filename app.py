@@ -50,37 +50,33 @@ def extract_entities(state: AppState) -> AppState:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
 
-def resolve_entities(state):
+def resolve_entities(state: AppState) -> AppState:
     print("→ running node: RESOLVE_ENTITIES")
-    resolved = {}
+    resolver = entity_resolver  # Global instance
     extraction_result = state.extraction_result
+    resolved = {}
 
-    RESOLVABLE_ENTITY_TYPES = {
-        "person", "movie", "tv", "company",
-        "collection", "network", "credit", "keyword",
-        "genre", "year", "rating", "date"
+    RESOLVABLE_TYPES = {
+        "person", "movie", "tv", "company", "collection",
+        "network", "credit", "keyword", "genre", "year", "rating", "date"
     }
 
     for entity_type, values in extraction_result.items():
-        if entity_type not in RESOLVABLE_ENTITY_TYPES:
+        if entity_type not in RESOLVABLE_TYPES:
             print(f"⚠️ Skipping unresolvable entity type: {entity_type}")
             continue
-
         if not values or not isinstance(values, list):
+            print(f"⚠️ Skipping empty or malformed values for {entity_type}: {values}")
             continue
 
-        ids = []
-        for val in values:
-            resolved_id = state.entity_resolver.resolve_entity(val, entity_type)
-            if resolved_id:
-                ids.append(resolved_id)
-                print(f"🔍 Resolved {entity_type}: '{val}' → {resolved_id}")
-
+        print(f"🔎 Resolving {entity_type} values: {values}")
+        ids = resolver.resolve_multiple(values, entity_type, top_k=3)
         if ids:
             resolved[f"{entity_type}_id"] = ids
+            for name, id_ in zip(values, ids):
+                print(f"🔍 Resolved {entity_type}: '{name}' → {id_}")
 
     return state.model_copy(update={"resolved_entities": resolved, "step": "resolve_entities"})
-
 
 def retrieve_context(state: AppState) -> AppState:
     print("→ running node: RETRIEVE_CONTEXT")
