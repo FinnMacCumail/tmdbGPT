@@ -1,80 +1,63 @@
-# execution_orchestrator.py
+from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
 import requests
-from typing import Dict, Any, List
-from dependency_manager import ExecutionState, DependencyManager
-import json
-from requests.exceptions import HTTPError
-import networkx as nx
-from collections import defaultdict
-import time
-import re
 
 class ExecutionOrchestrator:
-    def __init__(self, base_url: str, headers: Dict):
+    def __init__(self, base_url, headers):
+        from dependency_manager import DependencyManager
+        self.dependency_manager = DependencyManager()
         self.base_url = base_url
         self.headers = headers
-        self.dependency_manager = DependencyManager()  # Add this line
 
-    
-    def execute(self, state: ExecutionState) -> ExecutionState:
-        """Execute all API steps with proper parameter handling"""
+    def execute(self, state):
         state.error = None
         state.data_registry = {}
-        
-        for step in state.pending_steps:
+        state.completed_steps = []
+        pending = state.plan_steps
+
+        for step in pending:
+            step_id = step.get("step_id")
+            path = step.get("endpoint")
+            params = step.get("parameters", {})
+
+            # Rewrite path with resolved values if needed
+            for k, v in params.items():
+                if f"{{{k}}}" in path:
+                    path = path.replace(f"{{{k}}}", str(v))
+
+            path = PathRewriter.rewrite(path, state.resolved_entities)
+            full_url = f"{self.base_url}{path}"
+            print(f"\n⚡ Executing {step_id}: {path}")
+
             try:
-                print(f"\n⚡ Executing {step['step_id']}: {step['endpoint']}")
-                
-                # Resolve parameters
-                resolved_params = self._resolve_parameters(step, state)
-                
-                # Format endpoint URL
-                formatted_endpoint = self._format_endpoint(step["endpoint"], resolved_params)
-                
-                # Execute API call
-                response = requests.request(
-                    method=step.get("method", "GET"),
-                    url=f"{self.base_url}{formatted_endpoint}",
-                    headers=self.headers,
-                    params=resolved_params
-                )
-                response.raise_for_status()
-                
-                # Store results
-                state.data_registry[step["step_id"]] = response.json()
-                state.completed_steps.append(step["step_id"])
-                
-                print(f"✅ Success: {response.status_code}")
-                
-            except Exception as e:
-                state.error = f"Step {step['step_id']} failed: {str(e)}"
-                print(f"🔥 Error: {state.error}")
-        
+                response = requests.get(full_url, headers=self.headers, params=params)
+                if response.status_code == 200:
+                    print(f"✅ Success: {response.status_code}")
+                    try:
+                        json_data = response.json()
+                        state.data_registry[step_id] = json_data
+
+                        previous_entities = set(state.resolved_entities.keys())
+                        state = PostStepUpdater.update(state, step, json_data)
+                        new_entities = {
+                            k: v for k, v in state.resolved_entities.items()
+                            if k not in previous_entities
+                        }
+
+                        summaries = ResultExtractor.extract(step["endpoint"], json_data)
+                        if summaries:
+                            state.responses.extend(summaries)
+
+                        # Phase 7.4: dynamically inject new steps based on newly resolved entities
+                        if new_entities:
+                            new_steps = expand_plan_with_dependencies(state, new_entities)
+                            if new_steps:
+                                print(f"🔁 Appending {len(new_steps)} new dependent step(s) to execution queue.")
+                                state.plan_steps.extend(new_steps)
+
+                    except Exception as ex:
+                        print(f"⚠️ Could not parse JSON or update state: {ex}")
+            except Exception as ex:
+                print(f"🔥 Step {step_id} failed with exception: {ex}")
+                state.error = str(ex)
+
         return state
-
-    def _resolve_parameters(self, step: Dict, state: ExecutionState) -> Dict:
-        params = {}
-        for param, value in step.get("parameters", {}).items():
-            # Handle both $var and $$var formats
-            if isinstance(value, str):
-                value = value.replace("$$", "$")  # Normalize double $ signs
-                
-            if isinstance(value, str) and value.startswith("$"):
-                entity_key = value[1:]
-                params[param] = state.resolved_entities.get(entity_key)
-            else:
-                params[param] = value
-        return params
-
-    def _format_endpoint(self, endpoint: str, params: Dict) -> str:
-        """Universal path parameter substitution"""
-        # Match both {param} and $param formats
-        for param_name in re.findall(r"{(\w+)}|\$(\w+)", endpoint):
-            clean_param = param_name[0] or param_name[1]
-            if clean_param in params:
-                endpoint = endpoint.replace(
-                    f"{{{clean_param}}}" if "{" in endpoint else f"${clean_param}",
-                    str(params[clean_param])
-                )
-        return endpoint
-    
