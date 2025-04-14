@@ -66,7 +66,7 @@ class JoinStepExpander:
 
         join_prompts = []
 
-        # Cross-type joins (original logic)
+        # Generate join prompts for cross-entity and same-type combinations
         for i in range(len(entity_keys)):
             for j in range(i + 1, len(entity_keys)):
                 e1, e2 = entity_keys[i], entity_keys[j]
@@ -74,20 +74,19 @@ class JoinStepExpander:
                 print(f"🔍 Join prompt: {prompt}")
                 join_prompts.append(prompt)
 
-        # Same-type joins: e.g. multiple person_id, genre_id
         JOIN_PARAM_MAP = {
             "person_id": "with_people",
             "genre_id": "with_genres",
             "company_id": "with_companies",
             "keyword_id": "with_keywords",
             "network_id": "with_networks",
-            "collection_id": "with_collection",
+            "collection_id": "with_collections",
             "tv_id": "with_tv",
             "movie_id": "with_movies"
         }
 
-        for entity_key, id_list in resolved_entities.items():
-            if isinstance(id_list, list) and len(id_list) > 1:
+        for entity_key, ids in resolved_entities.items():
+            if isinstance(ids, list) and len(ids) > 1:
                 param = JOIN_PARAM_MAP.get(entity_key)
                 if param:
                     prompt = f"Find endpoints that support {param} for answering: '{query}'"
@@ -105,10 +104,19 @@ class JoinStepExpander:
             eid = m.get("endpoint")
             if eid and eid not in seen:
                 seen.add(eid)
+                m["is_join"] = True
                 unique.append(m)
 
-        return convert_matches_to_execution_steps(unique, extraction_result, resolved_entities)
+        # Inject parameters directly for join-relevant steps
+        for match in unique:
+            match.setdefault("parameters", {})
+            for entity_key, param_name in JOIN_PARAM_MAP.items():
+                ids = resolved_entities.get(entity_key)
+                if ids and param_name:
+                    match["parameters"][param_name] = ",".join(map(str, ids))
 
+        return convert_matches_to_execution_steps(unique, extraction_result, resolved_entities)
+    
 class ResponseFormatter:
     @staticmethod
     def format_responses(responses: list) -> list:
