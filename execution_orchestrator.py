@@ -2,6 +2,7 @@ from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand
 import requests
 from hashlib import sha256
 from post_validator import PostValidator
+from entity_reranker import EntityAwareReranker 
 
 class ExecutionOrchestrator:
     
@@ -122,7 +123,10 @@ class ExecutionOrchestrator:
                         if step["endpoint"].startswith("/discover/movie"):
                             filtered_movies = self._run_post_validations(step, json_data, state)
                             if filtered_movies:
-                                for movie in filtered_movies:
+                                query_entities = state.extraction_result.get("query_entities", [])
+                                ranked = EntityAwareReranker.boost_by_entity_mentions(filtered_movies, query_entities)
+
+                                for movie in ranked:
                                     title = movie.get("title") or movie.get("name")
                                     overview = movie.get("overview", "")
                                     summary = f"{title}: {overview}".strip(": ")
