@@ -305,5 +305,20 @@ class SemanticEmbedder:
 
         self.collection.upsert(ids=ids, metadatas=metadatas, embeddings=embeddings)
 
+    def _get_endpoint_metadata(self, endpoint: str) -> dict:
+        """Retrieve metadata for a given endpoint path from ChromaDB."""
+        try:
+            results = self.collection.query(
+                query_texts=[endpoint],
+                n_results=1,
+                include=["metadatas"]
+            )
+            if results and results["metadatas"][0]:
+                return results["metadatas"][0][0]
+            return {}
+        except Exception as e:
+            print(f"⚠️ Metadata lookup failed for {endpoint}: {e}")
+            return {}
+
 if __name__ == "__main__":
     SemanticEmbedder().process_endpoints()
