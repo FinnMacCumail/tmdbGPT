@@ -1,25 +1,17 @@
 import json
 import os
-from datetime import datetime
-
-import chromadb
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
-from openai import OpenAI
+import chromadb
 
 load_dotenv()
 
-# -- Init clients
-openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Init clients
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
 
-# -- Load test queries
-with open("data/sample-tmdb-questions.markdown", "r") as f:
-    queries = [q.strip() for q in f if q.strip()]
-
-def extract_intent_entities(query):
+def extract_intent_entities(openai, query):
     prompt = f"""
     Extract intents and entities from the user's query using this schema:
 
@@ -103,7 +95,7 @@ def score_match(user_extraction, candidate_metadata):
     # --- Boost discover/movie if genre + rating present
     if "/discover/movie" in path and {"genre", "rating"}.issubset(user_entities):
         entity_score += 0.3
-
+    
     # --- Boost discover/movie if genre + rating + year all present
     if "/discover/movie" in path and {"genre", "rating", "year"}.issubset(user_entities):
         entity_score += 0.4
@@ -154,36 +146,29 @@ def semantic_retrieval(extraction_result):
     matches.sort(key=lambda x: x["final_score"], reverse=True)
     return matches
 
-def main():
-    all_results = []
-    print(f"📦 Running {len(queries)} queries from sample-tmdb-questions...\n")
+def convert_matches_to_execution_steps(matches, extraction_result, resolved_entities):
+    steps = []
+    query_entity = (extraction_result.get("query_entities") or [None])[0]
 
-    for user_query in queries:
-        extraction = extract_intent_entities(user_query)
-        if not extraction:
-            print(f"⚠️ Skipped due to extraction failure: {user_query}")
-            continue
+    for i, match in enumerate(matches):
+        endpoint = match["endpoint"]
+        parameters = match.get("parameters", {}).copy()
 
-        matches = semantic_retrieval(extraction)
+        # Inject resolved entities into path/query parameters
+        for entity_key, entity_value in resolved_entities.items():
+            if entity_key in endpoint:
+                parameters[entity_key] = entity_value
 
-        result_block = {
-            "query": user_query,
-            "extraction": extraction,
-            "results": matches
+        # Special handling: inject "query" into /search/* endpoints
+        if "/search/" in endpoint and "query" not in parameters and query_entity:
+            parameters["query"] = query_entity
+
+        step_id = f"step_{i:06x}"
+        step = {
+            "step_id": step_id,
+            "endpoint": endpoint,
+            "parameters": parameters
         }
+        steps.append(step)
 
-        all_results.append(result_block)
-
-        print(f"🧠 Query: {user_query}")
-        for m in matches[:3]:
-            print(f"  - {m['endpoint']} (score: {m['match_score']}, dist: {m['distance']}, final: {m['final_score']})")
-
-    os.makedirs("logs", exist_ok=True)
-    log_path = f"logs/retrieval_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(log_path, "w") as f:
-        json.dump(all_results, f, indent=2)
-
-    print(f"\n✅ Retrieval log written to: {log_path}")
-
-if __name__ == "__main__":
-    main()
+    return steps
