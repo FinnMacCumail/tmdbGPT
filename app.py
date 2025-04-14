@@ -41,8 +41,11 @@ def parse(state: AppState) -> AppState:
     return state.model_copy(update={"status": "parsed", "step": "parse", "__write_guard__": f"parse_{int(time.time()*1000)}"})
 
 def extract_entities(state: AppState) -> AppState:
-    print("→ running node: EXTRACT_ENTITIES")
+    print("→ running node: EXTRACT_ENTITIES")    
     extraction = openai_client.extract_entities_and_intents(state.input)
+    print("📤 Extracted entities:")
+    for k, v in extraction.items():
+        print(f" - {k}: {v}")
     if not extraction:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
@@ -70,15 +73,14 @@ def resolve_entities(state):
         for val in values:
             resolved_id = state.entity_resolver.resolve_entity(val, entity_type)
             if resolved_id:
-                print(f"🔎 Resolved {entity_type}: '{val}' → {resolved_id}")
                 ids.append(resolved_id)
-            else:
-                print(f"❌ Could not resolve {entity_type}: '{val}'")
+                print(f"🔍 Resolved {entity_type}: '{val}' → {resolved_id}")
 
         if ids:
             resolved[f"{entity_type}_id"] = ids
 
     return state.model_copy(update={"resolved_entities": resolved, "step": "resolve_entities"})
+
 
 def retrieve_context(state: AppState) -> AppState:
     print("→ running node: RETRIEVE_CONTEXT")
