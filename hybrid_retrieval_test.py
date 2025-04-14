@@ -178,9 +178,29 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
             if entity_key in endpoint:
                 parameters[entity_key] = entity_value
 
-        # Special handling: inject "query" into /search/* endpoints
+        # Auto-inject "query" into /search/* endpoints
         if "/search/" in endpoint and "query" not in parameters and query_entity:
             parameters["query"] = query_entity
+
+        # Inject multi-entity joins for supported with_* params
+        ENTITY_PARAM_MAP = {
+            "person_id": "with_people",
+            "genre_id": "with_genres",
+            "company_id": "with_companies",
+            "keyword_id": "with_keywords",
+            "network_id": "with_networks",
+            "collection_id": "with_collection",
+            "tv_id": "with_tv",
+            "movie_id": "with_movies"
+        }
+
+        for entity_key, param_name in ENTITY_PARAM_MAP.items():
+            ids = resolved_entities.get(entity_key)
+            if ids and param_name in endpoint or param_name in parameters:
+                if isinstance(ids, list):
+                    parameters[param_name] = ",".join(map(str, ids))
+                else:
+                    parameters[param_name] = str(ids)
 
         step_id = f"step_{i:06x}"
         step = {
@@ -191,3 +211,4 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
         steps.append(step)
 
     return steps
+
