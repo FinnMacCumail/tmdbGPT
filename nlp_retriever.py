@@ -368,7 +368,8 @@ class ResultExtractor:
 
         # Attempt to find a "results" or list-like root key
         candidate_lists = [v for v in json_data.values() if isinstance(v, list)]
-
+        if not candidate_lists and "results" in json_data:
+            candidate_lists = [json_data["results"]]
         if not candidate_lists:
             # Try flat dicts with known display fields
             title = json_data.get("title") or json_data.get("name")
