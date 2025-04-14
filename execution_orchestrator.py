@@ -124,6 +124,10 @@ class ExecutionOrchestrator:
                             filtered_movies = self._run_post_validations(step, json_data, state)
                             if filtered_movies:
                                 query_entities = state.extraction_result.get("query_entities", [])
+                                # Add initial final_score to each movie
+                                for movie in filtered_movies:
+                                    movie["final_score"] = 1.0  # base score
+
                                 ranked = EntityAwareReranker.boost_by_entity_mentions(filtered_movies, query_entities)
 
                                 for movie in ranked:
