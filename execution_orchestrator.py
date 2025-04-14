@@ -1,8 +1,6 @@
 from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
 import requests
-
 from hashlib import sha256
-seen_step_keys = set()
 
 class ExecutionOrchestrator:
     def __init__(self, base_url, headers):
@@ -15,10 +13,15 @@ class ExecutionOrchestrator:
         state.error = None
         state.data_registry = {}
         state.completed_steps = []
-        pending = state.plan_steps
+        seen_step_keys = set()
+        step_origin_depth = {}
+        MAX_CHAIN_DEPTH = 3
 
-        for step in pending:
-            # Compute deduplication key
+        i = 0
+        while i < len(state.plan_steps):
+            step = state.plan_steps[i]
+            i += 1
+
             param_string = "&".join(f"{k}={v}" for k, v in sorted(step.get("parameters", {}).items()))
             dedup_key = f"{step['endpoint']}?{param_string}"
             step_hash = sha256(dedup_key.encode()).hexdigest()
@@ -29,10 +32,14 @@ class ExecutionOrchestrator:
 
             seen_step_keys.add(step_hash)
             step_id = step.get("step_id")
+            depth = step_origin_depth.get(step_id, 0)
+            if depth > MAX_CHAIN_DEPTH:
+                print(f"🔁 Loop suppression: skipping step {step_id} (depth={depth})")
+                continue
+
             path = step.get("endpoint")
             params = step.get("parameters", {})
 
-            # Rewrite path with resolved values if needed
             for k, v in params.items():
                 if f"{{{k}}}" in path:
                     path = path.replace(f"{{{k}}}", str(v))
@@ -60,12 +67,13 @@ class ExecutionOrchestrator:
                         if summaries:
                             state.responses.extend(summaries)
 
-                        # Phase 7.4: dynamically inject new steps based on newly resolved entities
                         if new_entities:
                             new_steps = expand_plan_with_dependencies(state, new_entities)
                             if new_steps:
                                 print(f"🔁 Appending {len(new_steps)} new dependent step(s) to execution queue.")
-                                state.plan_steps.extend(new_steps)
+                                for new_step in new_steps:
+                                    state.plan_steps.append(new_step)
+                                    step_origin_depth[new_step["step_id"]] = depth + 1
 
                     except Exception as ex:
                         print(f"⚠️ Could not parse JSON or update state: {ex}")
