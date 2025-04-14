@@ -66,6 +66,7 @@ class ExecutionOrchestrator:
                         summaries = ResultExtractor.extract(step["endpoint"], json_data)
                         if summaries:
                             state.responses.extend(summaries)
+                            ExecutionTraceLogger.log_step(step_id, path, "Success", summaries[0] if summaries else "<no summary>")
 
                         if new_entities:
                             new_steps = expand_plan_with_dependencies(state, new_entities)
@@ -79,6 +80,24 @@ class ExecutionOrchestrator:
                         print(f"⚠️ Could not parse JSON or update state: {ex}")
             except Exception as ex:
                 print(f"🔥 Step {step_id} failed with exception: {ex}")
+                ExecutionTraceLogger.log_step(step_id, path, f"Failed ({str(ex)})")
                 state.error = str(ex)
 
         return state
+
+class ExecutionTraceLogger:
+    @staticmethod
+    def log_step(step_id, path, status, summary=None):
+        print("\n📍 Execution Trace")
+        print(f"├─ Step: {step_id}")
+        print(f"├─ Endpoint: {path}")
+        print(f"├─ Status: {status}")
+        if summary:
+            print(f"└─ Result: {summary[:100]}{'...' if len(summary) > 100 else ''}")
+
+# Usage inside orchestrator loop:
+# After each response:
+# will be moved inside try block where 'summaries' is defined
+
+# On failure:
+# will be moved inside exception block where 'response' is defined
