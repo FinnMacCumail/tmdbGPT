@@ -4,6 +4,7 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import chromadb
 from llm_client import OpenAILLMClient
+from entity_reranker import EntityAwareReranker
 
 
 load_dotenv()
@@ -161,7 +162,7 @@ def semantic_retrieval(extraction_result, top_k=10):
             "final_score": round(final_score, 3)
         })
 
-    matches.sort(key=lambda x: x["final_score"], reverse=True)
+    matches = EntityAwareReranker.boost_by_entity_mentions(matches, extraction_result.get("query_entities", []))
     return matches
 
 def convert_matches_to_execution_steps(matches, extraction_result, resolved_entities):

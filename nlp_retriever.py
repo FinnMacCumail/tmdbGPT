@@ -56,6 +56,7 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
+
 class ResponseFormatter:
     @staticmethod
     def format_responses(responses: list) -> list:
