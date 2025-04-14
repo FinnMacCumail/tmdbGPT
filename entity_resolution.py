@@ -53,3 +53,11 @@ class TMDBEntityResolver:
                 print(f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
 
         return None
+    
+    def resolve_multiple(self, names: list, entity_type: str, top_k: int = 3) -> list:
+        results = []
+        for name in names:
+            id_ = self.resolve_entity(name, entity_type)
+            if id_:
+                results.append(id_)
+        return results
