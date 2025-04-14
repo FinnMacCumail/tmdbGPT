@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 import time
-from nlp_retriever import RerankPlanning, ResponseFormatter, JoinStepExpander
+from nlp_retriever import RerankPlanning, ResponseFormatter
+from collections import defaultdict
 
 load_dotenv()
 
@@ -61,12 +62,32 @@ def resolve_entities(state: AppState) -> AppState:
         "network", "credit", "keyword", "genre", "year", "rating", "date"
     }
 
-    for entity_type, values in extraction_result.items():
+    combined = defaultdict(list)
+
+    # Normalize: group all values under canonical entity types
+    for key, values in extraction_result.items():
+        if not isinstance(values, list) or not values:
+            print(f"⚠️ Skipping empty or malformed values for {key}: {values}")
+            continue
+
+        if key in RESOLVABLE_TYPES:
+            combined[key].extend(values)
+        elif key == "query_entities":
+            for val in values:
+                val_lower = val.lower()
+                # Naive classification: match names (you can improve with LLM tagging)
+                if any(name in val_lower for name in ["de niro", "pacino", "scorsese", "spielberg", "tarantino"]):
+                    combined["person"].append(val)
+                elif any(keyword in val_lower for keyword in ["action", "comedy", "drama"]):
+                    combined["genre"].append(val)
+                elif "year" in val_lower or val_lower.isdigit():
+                    combined["year"].append(val)
+                else:
+                    combined["person"].append(val)  # fallback default
+
+    for entity_type, values in combined.items():
         if entity_type not in RESOLVABLE_TYPES:
             print(f"⚠️ Skipping unresolvable entity type: {entity_type}")
-            continue
-        if not values or not isinstance(values, list):
-            print(f"⚠️ Skipping empty or malformed values for {entity_type}: {values}")
             continue
 
         print(f"🔎 Resolving {entity_type} values: {values}")
@@ -76,7 +97,7 @@ def resolve_entities(state: AppState) -> AppState:
             if key not in resolved:
                 resolved[key] = []
             resolved[key].extend(ids)
-            resolved[key] = list(set(resolved[key]))  # remove duplicates
+            resolved[key] = list(set(resolved[key]))  # deduplicate
             for name, id_ in zip(values, ids):
                 print(f"🔍 Resolved {entity_type}: '{name}' → {id_}")
 
