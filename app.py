@@ -12,6 +12,7 @@ from typing import Optional, Dict, List
 import time
 from nlp_retriever import RerankPlanning, ResponseFormatter
 from collections import defaultdict
+from nlp_retriever import JoinStepExpander
 
 load_dotenv()
 
@@ -111,8 +112,6 @@ def retrieve_context(state: AppState) -> AppState:
 def plan(state: AppState) -> AppState:
     print("→ running node: PLAN")
 
-    from nlp_retriever import JoinStepExpander
-
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
     feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
 
@@ -125,6 +124,12 @@ def plan(state: AppState) -> AppState:
     )
 
     combined_steps = execution_steps + join_steps
+    print("\n🧭 Final Execution Plan:")
+    for s in combined_steps:
+        print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
+    for step in join_steps:
+        print(f"🧩 Join step injected: {step['endpoint']} params={step['parameters']}")
+
 
     if not combined_steps:
         combined_steps = FallbackHandler.generate_steps(state.resolved_entities, state.extraction_result)

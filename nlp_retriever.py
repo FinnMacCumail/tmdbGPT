@@ -118,6 +118,8 @@ class JoinStepExpander:
                 ids = resolved_entities.get(entity_key)
                 if ids and param_name in supported_param_names:
                     match["parameters"][param_name] = ",".join(map(str, ids))
+                    print(f"✅ Injected {param_name} = {match['parameters'][param_name]} into {match['endpoint']}")
+
 
         # Deduplicate by endpoint
         seen = set()

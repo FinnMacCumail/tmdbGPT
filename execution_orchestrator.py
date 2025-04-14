@@ -106,6 +106,8 @@ class ExecutionOrchestrator:
             print(f"\n⚡ Executing {step_id}: {path}")
 
             try:
+                print(f"📤 Calling TMDB: {full_url}")
+                print(f"📦 Params: {params}")
                 response = requests.get(full_url, headers=self.headers, params=params)
                 if response.status_code == 200:
                     print(f"✅ Success: {response.status_code}")
