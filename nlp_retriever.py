@@ -61,19 +61,6 @@ class JoinStepExpander:
     def suggest_join_steps(resolved_entities: dict, extraction_result: dict, top_k: int = 10) -> list:
         from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
-        entity_keys = list(resolved_entities.keys())
-        query = extraction_result.get("query_entities", [""])[0] or ""
-
-        join_prompts = []
-
-        # Generate join prompts for cross-entity and same-type combinations
-        for i in range(len(entity_keys)):
-            for j in range(i + 1, len(entity_keys)):
-                e1, e2 = entity_keys[i], entity_keys[j]
-                prompt = f"Find endpoints that can accept both {e1} and {e2} to answer queries like: '{query}'"
-                print(f"🔍 Join prompt: {prompt}")
-                join_prompts.append(prompt)
-
         JOIN_PARAM_MAP = {
             "person_id": "with_people",
             "genre_id": "with_genres",
@@ -84,6 +71,27 @@ class JoinStepExpander:
             "tv_id": "with_tv",
             "movie_id": "with_movies"
         }
+
+        def _is_valid_join_step(match: dict) -> bool:
+            param_set = set(match.get("parameters", {}).keys())
+            endpoint_params = match.get("parameters_metadata", []) or match.get("parameters", [])
+            supported_names = {p.get("name") for p in endpoint_params if p.get("name")}
+
+            for param in param_set:
+                if param.startswith("with_") and param not in supported_names:
+                    return False
+            return True
+
+        query = extraction_result.get("query_entities", [""])[0] or ""
+        join_prompts = []
+
+        entity_keys = list(resolved_entities.keys())
+        for i in range(len(entity_keys)):
+            for j in range(i + 1, len(entity_keys)):
+                e1, e2 = entity_keys[i], entity_keys[j]
+                prompt = f"Find endpoints that can accept both {e1} and {e2} to answer queries like: '{query}'"
+                print(f"🔍 Join prompt: {prompt}")
+                join_prompts.append(prompt)
 
         for entity_key, ids in resolved_entities.items():
             if isinstance(ids, list) and len(ids) > 1:
@@ -96,26 +104,31 @@ class JoinStepExpander:
         join_matches = []
         for prompt in join_prompts:
             results = hybrid_search(prompt, top_k=top_k)
+            for r in results:
+                r["parameters_metadata"] = r.get("parameters", [])
+                r.setdefault("parameters", {})
+                r["is_join"] = True
             join_matches.extend(results)
 
+        # Inject resolved entity values into parameter map
+        for match in join_matches:
+            for entity_key, param_name in JOIN_PARAM_MAP.items():
+                ids = resolved_entities.get(entity_key)
+                if ids and param_name:
+                    match["parameters"][param_name] = ",".join(map(str, ids))
+
+        # Deduplicate by endpoint
         seen = set()
         unique = []
         for m in join_matches:
             eid = m.get("endpoint")
             if eid and eid not in seen:
                 seen.add(eid)
-                m["is_join"] = True
                 unique.append(m)
 
-        # Inject parameters directly for join-relevant steps
-        for match in unique:
-            match.setdefault("parameters", {})
-            for entity_key, param_name in JOIN_PARAM_MAP.items():
-                ids = resolved_entities.get(entity_key)
-                if ids and param_name:
-                    match["parameters"][param_name] = ",".join(map(str, ids))
-
-        return convert_matches_to_execution_steps(unique, extraction_result, resolved_entities)
+        # Final filter using parameter compatibility
+        validated = [m for m in unique if _is_valid_join_step(m)]
+        return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
     
 class ResponseFormatter:
     @staticmethod
