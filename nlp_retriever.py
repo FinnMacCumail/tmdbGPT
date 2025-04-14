@@ -32,6 +32,7 @@ from dependency_manager import DependencyManager
 from query_classifier import QueryClassifier
 from json import JSONDecodeError
 from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
+from semantic_embed import SemanticEmbedder
 
 
 # Load API keys
@@ -59,8 +60,7 @@ HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 class JoinStepExpander:
     @staticmethod
     def suggest_join_steps(resolved_entities: dict, extraction_result: dict, top_k: int = 10) -> list:
-        from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
-
+                
         JOIN_PARAM_MAP = {
             "person_id": "with_people",
             "genre_id": "with_genres",
@@ -76,12 +76,9 @@ class JoinStepExpander:
             param_set = set(match.get("parameters", {}).keys())
             endpoint_params = match.get("parameters_metadata", []) or match.get("parameters", [])
             supported_names = {p.get("name") for p in endpoint_params if p.get("name")}
+            return all(p not in param_set or p in supported_names for p in param_set if p.startswith("with_"))
 
-            for param in param_set:
-                if param.startswith("with_") and param not in supported_names:
-                    return False
-            return True
-
+        # Prepare join prompts based on combinations of entity keys
         query = extraction_result.get("query_entities", [""])[0] or ""
         join_prompts = []
 
@@ -101,6 +98,7 @@ class JoinStepExpander:
                     print(f"🔍 Join prompt: {prompt}")
                     join_prompts.append(prompt)
 
+        # Perform hybrid search
         join_matches = []
         for prompt in join_prompts:
             results = hybrid_search(prompt, top_k=top_k)
@@ -110,7 +108,7 @@ class JoinStepExpander:
                 r["is_join"] = True
             join_matches.extend(results)
 
-        # Inject resolved entity values into parameter map
+        # Inject parameter values
         for match in join_matches:
             match.setdefault("parameters", {})
             endpoint_params = match.get("parameters_metadata", [])
@@ -120,7 +118,7 @@ class JoinStepExpander:
                 ids = resolved_entities.get(entity_key)
                 if ids and param_name in supported_param_names:
                     match["parameters"][param_name] = ",".join(map(str, ids))
-                    
+
         # Deduplicate by endpoint
         seen = set()
         unique = []
@@ -130,10 +128,30 @@ class JoinStepExpander:
                 seen.add(eid)
                 unique.append(m)
 
-        # Final filter using parameter compatibility
+        # Filter and add produces_entities dynamically via metadata
         validated = [m for m in unique if _is_valid_join_step(m)]
+
+        embedder = SemanticEmbedder()
+        for step in validated:
+            step.setdefault("produces_entities", [])
+            endpoint = step.get("endpoint")
+            meta = embedder._get_endpoint_metadata(endpoint)
+
+            entities_str = meta.get("entities", "")
+            if isinstance(entities_str, str):
+                entity_list = [e.strip() for e in entities_str.split(",")]
+            elif isinstance(entities_str, list):
+                entity_list = entities_str
+            else:
+                entity_list = []
+
+            if "movie" in entity_list:
+                step["produces_entities"].append("movie_id")
+            elif "tv" in entity_list:
+                step["produces_entities"].append("tv_id")
+
         return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
-    
+
 class ResponseFormatter:
     @staticmethod
     def format_responses(responses: list) -> list:
