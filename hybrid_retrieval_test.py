@@ -3,6 +3,8 @@ import os
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import chromadb
+from llm_client import OpenAILLMClient
+
 
 load_dotenv()
 
@@ -10,6 +12,22 @@ load_dotenv()
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
+openai_client = OpenAILLMClient()
+
+def hybrid_search(prompt: str, top_k: int = 10) -> list:
+    """
+    Interpret a natural language prompt to generate structured extraction,
+    then perform hybrid semantic retrieval.
+
+    Args:
+        prompt (str): user-style query like "Fetch endpoints requiring person_id for intent credits.person"
+        top_k (int): number of results to return
+
+    Returns:
+        list: retrieved endpoint matches
+    """
+    structured = openai_client.extract_entities_and_intents(prompt)
+    return semantic_retrieval(structured, top_k=top_k)
 
 def extract_intent_entities(openai, query):
     prompt = f"""
@@ -120,13 +138,13 @@ def score_match(user_extraction, candidate_metadata):
     score = intent_score + entity_score + 0.5 * param_boost - mismatch_penalty
     return round(score, 3)
 
-def semantic_retrieval(extraction_result):
+def semantic_retrieval(extraction_result, top_k=10):
     embedding_text = json.dumps(extraction_result)
     query_embedding = embedder.encode(embedding_text).tolist()
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=10,
+        n_results=top_k,
         include=["metadatas", "distances"]
     )
 
