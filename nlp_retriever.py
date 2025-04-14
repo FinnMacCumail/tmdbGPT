@@ -112,11 +112,15 @@ class JoinStepExpander:
 
         # Inject resolved entity values into parameter map
         for match in join_matches:
+            match.setdefault("parameters", {})
+            endpoint_params = match.get("parameters_metadata", [])
+            supported_param_names = {p.get("name") for p in endpoint_params if p.get("name")}
+
             for entity_key, param_name in JOIN_PARAM_MAP.items():
                 ids = resolved_entities.get(entity_key)
-                if ids and param_name:
+                if ids and param_name in supported_param_names:
                     match["parameters"][param_name] = ",".join(map(str, ids))
-
+                    
         # Deduplicate by endpoint
         seen = set()
         unique = []
