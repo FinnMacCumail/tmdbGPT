@@ -47,7 +47,7 @@ def extract_entities(state: AppState) -> AppState:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
 
-def resolve_entities(state: AppState) -> AppState:
+def resolve_entities(state):
     print("→ running node: RESOLVE_ENTITIES")
     resolved = {}
     extraction_result = state.extraction_result
@@ -68,17 +68,17 @@ def resolve_entities(state: AppState) -> AppState:
 
         ids = []
         for val in values:
-            resolved_id = entity_resolver.resolve_entity(val, entity_type)
+            resolved_id = state.entity_resolver.resolve_entity(val, entity_type)
             if resolved_id:
+                print(f"🔎 Resolved {entity_type}: '{val}' → {resolved_id}")
                 ids.append(resolved_id)
+            else:
+                print(f"❌ Could not resolve {entity_type}: '{val}'")
 
         if ids:
             resolved[f"{entity_type}_id"] = ids
-        
-        print("✅ Final resolved_entities:", resolved)
 
     return state.model_copy(update={"resolved_entities": resolved, "step": "resolve_entities"})
-
 
 def retrieve_context(state: AppState) -> AppState:
     print("→ running node: RETRIEVE_CONTEXT")
