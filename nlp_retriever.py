@@ -234,44 +234,53 @@ class PathRewriter:
 
 class PostStepUpdater:
     @staticmethod
-    def update(state, step, response_json):
-        """
-        After executing a step, extract new entity IDs from the response and update resolved_entities.
+    def update(state, step, json_data):
+        path = step.get("endpoint")
+        step_id = step.get("step_id", "unknown_step")
 
-        Args:
-            state (AppState): current application state
-            step (dict): the execution step metadata (must contain 'endpoint')
-            response_json (dict): parsed JSON response from the TMDB API
+        extracted = {}
 
-        Returns:
-            AppState: updated state with newly resolved entities
-        """
-        import re
+        if path.startswith("/search/"):
+            print("🔎 Raw /search/person results:")
+            for item in json_data.get("results", []):
+                print(f"  → {item.get('name')} (id={item.get('id')})")
+                if not isinstance(item, dict):
+                    continue
+                entity_id = item.get("id")
+                entity_name = item.get("name") or item.get("title")
+                if entity_id:
+                    entity_type = PostStepUpdater._infer_entity_type(path)
+                    if entity_type:
+                        key = f"{entity_type}_id"
+                        extracted.setdefault(key, []).append(entity_id)
+                        print(f"🔍 Resolved {entity_type}: '{entity_name}' → {entity_id}")
 
-        endpoint = step.get("endpoint")
-        updated = {}
-
-        ENTITY_EXTRACTORS = {
-            "/search/person": lambda r: {"person_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
-            "/search/movie": lambda r: {"movie_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
-            "/search/tv": lambda r: {"tv_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
-            "/search/collection": lambda r: {"collection_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
-            "/search/company": lambda r: {"company_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
-            "/search/keyword": lambda r: {"keyword_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {}
-        }
-
-        for pattern, extractor in ENTITY_EXTRACTORS.items():
-            if re.fullmatch(pattern.replace("{", "\\{"), endpoint):
-                result = extractor(response_json)
-                for k, v in result.items():
-                    if v:
-                        updated[k] = v
-
-        if updated:
-            state.resolved_entities.update(updated)
-            state.responses.append({"step": step["step_id"], "extracted": updated})
+        if extracted:
+            state.resolved_entities.update(extracted)
+            state.responses.append({"step": step_id, "extracted": extracted})
 
         return state
+
+    @staticmethod
+    def _infer_entity_type(path):
+        if "person" in path:
+            return "person"
+        elif "movie" in path:
+            return "movie"
+        elif "tv" in path:
+            return "tv"
+        elif "company" in path:
+            return "company"
+        elif "collection" in path:
+            return "collection"
+        elif "keyword" in path:
+            return "keyword"
+        elif "network" in path:
+            return "network"
+        elif "genre" in path:
+            return "genre"
+        return None
+
 
 class RerankPlanning:
     @staticmethod
