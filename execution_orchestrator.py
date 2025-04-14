@@ -1,14 +1,70 @@
 from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
 import requests
 from hashlib import sha256
+from post_validator import PostValidator
 
 class ExecutionOrchestrator:
+    
+    VALIDATION_REGISTRY = [
+        {
+            "endpoint": "/discover/movie",
+            "trigger_param": "with_people",
+            "followup_endpoint_template": "/movie/{movie_id}/credits",
+            "validator": PostValidator.has_all_cast,
+            "args_builder": lambda step, state: {
+                "required_ids": [
+                    int(pid)
+                    for pid in step["parameters"].get("with_people", "").split(",")
+                    if pid.isdigit()
+                ]
+            },
+            "arg_source": "credits"
+        },
+        {
+            "endpoint": "/discover/movie",
+            "trigger_param": "director_name",
+            "followup_endpoint_template": "/movie/{movie_id}/credits",
+            "validator": PostValidator.has_director,
+            "args_builder": lambda step, state: {
+                "director_name": state.extraction_result.get("query_entities", [None])[0]
+            },
+            "arg_source": "credits"
+        }
+        # Add more validations here
+    ]
+    
     def __init__(self, base_url, headers):
         from dependency_manager import DependencyManager
         self.dependency_manager = DependencyManager()
         self.base_url = base_url
         self.headers = headers
 
+    def _run_post_validations(self, step, data, state):
+        validated = []
+        movie_results = data.get("results", [])
+        for rule in self.VALIDATION_REGISTRY:
+            if rule["endpoint"] in step["endpoint"] and rule["trigger_param"] in step.get("parameters", {}):
+                validator = rule["validator"]
+                build_args = rule["args_builder"]
+                args = build_args(step, state)
+                for movie in movie_results:
+                    movie_id = movie.get("id")
+                    if not movie_id:
+                        continue
+
+                    url = f"{self.base_url}{rule['followup_endpoint_template'].replace('{movie_id}', str(movie_id))}"
+                    try:
+                        response = requests.get(url, headers=self.headers)
+                        if response.status_code != 200:
+                            continue
+                        result_data = response.json()
+                        if validator(result_data, **args):
+                            validated.append(movie)
+                    except Exception as e:
+                        print(f"⚠️ Validation failed for movie_id={movie_id}: {e}")
+                break  # Stop after first matching rule
+        return validated or movie_results
+    
     def execute(self, state):
         state.error = None
         state.data_registry = {}
@@ -63,10 +119,23 @@ class ExecutionOrchestrator:
                             if k not in previous_entities
                         }
 
-                        summaries = ResultExtractor.extract(step["endpoint"], json_data)
-                        if summaries:
-                            state.responses.extend(summaries)
-                            ExecutionTraceLogger.log_step(step_id, path, "Success", summaries[0] if summaries else "<no summary>")
+                        if step["endpoint"].startswith("/discover/movie"):
+                            filtered_movies = self._run_post_validations(step, json_data, state)
+                            if filtered_movies:
+                                for movie in filtered_movies:
+                                    title = movie.get("title") or movie.get("name")
+                                    overview = movie.get("overview", "")
+                                    summary = f"{title}: {overview}".strip(": ")
+                                    state.responses.append(f"📌 {summary}")
+                                ExecutionTraceLogger.log_step(step_id, path, "Validated", state.responses[-1] if state.responses else "")
+                            else:
+                                state.responses.append("⚠️ No valid results matched all required cast/director.")
+                                ExecutionTraceLogger.log_step(step_id, path, "Filtered", "No matching results")
+                        else:
+                            summaries = ResultExtractor.extract(step["endpoint"], json_data)
+                            if summaries:
+                                state.responses.extend(summaries)
+                                ExecutionTraceLogger.log_step(step_id, path, "Success", summaries[0] if summaries else "<no summary>")
 
                         if new_entities:
                             new_steps = expand_plan_with_dependencies(state, new_entities)
