@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 import time
-from nlp_retriever import RerankPlanning, ResponseFormatter
+from nlp_retriever import RerankPlanning, ResponseFormatter, JoinStepExpander
 
 load_dotenv()
 
@@ -47,10 +47,10 @@ def extract_entities(state: AppState) -> AppState:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
 
-def resolve_entities(state):
+def resolve_entities(state: AppState) -> AppState:
     print("→ running node: RESOLVE_ENTITIES")
     resolved = {}
-    extraction_result = state["extraction_result"]
+    extraction_result = state.extraction_result
 
     RESOLVABLE_ENTITY_TYPES = {
         "person", "movie", "tv", "company",
@@ -68,14 +68,17 @@ def resolve_entities(state):
 
         ids = []
         for val in values:
-            resolved_id = state["entity_resolver"].resolve_entity(val, entity_type)
+            resolved_id = entity_resolver.resolve_entity(val, entity_type)
             if resolved_id:
                 ids.append(resolved_id)
 
         if ids:
-            resolved[f"{entity_type}_id"] = ids  # ✅ store list of all resolved IDs
+            resolved[f"{entity_type}_id"] = ids
+        
+        print("✅ Final resolved_entities:", resolved)
 
-    return {**state, "resolved_entities": resolved, "step": "resolve_entities"}
+    return state.model_copy(update={"resolved_entities": resolved, "step": "resolve_entities"})
+
 
 def retrieve_context(state: AppState) -> AppState:
     print("→ running node: RETRIEVE_CONTEXT")
@@ -83,17 +86,27 @@ def retrieve_context(state: AppState) -> AppState:
     return state.model_copy(update={"retrieved_matches": retrieved_matches, "step": "retrieve_context"})
 
 def plan(state: AppState) -> AppState:
-    print("→ running node: PLAN")    
+    print("→ running node: PLAN")
+
+    from nlp_retriever import JoinStepExpander
 
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
     feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
 
     execution_steps = convert_matches_to_execution_steps(feasible, state.extraction_result, state.resolved_entities)
 
-    if not execution_steps:
-        execution_steps = FallbackHandler.generate_steps(state.resolved_entities, state.extraction_result)
+    # Phase 9.2: attempt to enrich plan with join-compatible endpoints
+    join_steps = JoinStepExpander.suggest_join_steps(
+        resolved_entities=state.resolved_entities,
+        extraction_result=state.extraction_result
+    )
 
-    return state.model_copy(update={"plan_steps": execution_steps, "step": "plan"})
+    combined_steps = execution_steps + join_steps
+
+    if not combined_steps:
+        combined_steps = FallbackHandler.generate_steps(state.resolved_entities, state.extraction_result)
+
+    return state.model_copy(update={"plan_steps": combined_steps, "step": "plan"})
 
 def execute(state: AppState) -> AppState:
     print("→ running node: EXECUTE")
