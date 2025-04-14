@@ -72,7 +72,11 @@ def resolve_entities(state: AppState) -> AppState:
         print(f"🔎 Resolving {entity_type} values: {values}")
         ids = resolver.resolve_multiple(values, entity_type, top_k=3)
         if ids:
-            resolved[f"{entity_type}_id"] = ids
+            key = f"{entity_type}_id"
+            if key not in resolved:
+                resolved[key] = []
+            resolved[key].extend(ids)
+            resolved[key] = list(set(resolved[key]))  # remove duplicates
             for name, id_ in zip(values, ids):
                 print(f"🔍 Resolved {entity_type}: '{name}' → {id_}")
 
