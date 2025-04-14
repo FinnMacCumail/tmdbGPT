@@ -335,31 +335,30 @@ class ResultExtractor:
         summaries = []
         resolved_entities = resolved_entities or {}
 
-        # Collect candidate text from known list fields
-        results = json_data.get("results") or []
-        for item in results:
-            title = item.get("title") or item.get("name")
-            overview = item.get("overview") or ""
-            line = f"{title}: {overview}" if title else overview
+        # Attempt to find a "results" or list-like root key
+        candidate_lists = [v for v in json_data.values() if isinstance(v, list)]
 
-            # Boost detection: check if all entity mentions are in line
-            boost_score = 0
-            if resolved_entities:
-                all_mentions = []
-                for val in resolved_entities.values():
-                    if isinstance(val, list):
-                        all_mentions.extend(str(v).lower() for v in val)
-                    elif isinstance(val, str):
-                        all_mentions.append(val.lower())
+        if not candidate_lists:
+            # Try flat dicts with known display fields
+            title = json_data.get("title") or json_data.get("name")
+            overview = json_data.get("overview")
+            if title or overview:
+                summaries.append(f"{title}: {overview}".strip(": "))
+            return summaries
 
-                mention_hits = sum(1 for v in all_mentions if v in line.lower())
-                if mention_hits >= 2:
-                    line = f"🎯 [MATCH] {line}"
-
-            summaries.append(line)
+        # Loop over all candidate list blocks (e.g., results, cast, genres, etc.)
+        for item_list in candidate_lists:
+            for item in item_list:
+                if not isinstance(item, dict):
+                    continue
+                title = item.get("title") or item.get("name")
+                overview = item.get("overview") or item.get("job") or item.get("character") or item.get("description", "")
+                line = f"{title}: {overview}".strip(": ")
+                if title or overview:
+                    summaries.append(line)
 
         return summaries
-
+    
 class EnhancedIntentAnalyzer:
     def __init__(self, llm_client: OpenAILLMClient):
         self.nlp = spacy.load("en_core_web_trf")
