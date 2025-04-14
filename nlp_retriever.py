@@ -318,44 +318,32 @@ class RerankPlanning:
 
 class ResultExtractor:
     @staticmethod
-    def extract(endpoint: str, response_json: dict) -> list:
-        """
-        Extract human-readable summaries from common TMDB API responses.
-
-        Args:
-            endpoint (str): the endpoint that was called
-            response_json (dict): parsed JSON data
-
-        Returns:
-            List[str]: summaries to populate state.responses
-        """
-        results = response_json.get("results", [])
+    def extract(endpoint: str, json_data: dict, resolved_entities: dict = None) -> list:
         summaries = []
+        resolved_entities = resolved_entities or {}
 
-        print(f"[ResultExtractor] Endpoint: {endpoint}")
-        print(f"[ResultExtractor] Results found: {len(results)}")
+        # Collect candidate text from known list fields
+        results = json_data.get("results") or []
+        for item in results:
+            title = item.get("title") or item.get("name")
+            overview = item.get("overview") or ""
+            line = f"{title}: {overview}" if title else overview
 
-        if not results:
-            return []
+            # Boost detection: check if all entity mentions are in line
+            boost_score = 0
+            if resolved_entities:
+                all_mentions = []
+                for val in resolved_entities.values():
+                    if isinstance(val, list):
+                        all_mentions.extend(str(v).lower() for v in val)
+                    elif isinstance(val, str):
+                        all_mentions.append(val.lower())
 
-        for item in results[:5]:
-            if "/search/person" in endpoint:
-                name = item.get("name", "<unknown>")
-                known_for = item.get("known_for", [])
-                known_titles = ", ".join(
-                    [k.get("title") or k.get("name", "unknown") for k in known_for]
-                )
-                summaries.append(f"{name} (Known for: {known_titles})")
+                mention_hits = sum(1 for v in all_mentions if v in line.lower())
+                if mention_hits >= 2:
+                    line = f"🎯 [MATCH] {line}"
 
-            elif "/search/movie" in endpoint or "/discover/movie" in endpoint:
-                title = item.get("title", "<untitled>")
-                overview = item.get("overview", "")[:100]
-                summaries.append(f"{title}: {overview}...")
-
-            elif "/search/tv" in endpoint or "/discover/tv" in endpoint:
-                name = item.get("name", "<untitled>")
-                overview = item.get("overview", "")[:100]
-                summaries.append(f"{name}: {overview}...")
+            summaries.append(line)
 
         return summaries
 
