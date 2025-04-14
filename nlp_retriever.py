@@ -25,12 +25,13 @@ from prompt_templates import PROMPT_TEMPLATES, DEFAULT_TEMPLATE
 from llm_client import OpenAILLMClient
 #from query_classifier import QueryClassifier
 
+
 from param_resolver import ParamResolver
 from llm_client import OpenAILLMClient
 from dependency_manager import DependencyManager
 from query_classifier import QueryClassifier
 from json import JSONDecodeError
-
+from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
 
 # Load API keys
@@ -55,6 +56,225 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
+
+def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
+    """
+    Use newly resolved entities to find and append follow-up steps to the plan.
+
+    Args:
+        state (AppState): current app state
+        newly_resolved (dict): keys like {"person_id": 1234}
+
+    Returns:
+        List[dict]: list of new execution steps (if any)
+    """
+    if not newly_resolved:
+        return []
+
+    current_intents = state.extraction_result.get("intents", [])
+    followup_matches = DependencyEndpointSuggester.suggest_followups(newly_resolved, current_intents)
+
+    existing_endpoints = {step["endpoint"] for step in state.plan_steps}
+    new_matches = [m for m in followup_matches if m["endpoint"] not in existing_endpoints]
+
+    return convert_matches_to_execution_steps(new_matches, state.extraction_result, state.resolved_entities)
+
+class DependencyEndpointSuggester:
+    @staticmethod
+    def suggest_followups(new_entities: dict, current_intents: list, limit: int = 10) -> list:
+        """
+        Given new resolved entities (e.g., person_id), suggest follow-up endpoints that are now actionable.
+
+        Args:
+            new_entities (dict): newly resolved keys like {'person_id': 6193}
+            current_intents (list): list of active user intents from LLM extraction
+            limit (int): max number of results to return
+
+        Returns:
+            list of dicts with suggested endpoint metadata
+        """
+        queries = []
+        for entity_key in new_entities.keys():
+            for intent in current_intents:
+                prompt = f"Fetch endpoints requiring {entity_key} for intent {intent}"
+                queries.append(prompt)
+
+        all_matches = []
+        for q in queries:
+            results = hybrid_search(q, top_k=limit)
+            all_matches.extend(results)
+
+        # De-duplicate by endpoint
+        seen = set()
+        unique = []
+        for m in all_matches:
+            eid = m.get("endpoint")
+            if eid and eid not in seen:
+                seen.add(eid)
+                unique.append(m)
+
+        return unique
+
+class PathRewriter:
+    @staticmethod
+    def rewrite(path: str, resolved_entities: dict) -> str:
+        """
+        Replaces unresolved placeholders in endpoint paths with resolved entity values.
+        Example: /person/{person_id} → /person/123 if person_id is in resolved_entities.
+
+        Args:
+            path (str): the endpoint path with placeholders
+            resolved_entities (dict): dictionary of resolved entity keys and values
+
+        Returns:
+            str: updated path with substitutions applied
+        """
+
+        def replacer(match):
+            key = match.group(1)
+            return str(resolved_entities.get(key, match.group(0)))
+
+        return re.sub(r"{(\w+)}", replacer, path)
+
+class PostStepUpdater:
+    @staticmethod
+    def update(state, step, response_json):
+        """
+        After executing a step, extract new entity IDs from the response and update resolved_entities.
+
+        Args:
+            state (AppState): current application state
+            step (dict): the execution step metadata (must contain 'endpoint')
+            response_json (dict): parsed JSON response from the TMDB API
+
+        Returns:
+            AppState: updated state with newly resolved entities
+        """
+        import re
+
+        endpoint = step.get("endpoint")
+        updated = {}
+
+        ENTITY_EXTRACTORS = {
+            "/search/person": lambda r: {"person_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
+            "/search/movie": lambda r: {"movie_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
+            "/search/tv": lambda r: {"tv_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
+            "/search/collection": lambda r: {"collection_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
+            "/search/company": lambda r: {"company_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {},
+            "/search/keyword": lambda r: {"keyword_id": r.get("results", [{}])[0].get("id")} if r.get("results") else {}
+        }
+
+        for pattern, extractor in ENTITY_EXTRACTORS.items():
+            if re.fullmatch(pattern.replace("{", "\\{"), endpoint):
+                result = extractor(response_json)
+                for k, v in result.items():
+                    if v:
+                        updated[k] = v
+
+        if updated:
+            state.resolved_entities.update(updated)
+            state.responses.append({"step": step["step_id"], "extracted": updated})
+
+        return state
+
+class RerankPlanning:
+    @staticmethod
+    def rerank_matches(matches, resolved_entities):
+        """
+        Reorder and annotate matches based on parameter feasibility.
+        Promote steps with resolved entities; demote those with missing params.
+        """
+        reranked = []
+        for match in matches:
+            endpoint = match["endpoint"]
+            needs = []
+            penalty = 0
+
+            for key in ["person_id", "movie_id", "tv_id", "collection_id", "company_id"]:
+                if f"{{{key}}}" in endpoint and not resolved_entities.get(key):
+                    needs.append(key)
+                    penalty += 0.4
+
+            score = match["final_score"] - penalty
+            match.update({
+                "final_score": round(score, 3),
+                "missing_entities": needs,
+                "is_entrypoint": bool("/search" in endpoint)
+            })
+            reranked.append(match)
+
+        return sorted(reranked, key=lambda x: x["final_score"], reverse=True)
+
+    @staticmethod
+    def validate_parameters(endpoint, resolved_entities):
+        """
+        Check if endpoint has all the required resolved parameters.
+        Return a flag indicating if the step is executable.
+        """
+        for key in ["person_id", "movie_id", "tv_id", "collection_id"]:
+            if f"{{{key}}}" in endpoint and not resolved_entities.get(key):
+                return False
+        return True
+
+    @staticmethod
+    def filter_feasible_steps(ranked_matches, resolved_entities):
+        """
+        Return only steps that can be executed now, plus entrypoints.
+        """
+        feasible = []
+        deferred = []
+        for match in ranked_matches:
+            if RerankPlanning.validate_parameters(match["endpoint"], resolved_entities):
+                feasible.append(match)
+            elif match.get("is_entrypoint"):
+                feasible.append(match)
+            else:
+                deferred.append(match)
+
+        return feasible, deferred
+
+class ResultExtractor:
+    @staticmethod
+    def extract(endpoint: str, response_json: dict) -> list:
+        """
+        Extract human-readable summaries from common TMDB API responses.
+
+        Args:
+            endpoint (str): the endpoint that was called
+            response_json (dict): parsed JSON data
+
+        Returns:
+            List[str]: summaries to populate state.responses
+        """
+        results = response_json.get("results", [])
+        summaries = []
+
+        print(f"[ResultExtractor] Endpoint: {endpoint}")
+        print(f"[ResultExtractor] Results found: {len(results)}")
+
+        if not results:
+            return []
+
+        for item in results[:5]:
+            if "/search/person" in endpoint:
+                name = item.get("name", "<unknown>")
+                known_for = item.get("known_for", [])
+                known_titles = ", ".join(
+                    [k.get("title") or k.get("name", "unknown") for k in known_for]
+                )
+                summaries.append(f"{name} (Known for: {known_titles})")
+
+            elif "/search/movie" in endpoint or "/discover/movie" in endpoint:
+                title = item.get("title", "<untitled>")
+                overview = item.get("overview", "")[:100]
+                summaries.append(f"{title}: {overview}...")
+
+            elif "/search/tv" in endpoint or "/discover/tv" in endpoint:
+                name = item.get("name", "<untitled>")
+                overview = item.get("overview", "")[:100]
+                summaries.append(f"{name}: {overview}...")
+
+        return summaries
 
 class EnhancedIntentAnalyzer:
     def __init__(self, llm_client: OpenAILLMClient):
