@@ -1,6 +1,9 @@
 from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
 import requests
 
+from hashlib import sha256
+seen_step_keys = set()
+
 class ExecutionOrchestrator:
     def __init__(self, base_url, headers):
         from dependency_manager import DependencyManager
@@ -15,6 +18,16 @@ class ExecutionOrchestrator:
         pending = state.plan_steps
 
         for step in pending:
+            # Compute deduplication key
+            param_string = "&".join(f"{k}={v}" for k, v in sorted(step.get("parameters", {}).items()))
+            dedup_key = f"{step['endpoint']}?{param_string}"
+            step_hash = sha256(dedup_key.encode()).hexdigest()
+
+            if step_hash in seen_step_keys:
+                print(f"🔁 Skipping duplicate step: {step['endpoint']} with same parameters")
+                continue
+
+            seen_step_keys.add(step_hash)
             step_id = step.get("step_id")
             path = step.get("endpoint")
             params = step.get("parameters", {})
