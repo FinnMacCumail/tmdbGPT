@@ -56,6 +56,28 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
+class ResponseFormatter:
+    @staticmethod
+    def format_responses(responses: list) -> list:
+        """
+        Format mixed response entries (dicts + strings) into clean readable summaries.
+
+        Args:
+            responses (list): the raw response list from state.responses
+
+        Returns:
+            List[str]: formatted display-ready summaries
+        """
+        formatted = []
+        for item in responses:
+            if isinstance(item, str):
+                formatted.append(f"📌 {item}")
+            elif isinstance(item, dict):
+                if "extracted" in item:
+                    step = item.get("step", "")
+                    for k, v in item["extracted"].items():
+                        formatted.append(f"🧩 Extracted {k}: {v} (via {step})")
+        return formatted
 
 def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
     """

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 import time
-from nlp_retriever import RerankPlanning
+from nlp_retriever import RerankPlanning, ResponseFormatter
 
 load_dotenv()
 
@@ -89,12 +89,11 @@ def execute(state: AppState) -> AppState:
     updated_state = orchestrator.execute(state.model_copy(update={"pending_steps": state.plan_steps}))
     return updated_state.model_copy(update={"executed": True, "step": "execute"})
 
-# def respond(state: AppState) -> AppState:
-#     print("→ running node: RESPOND")
-#     return state.model_copy(update={"status": "done", "step": "respond"})
 def respond(state: AppState) -> AppState:
     print("→ running node: RESPOND")
-    output = state.responses if state.responses else ["No valid results were returned."]
+    output = ResponseFormatter.format_responses(state.responses)
+    if not output:
+        output = ["No valid results were returned."]
     return state.model_copy(update={"status": "done", "step": "respond", "responses": output})
 
 
