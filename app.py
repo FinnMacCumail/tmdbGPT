@@ -52,57 +52,45 @@ def extract_entities(state: AppState) -> AppState:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
 
-def resolve_entities(state: AppState) -> AppState:
-    print("→ running node: RESOLVE_ENTITIES")
-    resolver = entity_resolver  # Global instance
-    extraction_result = state.extraction_result
+def resolve_entities(state):
+    extraction = state.extraction_result
+    query_entities = extraction.get("query_entities", [])
     resolved = {}
 
-    RESOLVABLE_TYPES = {
-        "person", "movie", "tv", "company", "collection",
-        "network", "credit", "keyword", "genre", "year", "rating", "date"
-    }
-
-    combined = defaultdict(list)
-
-    # Normalize: group all values under canonical entity types
-    for key, values in extraction_result.items():
-        if not isinstance(values, list) or not values:
-            print(f"⚠️ Skipping empty or malformed values for {key}: {values}")
+    print("🔍 Resolving typed query_entities from LLM...")
+    for item in query_entities:
+        if not isinstance(item, dict):
+            print(f"⚠️ Skipping unstructured item: {item}")
             continue
 
-        if key in RESOLVABLE_TYPES:
-            combined[key].extend(values)
-        elif key == "query_entities":
-            for val in values:
-                val_lower = val.lower()
-                # Naive classification: match names (you can improve with LLM tagging)
-                if any(name in val_lower for name in ["de niro", "pacino", "scorsese", "spielberg", "tarantino"]):
-                    combined["person"].append(val)
-                elif any(keyword in val_lower for keyword in ["action", "comedy", "drama"]):
-                    combined["genre"].append(val)
-                elif "year" in val_lower or val_lower.isdigit():
-                    combined["year"].append(val)
-                else:
-                    combined["person"].append(val)  # fallback default
-
-    for entity_type, values in combined.items():
-        if entity_type not in RESOLVABLE_TYPES:
-            print(f"⚠️ Skipping unresolvable entity type: {entity_type}")
+        val = item.get("name")
+        entity_type = item.get("type")
+        if not val or not entity_type:
+            print(f"⚠️ Skipping invalid entity object: {item}")
             continue
 
-        print(f"🔎 Resolving {entity_type} values: {values}")
-        ids = resolver.resolve_multiple(values, entity_type, top_k=3)
-        if ids:
+        match = entity_resolver.resolve_entity(val, entity_type)
+        if match:
+            print(f"✅ Resolved '{val}' as {entity_type} → {match}")
             key = f"{entity_type}_id"
             if key not in resolved:
                 resolved[key] = []
-            resolved[key].extend(ids)
-            resolved[key] = list(set(resolved[key]))  # deduplicate
-            for name, id_ in zip(values, ids):
-                print(f"🔍 Resolved {entity_type}: '{name}' → {id_}")
+            resolved[key].append(match)
 
-    return state.model_copy(update={"resolved_entities": resolved, "step": "resolve_entities"})
+            if entity_type not in extraction["entities"]:
+                extraction["entities"].append(entity_type)
+                print(f"➕ Added '{entity_type}' to extraction_result['entities']")
+        else:
+            print(f"❌ Failed to resolve '{val}' as {entity_type}")
+
+    if not resolved:
+        print("⚠️ No query_entities could be resolved.")
+
+    return state.model_copy(update={
+        "resolved_entities": resolved,
+        "extraction_result": extraction,
+        "step": "resolve_entities"
+    })
 
 def retrieve_context(state: AppState) -> AppState:
     print("→ running node: RETRIEVE_CONTEXT")

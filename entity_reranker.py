@@ -15,7 +15,8 @@ class EntityAwareReranker:
         for m in matches:
             mentions = 0
             for q in query_entities:
-                if q.lower() in str(m.get("entities", [])).lower():
+                name = q.get("name") if isinstance(q, dict) else q
+                if isinstance(name, str) and name.lower() in str(m.get("entities", [])).lower():
                     mentions += 1
             m["final_score"] += mentions * boost_weight
             m["final_score"] = round(m["final_score"], 3)

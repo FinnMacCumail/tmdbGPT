@@ -69,7 +69,7 @@ def extract_intent_entities(openai, query):
 def score_match(user_extraction, candidate_metadata):
     user_intents = set(user_extraction.get("intents", []))
     user_entities = set(user_extraction.get("entities", []))
-    query_entities = set(user_extraction.get("query_entities", []))
+    query_entities = {e.get("name") for e in user_extraction.get("query_entities", []) if isinstance(e, dict)}
 
     try:
         endpoint_intents = json.loads(candidate_metadata.get("intents", "[]"))

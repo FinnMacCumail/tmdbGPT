@@ -105,6 +105,12 @@ class ExecutionOrchestrator:
             full_url = f"{self.base_url}{path}"
             print(f"\n⚡ Executing {step_id}: {path}")
 
+            # Sanitize query parameter if structured from LLM
+            if isinstance(params.get("query"), dict):
+                original = params["query"]
+                params["query"] = original.get("name", "")
+                print(f"🔧 Flattened structured query param from {original} → '{params['query']}'")
+
             try:
                 print(f"📤 Calling TMDB: {full_url}")
                 print(f"📦 Params: {params}")
