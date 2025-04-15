@@ -123,8 +123,18 @@ class JoinStepExpander:
 
         join_matches = []
         for prompt in join_prompts:
-            results = hybrid_search(prompt, top_k=top_k)
+            results = hybrid_search(prompt, top_k=top_k)            
             print(f"🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")
+            for i, match in enumerate(join_matches[:10], 1):
+                path = match.get("endpoint") or match.get("path")
+                param_meta = match.get("parameters_metadata", [])
+                if isinstance(param_meta, str):
+                    try:
+                        param_meta = json.loads(param_meta)
+                    except:
+                        param_meta = []
+                param_names = [p.get("name") for p in param_meta if isinstance(p, dict)]
+                print(f"  {i}. {path} | params: {param_names}")
             for idx, res in enumerate(results[:5], 1):
                 print(f"  {idx}. {res.get('endpoint')} | params: {list(res.get('parameters', {}).keys())}")
                 res["parameters_metadata"] = res.get("parameters", [])
