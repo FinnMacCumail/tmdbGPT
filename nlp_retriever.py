@@ -75,50 +75,59 @@ class JoinStepExpander:
 
         def _is_valid_join_step(match: dict) -> bool:
             """
-            Validate if a match supports all 'with_*' parameters it's being asked to handle.
-            Handles malformed metadata gracefully.
+            Validate if a candidate endpoint match supports all required 'with_*' parameters.
+            Ensures parameters and metadata are properly parsed and normalized.
             """
-            raw_meta = match.get("parameters_metadata", [])
 
-            # Defensive JSON parsing
+            endpoint = match.get("endpoint", "UNKNOWN")
+
+            # --- Normalize parameters_metadata ---
+            raw_meta = match.get("parameters_metadata", [])
             if isinstance(raw_meta, str):
                 try:
                     raw_meta = json.loads(raw_meta)
-                    print(f"🛠️ Parsed parameters_metadata for {match.get('endpoint')}")
+                    print(f"🛠️ Parsed parameters_metadata for {endpoint}")
                 except json.JSONDecodeError:
-                    print(f"❌ Failed to parse parameters_metadata for {match.get('endpoint')}, skipping.")
+                    print(f"❌ Failed to parse parameters_metadata for {endpoint}, skipping.")
                     return False
 
-            # Ensure metadata is usable
             if not isinstance(raw_meta, list):
-                print(f"⚠️ Unexpected metadata type: {type(raw_meta)} for {match.get('endpoint')}")
+                print(f"⚠️ Invalid parameters_metadata type ({type(raw_meta)}) for {endpoint}")
                 return False
 
-            # Extract supported parameter names
+            # Store back cleaned metadata
             match["parameters_metadata"] = raw_meta
-            supported = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
+            supported_param_names = {
+                p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")
+            }
 
-            # Handle malformed or stringified parameters
+            # --- Normalize parameters ---
             params = match.get("parameters", {})
             if isinstance(params, str):
                 try:
                     params = json.loads(params)
-                    print(f"🛠️ Parsed parameters for {match.get('endpoint')}")
+                    print(f"🛠️ Parsed stringified parameters for {endpoint}")
                 except json.JSONDecodeError:
-                    print(f"❌ Failed to parse parameters for {match.get('endpoint')}, skipping.")
+                    print(f"❌ Failed to parse parameters for {endpoint}, skipping.")
                     return False
             elif isinstance(params, list):
-                print(f"⚠️ Unexpected parameters list for {match.get('endpoint')}, skipping.")
+                print(f"⚠️ Unexpected list type for parameters in {endpoint}, skipping.")
                 return False
             elif not isinstance(params, dict):
-                print(f"⚠️ Invalid parameters type: {type(params)} for {match.get('endpoint')}")
+                print(f"⚠️ Unrecognized parameter format ({type(params)}) in {endpoint}, skipping.")
                 return False
 
             match["parameters"] = params
-            param_keys = set(params.keys())
 
-            # Only allow if all with_* are present in supported
-            return all(p in supported for p in param_keys if p.startswith("with_"))
+            # --- Validate all with_* params are supported ---
+            requested_with_params = {k for k in params if k.startswith("with_")}
+            unsupported = requested_with_params - supported_param_names
+
+            if unsupported:
+                print(f"❌ {endpoint} missing required parameters: {', '.join(unsupported)}")
+                return False
+
+            return True
 
         # -- Step 1: Format join prompts
         query_entities = extraction_result.get("query_entities", [])
@@ -152,35 +161,32 @@ class JoinStepExpander:
 
         # -- Step 4: Execute prompts
         join_matches = []
+        # Step 4: Execute join prompts
         for prompt in join_prompts:
             results = hybrid_search(prompt, top_k=top_k)
             print(f"🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")
-            for idx, res in enumerate(results[:5], 1):
-                params = res.get("parameters", {})
 
-                # 🛠 Normalize parameter types BEFORE printing
-                if isinstance(params, str):
+            for idx, res in enumerate(results):
+                # ✅ Normalize parameters across ALL results
+                res["parameters"] = res.get("parameters", {})
+                if isinstance(res["parameters"], str):
                     try:
-                        params = json.loads(params)
+                        res["parameters"] = json.loads(res["parameters"])
                         print(f"🛠️ Parsed stringified parameters for {res.get('endpoint')}")
                     except json.JSONDecodeError:
-                        print(f"❌ Could not parse string parameters for {res.get('endpoint')}")
-                        params = {}
-                elif isinstance(params, list):
-                    print(f"⚠️ Unexpected parameter type (list) for {res.get('endpoint')} — coercing to empty dict")
-                    params = {}
-                elif not isinstance(params, dict):
-                    print(f"⚠️ Unknown parameter type for {res.get('endpoint')}: {type(params)} — coercing to empty dict")
-                    params = {}
+                        print(f"❌ Failed to parse parameters string for {res.get('endpoint')}, using empty dict.")
+                        res["parameters"] = {}
+                elif isinstance(res["parameters"], list):
+                    print(f"⚠️ Unexpected parameters list for {res.get('endpoint')}, skipping.")
+                    res["parameters"] = {}
+                elif not isinstance(res["parameters"], dict):
+                    print(f"⚠️ Unknown parameter type for {res.get('endpoint')} ({type(res['parameters'])}), skipping.")
+                    res["parameters"] = {}
 
-                # ✅ Apply cleaned params back to result
-                res["parameters"] = params
-
-                # ✅ Safe to print now
-                print(f"  {idx}. {res.get('endpoint')} | params: {list(params.keys())}")
+                # ✅ Debug print safely
+                print(f"  {idx+1}. {res.get('endpoint')} | params: {list(res['parameters'].keys())}")
 
             join_matches.extend(results)
-
         # -- Step 5: Parameter metadata + ID injection
         for match in join_matches:
             match.setdefault("parameters", {})
