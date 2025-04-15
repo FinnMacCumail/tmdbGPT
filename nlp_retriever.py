@@ -160,33 +160,37 @@ class JoinStepExpander:
         print(f"\n🧠 Join Prompts to Search:\n" + "\n".join(f"- {p}" for p in join_prompts))
 
         # -- Step 4: Execute prompts
+        # Inside JoinStepExpander.suggest_join_steps:
+
+        # -- Step 4: Execute prompts
         join_matches = []
-        # Step 4: Execute join prompts
         for prompt in join_prompts:
             results = hybrid_search(prompt, top_k=top_k)
-            print(f"🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")
-
-            for idx, res in enumerate(results):
-                # ✅ Normalize parameters across ALL results
-                res["parameters"] = res.get("parameters", {})
-                if isinstance(res["parameters"], str):
+            # Process ALL results to normalize parameters
+            for res in results:
+                params = res.get("parameters", {})
+                # Normalize parameter types
+                if isinstance(params, str):
                     try:
-                        res["parameters"] = json.loads(res["parameters"])
+                        params = json.loads(params)
                         print(f"🛠️ Parsed stringified parameters for {res.get('endpoint')}")
                     except json.JSONDecodeError:
-                        print(f"❌ Failed to parse parameters string for {res.get('endpoint')}, using empty dict.")
-                        res["parameters"] = {}
-                elif isinstance(res["parameters"], list):
-                    print(f"⚠️ Unexpected parameters list for {res.get('endpoint')}, skipping.")
-                    res["parameters"] = {}
-                elif not isinstance(res["parameters"], dict):
-                    print(f"⚠️ Unknown parameter type for {res.get('endpoint')} ({type(res['parameters'])}), skipping.")
-                    res["parameters"] = {}
-
-                # ✅ Debug print safely
-                print(f"  {idx+1}. {res.get('endpoint')} | params: {list(res['parameters'].keys())}")
-
-            join_matches.extend(results)
+                        print(f"❌ Could not parse string parameters for {res.get('endpoint')}")
+                        params = {}
+                elif isinstance(params, list):
+                    print(f"⚠️ Unexpected parameter type (list) for {res.get('endpoint')} — coercing to empty dict")
+                    params = {}
+                elif not isinstance(params, dict):
+                    print(f"⚠️ Unknown parameter type for {res.get('endpoint')}: {type(params)} — coercing to empty dict")
+                    params = {}
+                res["parameters"] = params  # Ensure ALL results have dict parameters
+            
+            # Now print the top 5 after processing
+            print(f"🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")
+            for idx, res in enumerate(results[:5], 1):
+                print(f"  {idx}. {res.get('endpoint')} | params: {list(res['parameters'].keys())}")
+            
+            join_matches.extend(results)  # Add processed results to join_matches
         # -- Step 5: Parameter metadata + ID injection
         for match in join_matches:
             match.setdefault("parameters", {})
