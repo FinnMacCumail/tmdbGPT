@@ -11,38 +11,53 @@ class OpenAILLMClient:
     def extract_entities_and_intents(self, query: str) -> dict:
         
         prompt = f"""
-        Extract intents and entities from the user's query using this schema:
+        You are a TMDB assistant. Analyze the user's query and extract three components using this exact JSON schema:
 
         {{
-            "intents": ["recommendation.similarity", "recommendation.suggested", "discovery.filtered",
-                        "discovery.genre_based", "discovery.temporal", "discovery.advanced",
-                        "search.basic", "search.multi", "media_assets.image", "media_assets.video",
-                        "details.movie", "details.tv", "credits.movie", "credits.tv", "credits.person",
-                        "trending.popular", "trending.top_rated", "reviews.movie", "reviews.tv",
-                        "collections.movie", "companies.studio", "companies.network"],
-            "entities": ["movie", "tv", "person", "company", "network", "collection", "genre", "year", "keyword", "credit", "rating", "date"],
-            "query_entities": ["names, titles or specific things directly mentioned by the user"]
+        "intents": [
+            "List of intents related to the user's request. Examples include:",
+            "'search.multi', 'discovery.filtered', 'recommendation.similarity', 'trending.popular', 'details.movie', etc."
+        ],
+        "entities": [
+            "List of general entity types mentioned or implied in the query.",
+            "Use only: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'date', 'rating', 'language'"
+        ],
+        "query_entities": [
+            {{
+            "name": "Full name or title of a specific person, movie, keyword, etc.",
+            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', or 'network'"
+            }}
+        ]
         }}
 
-        User Query: \"{query}\"
-        Respond with ONLY valid JSON. No commentary:
+        Guidelines:
+        - Always include `query_entities` for specific names, actors, studios, genres, keywords, or titles mentioned.
+        - Always assign a `type` to each `query_entity`. Use your best judgment based on the query.
+        - Include all applicable `intents` and `entities`, even if no named `query_entity` is present.
+        - Use lowercase values for all types and intents.
+        - If a query is vague or exploratory, fall back to general types (e.g., 'movie', 'genre').
+        - Do NOT include commentary — only respond with valid JSON.
+
+        User Query:
+        \"{query.strip()}\"
+
+        Respond ONLY with valid JSON.
         """
 
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4-turbo",
                 messages=[
-                    {"role": "system", "content": "Extract intent and entity data as JSON."},
+                    {"role": "system", "content": "You extract structured TMDB intents and entities."},
                     {"role": "user", "content": prompt.strip()}
                 ],
-                temperature=0
+                temperature=0.3,
             )
-            content = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
             return json.loads(content)
         except Exception as e:
-            print(f"❌ LLM Extraction Failed: {e}")
+            print(f"⚠️ LLM extraction failed: {e}")
             return {"intents": [], "entities": [], "query_entities": []}
-
 
     def generate_response(self, prompt: str) -> str:
         response = self.client.chat.completions.create(
