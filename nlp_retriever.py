@@ -74,7 +74,13 @@ class JoinStepExpander:
         }
 
         def _is_valid_join_step(match: dict) -> bool:
+            """
+            Validate if a match supports all 'with_*' parameters it's being asked to handle.
+            Handles malformed metadata gracefully.
+            """
             raw_meta = match.get("parameters_metadata", [])
+
+            # Defensive JSON parsing
             if isinstance(raw_meta, str):
                 try:
                     raw_meta = json.loads(raw_meta)
@@ -82,10 +88,36 @@ class JoinStepExpander:
                 except json.JSONDecodeError:
                     print(f"❌ Failed to parse parameters_metadata for {match.get('endpoint')}, skipping.")
                     return False
-            match["parameters_metadata"] = raw_meta
 
+            # Ensure metadata is usable
+            if not isinstance(raw_meta, list):
+                print(f"⚠️ Unexpected metadata type: {type(raw_meta)} for {match.get('endpoint')}")
+                return False
+
+            # Extract supported parameter names
+            match["parameters_metadata"] = raw_meta
             supported = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
-            param_keys = set(match.get("parameters", {}).keys())
+
+            # Handle malformed or stringified parameters
+            params = match.get("parameters", {})
+            if isinstance(params, str):
+                try:
+                    params = json.loads(params)
+                    print(f"🛠️ Parsed parameters for {match.get('endpoint')}")
+                except json.JSONDecodeError:
+                    print(f"❌ Failed to parse parameters for {match.get('endpoint')}, skipping.")
+                    return False
+            elif isinstance(params, list):
+                print(f"⚠️ Unexpected parameters list for {match.get('endpoint')}, skipping.")
+                return False
+            elif not isinstance(params, dict):
+                print(f"⚠️ Invalid parameters type: {type(params)} for {match.get('endpoint')}")
+                return False
+
+            match["parameters"] = params
+            param_keys = set(params.keys())
+
+            # Only allow if all with_* are present in supported
             return all(p in supported for p in param_keys if p.startswith("with_"))
 
         # -- Step 1: Format join prompts
@@ -124,10 +156,29 @@ class JoinStepExpander:
             results = hybrid_search(prompt, top_k=top_k)
             print(f"🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")
             for idx, res in enumerate(results[:5], 1):
-                print(f"  {idx}. {res.get('endpoint')} | params: {list(res.get('parameters', {}).keys())}")
-                res["parameters_metadata"] = res.get("parameters", [])
-                res.setdefault("parameters", {})
-                res["is_join"] = True
+                params = res.get("parameters", {})
+
+                # 🛠 Normalize parameter types BEFORE printing
+                if isinstance(params, str):
+                    try:
+                        params = json.loads(params)
+                        print(f"🛠️ Parsed stringified parameters for {res.get('endpoint')}")
+                    except json.JSONDecodeError:
+                        print(f"❌ Could not parse string parameters for {res.get('endpoint')}")
+                        params = {}
+                elif isinstance(params, list):
+                    print(f"⚠️ Unexpected parameter type (list) for {res.get('endpoint')} — coercing to empty dict")
+                    params = {}
+                elif not isinstance(params, dict):
+                    print(f"⚠️ Unknown parameter type for {res.get('endpoint')}: {type(params)} — coercing to empty dict")
+                    params = {}
+
+                # ✅ Apply cleaned params back to result
+                res["parameters"] = params
+
+                # ✅ Safe to print now
+                print(f"  {idx}. {res.get('endpoint')} | params: {list(params.keys())}")
+
             join_matches.extend(results)
 
         # -- Step 5: Parameter metadata + ID injection
