@@ -102,6 +102,11 @@ class JoinStepExpander:
         join_matches = []
         for prompt in join_prompts:
             results = hybrid_search(prompt, top_k=top_k)
+            # Test debug
+            print(f"\n🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")            
+            for idx, r in enumerate(results[:5]):
+                print(f"  {idx+1}. {r['endpoint']} | params: {list(r.get('parameters', []))}")
+            # end Test debug
             for r in results:
                 r["parameters_metadata"] = r.get("parameters", [])
                 r.setdefault("parameters", {})
