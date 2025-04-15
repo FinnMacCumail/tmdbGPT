@@ -139,6 +139,31 @@ def score_match(user_extraction, candidate_metadata):
     score = intent_score + entity_score + 0.5 * param_boost - mismatch_penalty
     return round(score, 3)
 
+# def semantic_retrieval(extraction_result, top_k=10):
+#     embedding_text = json.dumps(extraction_result)
+#     query_embedding = embedder.encode(embedding_text).tolist()
+
+#     results = collection.query(
+#         query_embeddings=[query_embedding],
+#         n_results=top_k,
+#         include=["metadatas", "distances"]
+#     )
+
+#     matches = []
+#     for metadata, distance in zip(results["metadatas"][0], results["distances"][0]):
+#         score = score_match(extraction_result, metadata)
+#         final_score = 0.7 * score + 0.3 * (1 - distance)
+#         matches.append({
+#             "endpoint": metadata["path"],
+#             "intents": metadata.get("intents", ""),
+#             "entities": metadata.get("entities", ""),
+#             "distance": round(distance, 4),
+#             "match_score": round(score, 3),
+#             "final_score": round(final_score, 3)
+#         })
+
+#     matches = EntityAwareReranker.boost_by_entity_mentions(matches, extraction_result.get("query_entities", []))
+#     return matches
 def semantic_retrieval(extraction_result, top_k=10):
     embedding_text = json.dumps(extraction_result)
     query_embedding = embedder.encode(embedding_text).tolist()
@@ -153,62 +178,82 @@ def semantic_retrieval(extraction_result, top_k=10):
     for metadata, distance in zip(results["metadatas"][0], results["distances"][0]):
         score = score_match(extraction_result, metadata)
         final_score = 0.7 * score + 0.3 * (1 - distance)
-        matches.append({
-            "endpoint": metadata["path"],
-            "intents": metadata.get("intents", ""),
-            "entities": metadata.get("entities", ""),
-            "distance": round(distance, 4),
+
+        metadata.update({
+            "endpoint": metadata.get("path"),
             "match_score": round(score, 3),
-            "final_score": round(final_score, 3)
+            "distance": round(distance, 4),
+            "final_score": round(final_score, 3),
+            "score": round(final_score, 3),  # for reranker compatibility
         })
 
-    matches = EntityAwareReranker.boost_by_entity_mentions(matches, extraction_result.get("query_entities", []))
+        matches.append(metadata)
+
+    # 🧠 Optional: boost based on named entities in query
+    matches = EntityAwareReranker.boost_by_entity_mentions(
+        matches, extraction_result.get("query_entities", [])
+    )
+
     return matches
+
 
 def convert_matches_to_execution_steps(matches, extraction_result, resolved_entities):
     steps = []
     query_entity = (extraction_result.get("query_entities") or [None])[0]
 
-    for i, match in enumerate(matches):
-        endpoint = match["endpoint"]
-        parameters = match.get("parameters", {}).copy()
+    ENTITY_PARAM_MAP = {
+        "person_id": "with_people",
+        "genre_id": "with_genres",
+        "company_id": "with_companies",
+        "keyword_id": "with_keywords",
+        "network_id": "with_networks",
+        "collection_id": "with_collections",
+        "tv_id": "with_tv",
+        "movie_id": "with_movies"
+    }
 
-        # Inject resolved entities into path/query parameters
+    for i, match in enumerate(matches):
+        endpoint = match.get("endpoint") or match.get("path", f"/unknown/{i}")
+        
+        # 🛡️ Ensure parameters is a dict
+        raw_params = match.get("parameters", {})
+
+        if isinstance(raw_params, str):
+            try:
+                raw_params = json.loads(raw_params)
+                print(f"🛠️ Parsed stringified parameters for {endpoint}")
+            except json.JSONDecodeError:
+                print(f"❌ Failed to parse parameters for {endpoint}, defaulting to empty dict")
+                raw_params = {}
+
+        # 💥 New safety guard for unexpected types
+        if not isinstance(raw_params, dict):
+            print(f"⚠️ Unexpected parameter type ({type(raw_params)}) for {endpoint}, coercing to empty dict")
+            raw_params = {}
+
+        parameters = raw_params.copy()
+
+        # 🔁 Inject resolved path-style entity_id substitutions
         for entity_key, entity_value in resolved_entities.items():
-            if entity_key in endpoint:
+            if f"{{{entity_key}}}" in endpoint:
                 parameters[entity_key] = entity_value
 
-        # Auto-inject "query" into /search/* endpoints
+        # 🔍 Inject LLM query_entity as search string
         if "/search/" in endpoint and "query" not in parameters and query_entity:
             parameters["query"] = query_entity
 
-        # Inject multi-entity joins for supported with_* params
-        ENTITY_PARAM_MAP = {
-            "person_id": "with_people",
-            "genre_id": "with_genres",
-            "company_id": "with_companies",
-            "keyword_id": "with_keywords",
-            "network_id": "with_networks",
-            "collection_id": "with_collection",
-            "tv_id": "with_tv",
-            "movie_id": "with_movies"
-        }
-
+        # 🧩 Inject resolved IDs for with_* joins
         for entity_key, param_name in ENTITY_PARAM_MAP.items():
             ids = resolved_entities.get(entity_key)
-            if ids and param_name in endpoint or param_name in parameters:
-                if isinstance(ids, list):
-                    parameters[param_name] = ",".join(map(str, ids))
-                else:
-                    parameters[param_name] = str(ids)
+            if ids and (param_name in endpoint or param_name in parameters):
+                parameters[param_name] = ",".join(map(str, ids)) if isinstance(ids, list) else str(ids)
 
         step_id = f"step_{i:06x}"
-        step = {
+        steps.append({
             "step_id": step_id,
             "endpoint": endpoint,
             "parameters": parameters
-        }
-        steps.append(step)
+        })
 
     return steps
 
