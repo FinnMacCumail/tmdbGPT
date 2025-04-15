@@ -96,6 +96,14 @@ class ExecutionOrchestrator:
 
             path = step.get("endpoint")
             params = step.get("parameters", {})
+            
+            # 🛡 Assert and log if parameters is not a dict
+            if not isinstance(params, dict):
+                print(f"🚨 Malformed parameters in step {step_id} → {type(params)}")
+                params = {}
+            else:
+                assert isinstance(params, dict), f"❌ Step {step_id} has non-dict parameters: {type(params)}"
+
 
             for k, v in params.items():
                 if f"{{{k}}}" in path:
