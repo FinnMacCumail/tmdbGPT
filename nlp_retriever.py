@@ -60,6 +60,7 @@ HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 class JoinStepExpander:
     @staticmethod
     def suggest_join_steps(resolved_entities: dict, extraction_result: dict, top_k: int = 10) -> list:
+        from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
         JOIN_PARAM_MAP = {
             "person_id": "with_people",
@@ -73,8 +74,6 @@ class JoinStepExpander:
         }
 
         def _is_valid_join_step(match: dict) -> bool:
-            param_set = set(match.get("parameters", {}).keys())
-            endpoint_params = match.get("parameters_metadata", []) or match.get("parameters", [])
             raw_meta = match.get("parameters_metadata", [])
             if isinstance(raw_meta, str):
                 try:
@@ -82,37 +81,33 @@ class JoinStepExpander:
                     print(f"🛠️ Parsed parameters_metadata for {match.get('endpoint')}")
                 except json.JSONDecodeError:
                     print(f"❌ Failed to parse parameters_metadata for {match.get('endpoint')}, skipping.")
-                    raw_meta = []
-
-            match["parameters_metadata"] = raw_meta
-            supported_names = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
-
-            for param in param_set:
-                if param.startswith("with_") and param not in supported_names:
                     return False
-            return True
+            match["parameters_metadata"] = raw_meta
 
+            supported = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
+            param_keys = set(match.get("parameters", {}).keys())
+            return all(p in supported for p in param_keys if p.startswith("with_"))
+
+        # -- Step 1: Format join prompts
         query_entities = extraction_result.get("query_entities", [])
-        first_query_name = (
-            query_entities[0]["name"] if query_entities and isinstance(query_entities[0], dict)
-            else query_entities[0] if query_entities else ""
-        )
+        structured_names = [e["name"] for e in query_entities if isinstance(e, dict) and "name" in e]
+        first_query_name = ", ".join(structured_names)
 
         print(f"🔍 Structured query entity name used for prompt: '{first_query_name}'")
 
         join_prompts = []
 
-        entity_keys = list(resolved_entities.keys())
-        for i in range(len(entity_keys)):
-            for j in range(i + 1, len(entity_keys)):
-                e1, e2 = entity_keys[i], entity_keys[j]
-                e1_vals = resolved_entities.get(e1, [])
-                e2_vals = resolved_entities.get(e2, [])
-                if e1_vals and e2_vals:
+        # -- Step 2: Pairwise combinations
+        keys = list(resolved_entities.keys())
+        for i in range(len(keys)):
+            for j in range(i + 1, len(keys)):
+                e1, e2 = keys[i], keys[j]
+                if resolved_entities.get(e1) and resolved_entities.get(e2):
                     prompt = f"Find endpoints that can accept both {e1} and {e2} to answer queries like: '{first_query_name}'"
                     print(f"🔍 Join prompt: {prompt}")
                     join_prompts.append(prompt)
 
+        # -- Step 3: Multi-entity support
         for entity_key, ids in resolved_entities.items():
             if isinstance(ids, list) and len(ids) > 1:
                 param = JOIN_PARAM_MAP.get(entity_key)
@@ -121,20 +116,13 @@ class JoinStepExpander:
                     print(f"🔍 Join prompt: {prompt}")
                     join_prompts.append(prompt)
 
+        print(f"\n🧠 Join Prompts to Search:\n" + "\n".join(f"- {p}" for p in join_prompts))
+
+        # -- Step 4: Execute prompts
         join_matches = []
         for prompt in join_prompts:
-            results = hybrid_search(prompt, top_k=top_k)            
+            results = hybrid_search(prompt, top_k=top_k)
             print(f"🔍 Top Join Search Results for Prompt:\n🔸 {prompt}")
-            for i, match in enumerate(join_matches[:10], 1):
-                path = match.get("endpoint") or match.get("path")
-                param_meta = match.get("parameters_metadata", [])
-                if isinstance(param_meta, str):
-                    try:
-                        param_meta = json.loads(param_meta)
-                    except:
-                        param_meta = []
-                param_names = [p.get("name") for p in param_meta if isinstance(p, dict)]
-                print(f"  {i}. {path} | params: {param_names}")
             for idx, res in enumerate(results[:5], 1):
                 print(f"  {idx}. {res.get('endpoint')} | params: {list(res.get('parameters', {}).keys())}")
                 res["parameters_metadata"] = res.get("parameters", [])
@@ -142,11 +130,9 @@ class JoinStepExpander:
                 res["is_join"] = True
             join_matches.extend(results)
 
-        # Inject resolved entity values into parameter map
+        # -- Step 5: Parameter metadata + ID injection
         for match in join_matches:
             match.setdefault("parameters", {})
-
-            # 🧪 Defensive parse of parameters_metadata
             raw_meta = match.get("parameters_metadata", [])
             if isinstance(raw_meta, str):
                 try:
@@ -155,7 +141,6 @@ class JoinStepExpander:
                 except json.JSONDecodeError:
                     print(f"❌ Could not parse parameters_metadata for {match.get('endpoint')} — skipping param injection")
                     raw_meta = []
-
             match["parameters_metadata"] = raw_meta
             supported_param_names = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
 
@@ -164,7 +149,7 @@ class JoinStepExpander:
                 if ids and param_name in supported_param_names:
                     match["parameters"][param_name] = ",".join(map(str, ids))
 
-        # Deduplicate by endpoint
+        # -- Step 6: Deduplicate
         seen = set()
         unique = []
         for m in join_matches:
@@ -173,10 +158,10 @@ class JoinStepExpander:
                 seen.add(eid)
                 unique.append(m)
 
-        # Final filter using parameter compatibility
+        # -- Step 7: Filter by parameter support
         validated = [m for m in unique if _is_valid_join_step(m)]
-        return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
 
+        return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
 
 class ResponseFormatter:
     @staticmethod
