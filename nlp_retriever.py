@@ -75,7 +75,17 @@ class JoinStepExpander:
         def _is_valid_join_step(match: dict) -> bool:
             param_set = set(match.get("parameters", {}).keys())
             endpoint_params = match.get("parameters_metadata", []) or match.get("parameters", [])
-            supported_names = {p.get("name") for p in endpoint_params if p.get("name")}
+            raw_meta = match.get("parameters_metadata", [])
+            if isinstance(raw_meta, str):
+                try:
+                    raw_meta = json.loads(raw_meta)
+                    print(f"🛠️ Parsed parameters_metadata for {match.get('endpoint')}")
+                except json.JSONDecodeError:
+                    print(f"❌ Failed to parse parameters_metadata for {match.get('endpoint')}, skipping.")
+                    raw_meta = []
+
+            match["parameters_metadata"] = raw_meta
+            supported_names = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
 
             for param in param_set:
                 if param.startswith("with_") and param not in supported_names:
@@ -125,8 +135,19 @@ class JoinStepExpander:
         # Inject resolved entity values into parameter map
         for match in join_matches:
             match.setdefault("parameters", {})
-            endpoint_params = match.get("parameters_metadata", [])
-            supported_param_names = {p.get("name") for p in endpoint_params if p.get("name")}
+
+            # 🧪 Defensive parse of parameters_metadata
+            raw_meta = match.get("parameters_metadata", [])
+            if isinstance(raw_meta, str):
+                try:
+                    raw_meta = json.loads(raw_meta)
+                    print(f"🛠️ Parsed parameters_metadata for {match.get('endpoint')}")
+                except json.JSONDecodeError:
+                    print(f"❌ Could not parse parameters_metadata for {match.get('endpoint')} — skipping param injection")
+                    raw_meta = []
+
+            match["parameters_metadata"] = raw_meta
+            supported_param_names = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
 
             for entity_key, param_name in JOIN_PARAM_MAP.items():
                 ids = resolved_entities.get(entity_key)
