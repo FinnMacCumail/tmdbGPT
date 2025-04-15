@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer
 load_dotenv()
 
 class SemanticEmbedder:
-    def __init__(self, embedding_model: str = "all-MiniLM-L6-v2"):
+    def __init__(self, embedding_model: str = "all-MiniLM-L6-v2", tmdb_schema=None):
         self.client = chromadb.PersistentClient(path="./chroma_db")
         self.collection = self.client.get_or_create_collection(
             name="tmdb_endpoints",
@@ -30,6 +30,7 @@ class SemanticEmbedder:
             "/genre/tv": "tv", "/review": "review", "/credit": "credit",
             "/search/movie": "movie", "/search/tv": "tv", "/search/person": "person"
         }
+        self.tmdb_schema = tmdb_schema or self._load_openapi_schema()
 
     def _define_entity_hierarchy(self) -> Dict:
         return {
@@ -101,6 +102,14 @@ class SemanticEmbedder:
     def _generate_query_examples(self, endpoint: str, details: Dict) -> List[str]:
         param_names = [p.get("name", "") for p in details.get("parameters", [])]
         fallback_queries = []
+
+        if endpoint == "/discover/movie" and "with_people" in param_names:
+            # Inject multi-actor training examples
+            return [
+                "Find movies starring Robert De Niro and Al Pacino.",
+                "List crime movies with both Al Pacino and Joe Pesci.",
+                "Show films directed by Scorsese starring Leonardo DiCaprio.",
+            ]
 
         if any("person" in p for p in param_names):
             fallback_queries.append("Search for movies starring Brad Pitt.")
@@ -319,6 +328,30 @@ class SemanticEmbedder:
         except Exception as e:
             print(f"⚠️ Metadata lookup failed for {endpoint}: {e}")
             return {}
+            
+    def _load_openapi_schema(self):
+        with open("data/tmdb.json") as f:
+            return json.load(f)
+    
+    def process_specific_endpoint(self, path: str):
+        for endpoint, methods in self.tmdb_schema.get("paths", {}).items():
+            if endpoint == path:
+                print(f"🔁 Re-embedding: {endpoint}")
+                verb = methods.get("get")
+                if not verb:
+                    print(f"❌ No 'get' method for {endpoint}")
+                    return
+                embedding_text = self._create_embedding_text(endpoint, verb)
+                metadata = self._create_metadata(endpoint, verb)
+                print("\n📄 Final Embedding Text:\n" + embedding_text)
+                self.collection.upsert(
+                    documents=[embedding_text],
+                    metadatas=[metadata],
+                    ids=[endpoint]
+                )
+                print(f"✅ Upserted vector for {endpoint}")
+                return
+        print(f"❌ Endpoint {path} not found.")
 
 if __name__ == "__main__":
     SemanticEmbedder().process_endpoints()
