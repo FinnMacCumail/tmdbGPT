@@ -4,6 +4,7 @@ from hashlib import sha256
 from post_validator import PostValidator
 from entity_reranker import EntityAwareReranker 
 from plan_validator import PlanValidator
+import json
 
 class ExecutionOrchestrator:
     
@@ -195,7 +196,8 @@ class ExecutionTraceLogger:
         print(f"├─ Endpoint: {path}")
         print(f"├─ Status: {status}")
         if summary:
-            print(f"└─ Result: {summary[:100]}{'...' if len(summary) > 100 else ''}")
+            text = summary if isinstance(summary, str) else json.dumps(summary)
+            print(f"└─ Result: {text[:100]}{'...' if len(text) > 100 else ''}")
 
 # Usage inside orchestrator loop:
 # After each response:
