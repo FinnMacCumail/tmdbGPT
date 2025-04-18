@@ -20,7 +20,7 @@ HEADERS = {"Authorization": f"Bearer {os.getenv('TMDB_API_KEY')}"}
 openai_client = OpenAILLMClient()
 dependency_manager = DependencyManager()
 orchestrator = ExecutionOrchestrator(BASE_URL, HEADERS)
-entity_resolver = TMDBEntityResolver(os.getenv('TMDB_API_KEY'))
+entity_resolver = TMDBEntityResolver(os.getenv('TMDB_API_KEY'), HEADERS)
 
 class AppState(BaseModel):
     input: str
@@ -56,28 +56,26 @@ def resolve_entities(state: AppState) -> AppState:
     query_entities = extraction.get("query_entities", [])
     base_entities = set(extraction.get("entities", []))  # from LLM extraction
 
-    # ✅ New multi-entity resolver (including network)
+    # ✅ Use multi-entity resolver
     resolved_entities, unresolved_entities = entity_resolver.resolve_entities(query_entities)
 
-    # Convert to TMDB-style {type_id: [list]} format
-    resolved = {}
+    # TMDB-style format: {type_id: [ids]}
+    resolved_by_type = {}
     for ent in resolved_entities:
-        entity_type = ent["type"]
-        resolved_id = ent["resolved_id"]
-        key = f"{entity_type}_id"
-        resolved.setdefault(key, []).append(resolved_id)
-        print(f"✅ Resolved '{ent['name']}' as {entity_type} → {resolved_id}")
+        key = f"{ent['type']}_id"
+        resolved_by_type.setdefault(key, []).append(ent["resolved_id"])
+        print(f"✅ Resolved '{ent['name']}' as {ent['type']} → {ent['resolved_id']}")
 
-    if not resolved:
+    if not resolved_by_type:
         print("⚠️ No query_entities could be resolved.")
 
-    # Update entity types in extraction["entities"]
+    # Ensure resolved types are reflected in entity list
     for ent in resolved_entities:
         if ent["type"] not in extraction["entities"]:
             extraction["entities"].append(ent["type"])
 
     return state.model_copy(update={
-        "resolved_entities": resolved,
+        "resolved_entities": resolved_by_type,
         "extraction_result": extraction,
         "step": "resolve_entities"
     })
