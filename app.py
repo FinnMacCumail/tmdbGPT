@@ -62,9 +62,18 @@ def resolve_entities(state: AppState) -> AppState:
     # TMDB-style format: {type_id: [ids]}
     resolved_by_type = {}
     for ent in resolved_entities:
-        key = f"{ent['type']}_id"
-        resolved_by_type.setdefault(key, []).append(ent["resolved_id"])
-        print(f"✅ Resolved '{ent['name']}' as {ent['type']} → {ent['resolved_id']}")
+        # Determine the actual resolved type (e.g. fallback to 'company' instead of 'network')
+        resolved_type = ent.get("resolved_type", ent["type"])
+        resolved_id = ent["resolved_id"]
+        key = f"{resolved_type}_id"
+
+        # Update the resolved_entities map
+        resolved_by_type.setdefault(key, []).append(resolved_id)
+
+        # Print resolution status with optional fallback annotation
+        fallback_tag = " (fallback)" if ent.get("resolved_as") == "fallback" else ""
+        print(f"✅ Resolved '{ent['name']}' as {resolved_type} → {resolved_id}{fallback_tag}")
+
 
     if not resolved_by_type:
         print("⚠️ No query_entities could be resolved.")
