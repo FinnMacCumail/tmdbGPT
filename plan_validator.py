@@ -74,17 +74,10 @@ class PlanValidator:
                 path_params[slot_name] = "week"
         return path_params
 
-    def inject_path_slot_parameters(self, step, state):
-        query_entities = []
-
-        if hasattr(state, "extraction_result"):
-            result = getattr(state, "extraction_result")
-            if isinstance(result, dict):
-                query_entities = result.get("query_entities", [])
-            elif hasattr(result, "query_entities"):
-                query_entities = result.query_entities
-
-        entities = getattr(state, "entities", []) if hasattr(state, "entities") else []
+    def inject_path_slot_parameters(self, step, resolved_entities, extraction_result=None):
+        query_entities = extraction_result.get("query_entities", []) if extraction_result else []
+        entities = list(resolved_entities.keys()) if resolved_entities else []
+        
         path_slots = self.resolve_path_slots(query_entities=query_entities, entities=entities)
 
         for slot, value in path_slots.items():
