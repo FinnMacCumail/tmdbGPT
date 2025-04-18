@@ -57,7 +57,7 @@ class PlanValidator:
         if query_entities:
             entity_types = {e["type"] for e in query_entities if isinstance(e, dict)}
         elif entities:
-            entity_types = set(entities)
+            entity_types = {e.replace("_id", "") for e in entities}
 
         PATH_PARAM_SLOT_MAP = {
             "movie": "media_type",
