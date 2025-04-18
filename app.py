@@ -55,6 +55,7 @@ def extract_entities(state: AppState) -> AppState:
 def resolve_entities(state):
     extraction = state.extraction_result
     query_entities = extraction.get("query_entities", [])
+    base_entities = set(extraction.get("entities", []))  # original from LLM
     resolved = {}
 
     print("🔍 Resolving typed query_entities from LLM...")
@@ -83,6 +84,8 @@ def resolve_entities(state):
         else:
             print(f"❌ Failed to resolve '{val}' as {entity_type}")
 
+    extraction["entities"] = list(base_entities.union(set(resolved.keys())))
+    
     if not resolved:
         print("⚠️ No query_entities could be resolved.")
 
