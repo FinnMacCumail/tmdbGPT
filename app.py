@@ -101,25 +101,60 @@ def retrieve_context(state: AppState) -> AppState:
 def plan(state: AppState) -> AppState:
     print("→ running node: PLAN")
 
+    # Phase 1: Rerank semantic matches using resolved entities
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
+
+    # Phase 2: Filter to executable steps
     feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
 
-    execution_steps = convert_matches_to_execution_steps(feasible, state.extraction_result, state.resolved_entities)
+    # Phase 3: Convert to execution-ready step format
+    execution_steps = convert_matches_to_execution_steps(
+        feasible, 
+        state.extraction_result, 
+        state.resolved_entities
+    )
 
-    # Phase 9.2: attempt to enrich plan with join-compatible endpoints
-    
-    combined_steps = execution_steps + execution_steps
+    # Phase 4: Deduplicate steps based on endpoint + parameter signature
+    seen = set()
+    deduped_steps = []
+
+    for step in execution_steps:
+        sig = (step["endpoint"], frozenset(step.get("parameters", {}).items()))
+        if sig not in seen:
+            seen.add(sig)
+            deduped_steps.append(step)
+        else:
+            print(f"🔁 Skipping duplicate step: {step['endpoint']} with same parameters")
+
+    # Phase 5: Filter out low-signal noisy loops
+    signal_steps = []
+    for step in deduped_steps:
+        endpoint = step["endpoint"]
+        params = step.get("parameters", {})
+
+        if "with_people" in params and not (
+            "/discover/" in endpoint or "/search/" in endpoint or "/person/" in endpoint
+        ):
+            print(f"🧹 Removed low-signal step: {endpoint} with with_people")
+            continue
+
+        signal_steps.append(step)
+
+    combined_steps = signal_steps
+
+    # Phase 6: Show final execution plan or fallback
     print("\n🧭 Final Execution Plan:")
     for s in combined_steps:
         print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
-    for step in execution_steps:
-        print(f"🧩 Join step injected: {step['endpoint']} params={step['parameters']}")
-
 
     if not combined_steps:
+        print("⚠️ No executable steps found. Using fallback...")
         combined_steps = FallbackHandler.generate_steps(state.resolved_entities, state.extraction_result)
 
-    return state.model_copy(update={"plan_steps": combined_steps, "step": "plan"})
+    return state.model_copy(update={
+        "plan_steps": combined_steps,
+        "step": "plan"
+    })
 
 def execute(state: AppState) -> AppState:
     print("→ running node: EXECUTE")
