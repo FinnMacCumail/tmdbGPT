@@ -57,113 +57,114 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 
-class JoinStepExpander:
-    @staticmethod
-    def suggest_join_steps(resolved_entities: dict, extraction_result: dict, top_k: int = 10) -> list:
-        JOIN_PARAM_MAP = {
-            "person_id": "with_people",
-            "genre_id": "with_genres",
-            "company_id": "with_companies",
-            "keyword_id": "with_keywords",
-            "network_id": "with_networks",
-            "collection_id": "with_collections",
-            "tv_id": "with_tv",
-            "movie_id": "with_movies"
-        }
+# Deprecated: replaced by hybrid + param-aware entity scoring in Phase 7
+# class JoinStepExpander:
+#     @staticmethod
+#     def suggest_join_steps(resolved_entities: dict, extraction_result: dict, top_k: int = 10) -> list:
+#         JOIN_PARAM_MAP = {
+#             "person_id": "with_people",
+#             "genre_id": "with_genres",
+#             "company_id": "with_companies",
+#             "keyword_id": "with_keywords",
+#             "network_id": "with_networks",
+#             "collection_id": "with_collections",
+#             "tv_id": "with_tv",
+#             "movie_id": "with_movies"
+#         }
 
-        def _is_valid_join_step(match: dict) -> bool:
-            endpoint = match.get("endpoint", "UNKNOWN")
+#         def _is_valid_join_step(match: dict) -> bool:
+#             endpoint = match.get("endpoint", "UNKNOWN")
 
-            raw_meta = match.get("parameters_metadata", [])
-            if isinstance(raw_meta, str):
-                try:
-                    raw_meta = json.loads(raw_meta)
-                except json.JSONDecodeError:
-                    return False
+#             raw_meta = match.get("parameters_metadata", [])
+#             if isinstance(raw_meta, str):
+#                 try:
+#                     raw_meta = json.loads(raw_meta)
+#                 except json.JSONDecodeError:
+#                     return False
 
-            if not isinstance(raw_meta, list):
-                return False
+#             if not isinstance(raw_meta, list):
+#                 return False
 
-            match["parameters_metadata"] = raw_meta
-            supported_param_names = {
-                p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")
-            }
+#             match["parameters_metadata"] = raw_meta
+#             supported_param_names = {
+#                 p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")
+#             }
 
-            params = normalize_parameters(match.get("parameters", {}))
+#             params = normalize_parameters(match.get("parameters", {}))
 
-            if not isinstance(params, dict):
-                print(f"❌ Invalid parameters after normalization for {endpoint}: {type(params)}")
-                return False
-            else:
-                assert isinstance(params, dict), f"🔴 Parameters not a dict in {endpoint}"
+#             if not isinstance(params, dict):
+#                 print(f"❌ Invalid parameters after normalization for {endpoint}: {type(params)}")
+#                 return False
+#             else:
+#                 assert isinstance(params, dict), f"🔴 Parameters not a dict in {endpoint}"
 
 
-            match["parameters"] = params
+#             match["parameters"] = params
 
-            requested_with_params = {k for k in params if k.startswith("with_")}
-            unsupported = requested_with_params - supported_param_names
-            if unsupported:
-                return False
+#             requested_with_params = {k for k in params if k.startswith("with_")}
+#             unsupported = requested_with_params - supported_param_names
+#             if unsupported:
+#                 return False
 
-            return True
+#             return True
 
-        query_entities = extraction_result.get("query_entities", [])
-        structured_names = [e["name"] for e in query_entities if isinstance(e, dict) and "name" in e]
-        first_query_name = ", ".join(structured_names)
+#         query_entities = extraction_result.get("query_entities", [])
+#         structured_names = [e["name"] for e in query_entities if isinstance(e, dict) and "name" in e]
+#         first_query_name = ", ".join(structured_names)
 
-        join_prompts = []
-        keys = list(resolved_entities.keys())
-        for i in range(len(keys)):
-            for j in range(i + 1, len(keys)):
-                e1, e2 = keys[i], keys[j]
-                if resolved_entities.get(e1) and resolved_entities.get(e2):
-                    prompt = f"Find endpoints that can accept both {e1} and {e2} to answer queries like: '{first_query_name}'"
-                    join_prompts.append(prompt)
+#         join_prompts = []
+#         keys = list(resolved_entities.keys())
+#         for i in range(len(keys)):
+#             for j in range(i + 1, len(keys)):
+#                 e1, e2 = keys[i], keys[j]
+#                 if resolved_entities.get(e1) and resolved_entities.get(e2):
+#                     prompt = f"Find endpoints that can accept both {e1} and {e2} to answer queries like: '{first_query_name}'"
+#                     join_prompts.append(prompt)
 
-        for entity_key, ids in resolved_entities.items():
-            if isinstance(ids, list) and len(ids) > 1:
-                param = JOIN_PARAM_MAP.get(entity_key)
-                if param:
-                    prompt = f"Find endpoints that support {param} for answering: '{first_query_name}'"
-                    join_prompts.append(prompt)
+#         for entity_key, ids in resolved_entities.items():
+#             if isinstance(ids, list) and len(ids) > 1:
+#                 param = JOIN_PARAM_MAP.get(entity_key)
+#                 if param:
+#                     prompt = f"Find endpoints that support {param} for answering: '{first_query_name}'"
+#                     join_prompts.append(prompt)
 
-        join_matches = []
-        for prompt in join_prompts:
-            results = hybrid_search(prompt, top_k=top_k)
-            for res in results:
-                raw = res.get("parameters", {})
-                res["parameters"] = normalize_parameters(raw)
-                if not isinstance(res["parameters"], dict):
-                    print(f"⚠️ Unexpected parameter format for {res.get('endpoint')}: {type(raw)} → replaced with empty dict")
-                    res["parameters"] = {}
-            join_matches.extend(results)
-            
-        for match in join_matches:
-            match.setdefault("parameters", {})
-            raw_meta = match.get("parameters_metadata", [])
-            if isinstance(raw_meta, str):
-                try:
-                    raw_meta = json.loads(raw_meta)
-                except json.JSONDecodeError:
-                    raw_meta = []
-            match["parameters_metadata"] = raw_meta
-            supported_param_names = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
+#         join_matches = []
+#         for prompt in join_prompts:
+#             results = hybrid_search(prompt, top_k=top_k)
+#             for res in results:
+#                 raw = res.get("parameters", {})
+#                 res["parameters"] = normalize_parameters(raw)
+#                 if not isinstance(res["parameters"], dict):
+#                     print(f"⚠️ Unexpected parameter format for {res.get('endpoint')}: {type(raw)} → replaced with empty dict")
+#                     res["parameters"] = {}
+#             join_matches.extend(results)
 
-            for entity_key, param_name in JOIN_PARAM_MAP.items():
-                ids = resolved_entities.get(entity_key)
-                if ids and param_name in supported_param_names:
-                    match["parameters"][param_name] = ",".join(map(str, ids))
+#         for match in join_matches:
+#             match.setdefault("parameters", {})
+#             raw_meta = match.get("parameters_metadata", [])
+#             if isinstance(raw_meta, str):
+#                 try:
+#                     raw_meta = json.loads(raw_meta)
+#                 except json.JSONDecodeError:
+#                     raw_meta = []
+#             match["parameters_metadata"] = raw_meta
+#             supported_param_names = {p.get("name") for p in raw_meta if isinstance(p, dict) and p.get("name")}
 
-        seen = set()
-        unique = []
-        for m in join_matches:
-            eid = m.get("endpoint")
-            if eid and eid not in seen:
-                seen.add(eid)
-                unique.append(m)
+#             for entity_key, param_name in JOIN_PARAM_MAP.items():
+#                 ids = resolved_entities.get(entity_key)
+#                 if ids and param_name in supported_param_names:
+#                     match["parameters"][param_name] = ",".join(map(str, ids))
 
-        validated = [m for m in unique if _is_valid_join_step(m)]
-        return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
+#         seen = set()
+#         unique = []
+#         for m in join_matches:
+#             eid = m.get("endpoint")
+#             if eid and eid not in seen:
+#                 seen.add(eid)
+#                 unique.append(m)
+
+#         validated = [m for m in unique if _is_valid_join_step(m)]
+#         return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
     
 class ResponseFormatter:
     @staticmethod

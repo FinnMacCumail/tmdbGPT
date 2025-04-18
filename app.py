@@ -11,8 +11,6 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 import time
 from nlp_retriever import RerankPlanning, ResponseFormatter
-from collections import defaultdict
-from nlp_retriever import JoinStepExpander
 
 load_dotenv()
 
@@ -109,16 +107,12 @@ def plan(state: AppState) -> AppState:
     execution_steps = convert_matches_to_execution_steps(feasible, state.extraction_result, state.resolved_entities)
 
     # Phase 9.2: attempt to enrich plan with join-compatible endpoints
-    join_steps = JoinStepExpander.suggest_join_steps(
-        resolved_entities=state.resolved_entities,
-        extraction_result=state.extraction_result
-    )
-
-    combined_steps = execution_steps + join_steps
+    
+    combined_steps = execution_steps + execution_steps
     print("\n🧭 Final Execution Plan:")
     for s in combined_steps:
         print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
-    for step in join_steps:
+    for step in execution_steps:
         print(f"🧩 Join step injected: {step['endpoint']} params={step['parameters']}")
 
 
