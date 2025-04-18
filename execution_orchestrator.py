@@ -79,7 +79,11 @@ class ExecutionOrchestrator:
         i = 0
         while i < len(state.plan_steps):
             step = state.plan_steps[i]
-            step = self.validator.inject_path_slot_parameters(step, state)
+            step = self.validator.inject_path_slot_parameters(
+                step, 
+                resolved_entities=state.resolved_entities,
+                extraction_result=state.extraction_result
+            )
             i += 1
 
             param_string = "&".join(f"{k}={v}" for k, v in sorted(step.get("parameters", {}).items()))
