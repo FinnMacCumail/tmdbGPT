@@ -66,27 +66,30 @@ class PlanValidator:
         }
 
         path_params = {}
-        # First pass: explicit entity resolution
-        for ent_type in entity_types:
-            slot_name = PATH_PARAM_SLOT_MAP.get(ent_type)
-            if slot_name == "media_type" and ent_type in ["movie", "tv"]:
-                path_params[slot_name] = ent_type
-            elif slot_name == "time_window" and ent_type == "date":
-                path_params[slot_name] = "week"  # could enhance to interpret specific dates
 
-        # ✅ FIX: Intent-based default fallback, but entity-aware
+        # ✅ Priority 1: Explicit entity-to-path slot mapping
+        if "tv" in entity_types:
+            path_params["media_type"] = "tv"
+        elif "movie" in entity_types:
+            path_params["media_type"] = "movie"
+
+        if "date" in entity_types:
+            path_params["time_window"] = "week"
+
+        # ✅ Priority 2: Intent-based fallback if slot still missing
         if intents and "trending.popular" in intents:
             if "media_type" not in path_params:
-                # entity-aware fallback: prefer 'movie' but check if 'tv' is in entities first
-                path_params["media_type"] = "tv" if "tv" in entity_types else "movie"
+                path_params["media_type"] = "movie"
             if "time_window" not in path_params:
                 path_params["time_window"] = "week"
 
         return path_params
 
+
     def inject_path_slot_parameters(self, step, resolved_entities, extraction_result=None):
         query_entities = extraction_result.get("query_entities", []) if extraction_result else []
-        entities = list(resolved_entities.keys()) if resolved_entities else []
+        # ✅ FIXED: use LLM-detected entities instead of resolved entity keys
+        entities = extraction_result.get("entities", []) if extraction_result else []
         intents = extraction_result.get("intents", []) if extraction_result else []
 
         path_slots = self.resolve_path_slots(
@@ -102,8 +105,7 @@ class PlanValidator:
 
         print(f"✅ Final injected parameters: {step['parameters']}")
         return step
-
-
+    
     def validate(self, semantic_matches, state):
         query_entities = []
 
