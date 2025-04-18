@@ -1,76 +1,37 @@
-import chromadb
-import json
 import os
-from collections import Counter
-from datetime import datetime
-from typing import Dict
+import json
+import chromadb
 
-class ChromaEmbeddingLogger:
-    def __init__(self):
-        self.log_dir = "logs"
-        self.collection_name = "tmdb_endpoints"
-        self.client = chromadb.PersistentClient(path="./sec_intent_chroma_db")
+# Ensure the logs directory exists
+os.makedirs("logs", exist_ok=True)
 
-    def _ensure_log_dir(self):
-        os.makedirs(self.log_dir, exist_ok=True)
+# Connect to ChromaDB and retrieve endpoint metadata
+client = chromadb.PersistentClient(path="./chroma_db")
+collection = client.get_or_create_collection("tmdb_endpoints")
+entries = collection.get(include=["metadatas"])
 
-    def _get_collection(self):
-        return self.client.get_collection(name=self.collection_name)
+# Prepare log content
+log_lines = ["# TMDB Endpoint Metadata Log\n"]
 
-    def _generate_filename(self):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"chroma_embeddings_{timestamp}.log"
+for meta in entries["metadatas"]:
+    path = meta.get("path", "UNKNOWN")
+    intents = json.loads(meta.get("intents", "[]"))
+    consumes = json.loads(meta.get("consumes_entities", "[]"))
+    produces = json.loads(meta.get("produces_entities", "[]"))
+    params = json.loads(meta.get("param_names", "[]"))
+    entities = meta.get("entities", "")
 
-    def _format_entry(self, entry: Dict) -> str:
-        return (
-            f"ID: {entry['id']}\n"
-            f"Metadata: {json.dumps(entry['metadata'], indent=2)}\n"
-            f"Embedding: Vector of length {len(entry['embedding'])} "
-            f"(First 5 dims: {entry['embedding'][:5]})\n"
-            + "=" * 50 + "\n"
-        )
+    log_lines.append(f"## {path}")
+    log_lines.append(f"- Intents: {[i['intent'] for i in intents]}")
+    log_lines.append(f"- Entities: {entities}")
+    log_lines.append(f"- Param Names: {params}")
+    log_lines.append(f"- Consumes: {consumes}")
+    log_lines.append(f"- Produces: {produces}")
+    log_lines.append("")
 
-    def log_embeddings(self):
-        try:
-            self._ensure_log_dir()
-            collection = self._get_collection()
-            embeddings = collection.get(include=["embeddings", "metadatas"])
+# Write to file
+log_path = "logs/tmdb_endpoints_metadata_log.md"
+with open(log_path, "w") as f:
+    f.write("\n".join(log_lines))
 
-            ids = embeddings.get("ids", [])
-            if not ids:
-                print("No embeddings found in collection")
-                return
-
-            # Count occurrences of each ID
-            id_counts = Counter(ids)
-            duplicates = {k: v for k, v in id_counts.items() if v > 1}
-
-            if duplicates:
-                print("🚨 Duplicate IDs detected:")
-                for dup_id, count in duplicates.items():
-                    print(f" - {dup_id} → {count} times")
-            else:
-                print("✅ No duplicate IDs found.")
-
-            # Proceed with logging anyway
-            log_content = []
-            for idx in range(len(ids)):
-                entry = {
-                    "id": ids[idx],
-                    "metadata": embeddings["metadatas"][idx],
-                    "embedding": embeddings["embeddings"][idx]
-                }
-                log_content.append(self._format_entry(entry))
-
-            filename = os.path.join(self.log_dir, self._generate_filename())
-            with open(filename, "w") as f:
-                f.writelines(log_content)
-
-            print(f"Successfully logged {len(log_content)} embeddings to {filename}")
-
-        except Exception as e:
-            print(f"Error logging embeddings: {str(e)}")
-
-if __name__ == "__main__":
-    logger = ChromaEmbeddingLogger()
-    logger.log_embeddings()
+print(f"✅ Log written to {log_path}")
