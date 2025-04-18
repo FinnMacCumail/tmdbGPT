@@ -50,48 +50,38 @@ def extract_entities(state: AppState) -> AppState:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
 
-def resolve_entities(state):
+def resolve_entities(state: AppState) -> AppState:
+    print("→ running node: RESOLVE_ENTITIES")
     extraction = state.extraction_result
     query_entities = extraction.get("query_entities", [])
-    base_entities = set(extraction.get("entities", []))  # original from LLM
+    base_entities = set(extraction.get("entities", []))  # from LLM extraction
+
+    # ✅ New multi-entity resolver (including network)
+    resolved_entities, unresolved_entities = entity_resolver.resolve_entities(query_entities)
+
+    # Convert to TMDB-style {type_id: [list]} format
     resolved = {}
+    for ent in resolved_entities:
+        entity_type = ent["type"]
+        resolved_id = ent["resolved_id"]
+        key = f"{entity_type}_id"
+        resolved.setdefault(key, []).append(resolved_id)
+        print(f"✅ Resolved '{ent['name']}' as {entity_type} → {resolved_id}")
 
-    print("🔍 Resolving typed query_entities from LLM...")
-    for item in query_entities:
-        if not isinstance(item, dict):
-            print(f"⚠️ Skipping unstructured item: {item}")
-            continue
-
-        val = item.get("name")
-        entity_type = item.get("type")
-        if not val or not entity_type:
-            print(f"⚠️ Skipping invalid entity object: {item}")
-            continue
-
-        match = entity_resolver.resolve_entity(val, entity_type)
-        if match:
-            print(f"✅ Resolved '{val}' as {entity_type} → {match}")
-            key = f"{entity_type}_id"
-            if key not in resolved:
-                resolved[key] = []
-            resolved[key].append(match)
-
-            if entity_type not in extraction["entities"]:
-                extraction["entities"].append(entity_type)
-                print(f"➕ Added '{entity_type}' to extraction_result['entities']")
-        else:
-            print(f"❌ Failed to resolve '{val}' as {entity_type}")
-
-    extraction["entities"] = list(base_entities.union(set(resolved.keys())))
-    
     if not resolved:
         print("⚠️ No query_entities could be resolved.")
+
+    # Update entity types in extraction["entities"]
+    for ent in resolved_entities:
+        if ent["type"] not in extraction["entities"]:
+            extraction["entities"].append(ent["type"])
 
     return state.model_copy(update={
         "resolved_entities": resolved,
         "extraction_result": extraction,
         "step": "resolve_entities"
     })
+
 
 def retrieve_context(state: AppState) -> AppState:
     print("→ running node: RETRIEVE_CONTEXT")
