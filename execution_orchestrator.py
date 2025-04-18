@@ -46,27 +46,57 @@ class ExecutionOrchestrator:
     def _run_post_validations(self, step, data, state):
         validated = []
         movie_results = data.get("results", [])
+        print(f"🔍 Running post-validations on {len(movie_results)} movie(s)...")
+
         for rule in self.VALIDATION_REGISTRY:
             if rule["endpoint"] in step["endpoint"] and rule["trigger_param"] in step.get("parameters", {}):
+                print(f"🧪 Applying validation rule: {rule['validator'].__name__}")
                 validator = rule["validator"]
                 build_args = rule["args_builder"]
                 args = build_args(step, state)
+
+                # Fallback assumption: two people → one cast, one director
+                people_ids = step["parameters"].get("with_people", "")
+                person_ids = [int(pid) for pid in people_ids.split(",") if pid.isdigit()]
+                cast_id = person_ids[0] if len(person_ids) >= 1 else None
+
+                query_entities = state.extraction_result.get("query_entities", [])
+                director_name = None
+                for qe in query_entities:
+                    if qe["name"].lower() != state.resolved_entities.get("person_id", [])[0]:
+                        director_name = qe["name"]
+
                 for movie in movie_results:
                     movie_id = movie.get("id")
                     if not movie_id:
                         continue
 
-                    url = f"{self.base_url}{rule['followup_endpoint_template'].replace('{movie_id}', str(movie_id))}"
+                    url = f"{self.base_url}/movie/{movie_id}/credits"
                     try:
                         response = requests.get(url, headers=self.headers)
                         if response.status_code != 200:
                             continue
                         result_data = response.json()
-                        if validator(result_data, **args):
+
+                        cast_ok = True
+                        director_ok = True
+
+                        if cast_id:
+                            cast_ok = PostValidator.has_all_cast(result_data, [cast_id])
+                            print(f"🎭 Cast match for {movie_id}: {cast_ok}")
+
+                        if director_name:
+                            director_ok = PostValidator.has_director(result_data, director_name)
+                            print(f"🎬 Director match for {movie_id}: {director_ok}")
+
+                        if cast_ok and director_ok:
                             validated.append(movie)
+                        else:
+                            print(f"❌ Skipping {movie_id}: cast_ok={cast_ok}, director_ok={director_ok}")
                     except Exception as e:
                         print(f"⚠️ Validation failed for movie_id={movie_id}: {e}")
-                break  # Stop after first matching rule
+                break  # Only apply first matching rule
+
         return validated or movie_results
     
     def execute(self, state):
