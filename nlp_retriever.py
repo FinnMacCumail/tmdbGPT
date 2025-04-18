@@ -400,31 +400,50 @@ class ResultExtractor:
         summaries = []
         resolved_entities = resolved_entities or {}
 
-        # Attempt to find a "results" or list-like root key
+        print(f"📊 Top-level keys in response: {list(json_data.keys())}")
+        for k, v in json_data.items():
+            print(f"  → {k}: {type(v)}")
+
+        # Try detecting candidate lists (e.g., results, keywords, genres)
         candidate_lists = [v for v in json_data.values() if isinstance(v, list)]
         if not candidate_lists and "results" in json_data:
             candidate_lists = [json_data["results"]]
         if not candidate_lists:
             # Try flat dicts with known display fields
             title = json_data.get("title") or json_data.get("name")
-            overview = json_data.get("overview")
+            overview = json_data.get("overview") or ""
             if title or overview:
                 summaries.append({
                     "type": "movie_summary",
                     "title": title,
-                    "overview": overview,
+                    "overview": str(overview),
                     "source": endpoint
                 })
             return summaries
 
-        # Loop over all candidate list blocks (e.g., results, cast, genres, etc.)
         for item_list in candidate_lists:
             for item in item_list:
                 if not isinstance(item, dict):
                     continue
-                title = item.get("title") or item.get("name")
-                overview = item.get("overview") or item.get("job") or item.get("character") or item.get("description", "")
-                if title or overview:
+
+                title = item.get("title") or item.get("name", "")
+                overview = (
+                    item.get("overview")
+                    or item.get("job")
+                    or item.get("character")
+                    or item.get("description")
+                    or ""
+                )
+                overview = str(overview)
+
+                if "/keywords" in endpoint:
+                    summaries.append({
+                        "type": "keyword_summary",
+                        "title": title,
+                        "overview": "",
+                        "source": endpoint
+                    })
+                elif title or overview:
                     summaries.append({
                         "type": "movie_summary",
                         "title": title,
