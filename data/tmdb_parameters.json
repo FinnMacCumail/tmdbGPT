@@ -1,0 +1,583 @@
+[
+  {
+    "name": "page",
+    "description": "Specify which page to query.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv",
+      "/movie/now_playing",
+      "/movie/popular",
+      "/movie/top_rated",
+      "/movie/upcoming",
+      "/movie/{movie_id}/recommendations",
+      "/movie/{movie_id}/reviews",
+      "/movie/{movie_id}/similar",
+      "/person/popular",
+      "/search/collection",
+      "/search/company",
+      "/search/movie",
+      "/search/person",
+      "/search/tv",
+      "/tv/airing_today",
+      "/tv/on_the_air",
+      "/tv/popular",
+      "/tv/top_rated",
+      "/tv/{tv_id}/recommendations",
+      "/tv/{tv_id}/reviews",
+      "/tv/{tv_id}/similar"
+    ]
+  },
+  {
+    "name": "include_image_language",
+    "description": "",
+    "in": "query",
+    "used_in": [
+      "/movie/{movie_id}/images"
+    ]
+  },
+  {
+    "name": "query",
+    "description": "Pass a text query to search. This value should be URI encoded.",
+    "in": "query",
+    "used_in": [
+      "/search/collection",
+      "/search/company",
+      "/search/movie",
+      "/search/person",
+      "/search/tv"
+    ]
+  },
+  {
+    "name": "include_adult",
+    "description": "Choose whether to inlcude adult (pornography) content in the results.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/search/movie",
+      "/search/person",
+      "/search/tv"
+    ]
+  },
+  {
+    "name": "first_air_date_year",
+    "description": "",
+    "in": "query",
+    "used_in": [
+      "/discover/tv",
+      "/search/tv"
+    ]
+  },
+  {
+    "name": "region",
+    "description": "Specify a ISO 3166-1 code to filter release dates.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/movie/now_playing",
+      "/movie/popular",
+      "/movie/top_rated",
+      "/movie/upcoming",
+      "/search/movie",
+      "/search/person"
+    ]
+  },
+  {
+    "name": "year",
+    "description": "",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/search/movie"
+    ]
+  },
+  {
+    "name": "primary_release_year",
+    "description": "",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/search/movie"
+    ]
+  },
+  {
+    "name": "sort_by",
+    "description": "Choose from one of the many available sort options.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "certification_country",
+    "description": "Used in conjunction with the certification filter, use this to specify a country with a valid certification.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "certification",
+    "description": "Filter results with a valid certification from the 'certification_country' field.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "certification.lte",
+    "description": "Filter and only include movies or films that have a certification that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "certification.gte",
+    "description": "Filter and only include movies that have a certification that is greater than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "include_video",
+    "description": "A filter to include or exclude videos.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "primary_release_date.gte",
+    "description": "Filter and only include movies or films that have a primary release date that is greater or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "primary_release_date.lte",
+    "description": "Filter and only include movies or films that have a primary release date that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "release_date.gte",
+    "description": "Filter and only include movies or films that have a release date (looking at all release dates) that is greater or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "release_date.lte",
+    "description": "Filter and only include movies or films that have a release date (looking at all release dates) that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "with_release_type",
+    "description": "Release types map to the same values found on the movie release date method.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "vote_count.gte",
+    "description": "Filter and only include movies or films that have a vote count that is greater or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "vote_count.lte",
+    "description": "Filter and only include movies or films that have a vote count that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "vote_average.gte",
+    "description": "Filter and only include movies or films that have a rating that is greater or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "vote_average.lte",
+    "description": "Filter and only include movies that have a rating that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "with_cast",
+    "description": "A comma separated list of person ID's. Only include movies or films that have one of the ID's added as an actor.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "with_crew",
+    "description": "A comma separated list of person ID's. Only include movies or films that have one of the ID's added as a crew member.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "with_people",
+    "description": "A comma separated list of person ID's. Only include movies or films that have one of the ID's added as a either a actor or a crew member.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie"
+    ]
+  },
+  {
+    "name": "with_companies",
+    "description": "A comma separated list of production company ID's. Only include movies or films that have one of the ID's added as a production company.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_genres",
+    "description": "Comma separated value of genre ids that you want to include in the results.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "without_genres",
+    "description": "Comma separated value of genre ids that you want to exclude from the results.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_keywords",
+    "description": "A comma separated list of keyword ID's. Only includes movies or films that have one of the ID's added as a keyword.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "without_keywords",
+    "description": "Exclude items with certain keywords. You can comma and pipe seperate these values to create an 'AND' or 'OR' logic.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_runtime.gte",
+    "description": "Filter and only include movies that have a runtime that is greater or equal to a value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_runtime.lte",
+    "description": "Filter and only include movies or films that have a runtime that is less than or equal to a value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_original_language",
+    "description": "Specify an ISO 639-1 string to filter results by their original language value.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_watch_providers",
+    "description": "A comma or pipe separated list of watch provider ID's. Combine this filter with `watch_region` in order to filter your results by a specific watch provider in a specific region.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "watch_region",
+    "description": "An ISO 3166-1 code. Combine this filter with `with_watch_providers` in order to filter your results by a specific watch provider in a specific region.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_watch_monetization_types",
+    "description": "In combination with `watch_region`, you can filter by monetization type.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "without_companies",
+    "description": "Filter the results to exclude the specific production companies you specify here. `AND` / `OR` filters are supported.",
+    "in": "query",
+    "used_in": [
+      "/discover/movie",
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "append_to_response",
+    "description": "Append requests within the same namespace to the response.",
+    "in": "query",
+    "used_in": [
+      "/movie/{movie_id}"
+    ]
+  },
+  {
+    "name": "air_date.gte",
+    "description": "Filter and only include TV shows that have a air date (by looking at all episodes) that is greater or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "air_date.lte",
+    "description": "Filter and only include TV shows that have a air date (by looking at all episodes) that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "first_air_date.gte",
+    "description": "Filter and only include TV shows that have a original air date that is greater or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "first_air_date.lte",
+    "description": "Filter and only include TV shows that have a original air date that is less than or equal to the specified value.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "timezone",
+    "description": "Used in conjunction with the air_date.gte/lte filter to calculate the proper UTC offset.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_networks",
+    "description": "Comma separated value of network ids that you want to include in the results.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "include_null_first_air_dates",
+    "description": "Use this filter to include TV shows that don't have an air date while using any of the \"first_air_date\" filters.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "screened_theatrically",
+    "description": "Filter results to include items that have been screened theatrically.",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_status",
+    "description": "Filter TV shows by their status. Returning Series: 0\nPlanned: 1\nIn Production: 2\nEnded: 3\nCancelled: 4\nPilot: 5",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "with_type",
+    "description": "Filter TV shows by their type. Documentary: 0\nNews: 1\nMiniseries: 2\nReality: 3\nScripted: 4\nTalk Show: 5\nVideo: 6",
+    "in": "query",
+    "used_in": [
+      "/discover/tv"
+    ]
+  },
+  {
+    "name": "movie_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/movie/{movie_id}",
+      "/movie/{movie_id}/credits",
+      "/movie/{movie_id}/images",
+      "/movie/{movie_id}/keywords",
+      "/movie/{movie_id}/recommendations",
+      "/movie/{movie_id}/release_dates",
+      "/movie/{movie_id}/reviews",
+      "/movie/{movie_id}/similar"
+    ],
+    "entity_type": "movie"
+  },
+  {
+    "name": "person_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/person/{person_id}",
+      "/person/{person_id}/images",
+      "/person/{person_id}/movie_credits",
+      "/person/{person_id}/tv_credits"
+    ],
+    "entity_type": "person"
+  },
+  {
+    "name": "tv_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/tv/{tv_id}",
+      "/tv/{tv_id}/credits",
+      "/tv/{tv_id}/images",
+      "/tv/{tv_id}/keywords",
+      "/tv/{tv_id}/recommendations",
+      "/tv/{tv_id}/reviews",
+      "/tv/{tv_id}/season/{season_number}",
+      "/tv/{tv_id}/season/{season_number}/credits",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+      "/tv/{tv_id}/season/{season_number}/images",
+      "/tv/{tv_id}/similar"
+    ],
+    "entity_type": "tv"
+  },
+  {
+    "name": "season_number",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/tv/{tv_id}/season/{season_number}",
+      "/tv/{tv_id}/season/{season_number}/credits",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images",
+      "/tv/{tv_id}/season/{season_number}/images"
+    ],
+    "entity_type": "season"
+  },
+  {
+    "name": "episode_number",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits",
+      "/tv/{tv_id}/season/{season_number}/episode/{episode_number}/images"
+    ],
+    "entity_type": "episode"
+  },
+  {
+    "name": "network_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/network/{network_id}",
+      "/network/{network_id}/images"
+    ],
+    "entity_type": "network"
+  },
+  {
+    "name": "credit_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/credit/{credit_id}"
+    ]
+  },
+  {
+    "name": "company_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/company/{company_id}",
+      "/company/{company_id}/images"
+    ],
+    "entity_type": "company"
+  },
+  {
+    "name": "review_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/review/{review_id}"
+    ],
+    "entity_type": "review"
+  },
+  {
+    "name": "media_type",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/trending/{media_type}/{time_window}"
+    ]
+  },
+  {
+    "name": "time_window",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/trending/{media_type}/{time_window}"
+    ]
+  },
+  {
+    "name": "collection_id",
+    "description": "(extracted from path)",
+    "in": "path",
+    "used_in": [
+      "/collection/{collection_id}",
+      "/collection/{collection_id}/images"
+    ],
+    "entity_type": "collection"
+  }
+]
