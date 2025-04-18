@@ -107,14 +107,14 @@ class SemanticEmbedder:
     def _create_embedding_text(self, endpoint, details):
         desc = details.get("description", "")
 
-        # ✅ Enrich description for discover/movie
+        # ✅ Strategy-aligned embedding text for discover/movie
         if endpoint == "/discover/movie":
-            desc += (
-                "\nThis endpoint lets you find movies with flexible filters."
-                "\nSupports `with_people` to filter by multiple actors (e.g., Robert De Niro and Al Pacino),"
-                "\n`with_genres` for genre-based filtering, and"
-                "\n`primary_release_year` for temporal queries."
-                "\nPerfect for discovery use cases and multi-person cast matching."
+            desc = (
+                "Endpoint supports discovery.filtered intent. "
+                "Entities: person, movie. "
+                "Parameters: with_people, with_genres, primary_release_year. "
+                "Use this to find movies filtered by cast, genre, and year. "
+                "Example: Find movies with both Robert De Niro and Al Pacino."
             )
 
         return f"Endpoint: {endpoint}\nDescription: {desc.strip()}"
