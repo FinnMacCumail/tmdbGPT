@@ -166,11 +166,12 @@ HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
 #         validated = [m for m in unique if _is_valid_join_step(m)]
 #         return convert_matches_to_execution_steps(validated, extraction_result, resolved_entities)
     
+
 class ResponseFormatter:
     @staticmethod
     def format_responses(responses: list) -> list:
         """
-        Format mixed response entries (dicts + strings) into clean readable summaries.
+        Format structured response entries with metadata or fall back to basic text.
 
         Args:
             responses (list): the raw response list from state.responses
@@ -183,12 +184,31 @@ class ResponseFormatter:
             if isinstance(item, str):
                 formatted.append(f"📌 {item}")
             elif isinstance(item, dict):
-                if "extracted" in item:
+                response_type = item.get("type")
+
+                if response_type == "movie_summary":
+                    title = item.get("title", "Unknown Title")
+                    overview = item.get("overview", "")
+                    source = item.get("source", "")
+                    formatted.append(f"🎬 {title}: {overview}")
+                    if source:
+                        formatted.append(f"📦 Source: {source}")
+
+                elif response_type == "person_profile":
+                    name = item.get("title", "Unknown Person")
+                    bio = item.get("overview", "")
+                    formatted.append(f"👤 {name}: {bio}")
+
+                elif "extracted" in item:
                     step = item.get("step", "")
                     for k, v in item["extracted"].items():
                         formatted.append(f"🧩 Extracted {k}: {v} (via {step})")
-        return formatted
 
+                else:
+                    formatted.append(f"📎 {json.dumps(item)}")
+
+        return formatted
+    
 def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
     """
     Use newly resolved entities to find and append follow-up steps to the plan.
@@ -389,7 +409,12 @@ class ResultExtractor:
             title = json_data.get("title") or json_data.get("name")
             overview = json_data.get("overview")
             if title or overview:
-                summaries.append(f"{title}: {overview}".strip(": "))
+                summaries.append({
+                    "type": "movie_summary",
+                    "title": title,
+                    "overview": overview,
+                    "source": endpoint
+                })
             return summaries
 
         # Loop over all candidate list blocks (e.g., results, cast, genres, etc.)
@@ -399,9 +424,13 @@ class ResultExtractor:
                     continue
                 title = item.get("title") or item.get("name")
                 overview = item.get("overview") or item.get("job") or item.get("character") or item.get("description", "")
-                line = f"{title}: {overview}".strip(": ")
                 if title or overview:
-                    summaries.append(line)
+                    summaries.append({
+                        "type": "movie_summary",
+                        "title": title,
+                        "overview": overview,
+                        "source": endpoint
+                    })
 
         return summaries
     
