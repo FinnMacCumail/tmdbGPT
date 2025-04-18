@@ -3,6 +3,7 @@ import requests
 from hashlib import sha256
 from post_validator import PostValidator
 from entity_reranker import EntityAwareReranker 
+from plan_validator import PlanValidator
 
 class ExecutionOrchestrator:
     
@@ -39,6 +40,7 @@ class ExecutionOrchestrator:
         self.dependency_manager = DependencyManager()
         self.base_url = base_url
         self.headers = headers
+        self.validator = PlanValidator()
 
     def _run_post_validations(self, step, data, state):
         validated = []
@@ -77,6 +79,7 @@ class ExecutionOrchestrator:
         i = 0
         while i < len(state.plan_steps):
             step = state.plan_steps[i]
+            step = self.validator.inject_path_slot_parameters(step, state)
             i += 1
 
             param_string = "&".join(f"{k}={v}" for k, v in sorted(step.get("parameters", {}).items()))
@@ -95,19 +98,21 @@ class ExecutionOrchestrator:
                 continue
 
             path = step.get("endpoint")
+            # 🛡 Sanity check + refresh after injection
             params = step.get("parameters", {})
-            
-            # 🛡 Assert and log if parameters is not a dict
             if not isinstance(params, dict):
                 print(f"🚨 Malformed parameters in step {step_id} → {type(params)}")
                 params = {}
             else:
                 assert isinstance(params, dict), f"❌ Step {step_id} has non-dict parameters: {type(params)}"
 
-
+            # 🧠 Replace placeholders in the path using updated params
             for k, v in params.items():
                 if f"{{{k}}}" in path:
                     path = path.replace(f"{{{k}}}", str(v))
+                    print(f"🧩 Replaced path slot: {{{k}}} → {v}")
+
+            print(f"🛠️ Resolved full path: {path}")
 
             path = PathRewriter.rewrite(path, state.resolved_entities)
             full_url = f"{self.base_url}{path}"
