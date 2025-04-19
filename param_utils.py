@@ -52,3 +52,66 @@ def is_intent_supported(intent: str, endpoint_intents: list) -> bool:
     Return True if the given intent is among the endpoint's declared supported intents.
     """
     return intent in endpoint_intents
+
+
+class GenreNormalizer:
+    GENRE_ALIASES = {
+        "sci-fi": "science fiction",
+        "scifi": "science fiction",
+        "romcom": "romance",
+        "dramedy": "comedy",
+        "action adventure": "action",
+        "doc": "documentary",
+        "biopic": "history",
+        "kids": "family",
+        "animation": "animated",
+        "suspense": "thriller",
+        "feel good": "comedy",
+        "fantasy epic": "fantasy"
+    }
+
+    @staticmethod
+    def normalize(name: str) -> str:
+        name = name.strip().lower()
+        normalized = GenreNormalizer.GENRE_ALIASES.get(name, name)
+        if name != normalized:
+            print(f"🎭 Normalized genre alias: '{name}' → '{normalized}'")
+        return normalized
+    
+class ParameterMapper:
+    VALUE_PARAM_MAP = {
+        # Numeric filters
+        "rating": ("vote_average.gte", float),
+        "votes": ("vote_count.gte", int),
+        "runtime": ("with_runtime.gte", int),
+        "runtime_max": ("with_runtime.lte", int),
+        "year": ("primary_release_year", int),
+        "date": ("primary_release_year", int),
+
+        # Language and region filters
+        "language": ("with_original_language", str),
+        "country": ("region", str),
+        "language_name": ("with_original_language", str),
+
+        # Optional advanced date filters
+        "release_after": ("primary_release_date.gte", str),
+        "release_before": ("primary_release_date.lte", str),
+    }
+
+    @staticmethod
+    def inject_parameters_from_entities(query_entities: list, step_parameters: dict) -> None:
+        for ent in query_entities:
+            ent_type = ent.get("type")
+            ent_value = ent.get("name", "").strip()
+
+            mapping = ParameterMapper.VALUE_PARAM_MAP.get(ent_type)
+            if not mapping:
+                continue
+
+            param_name, cast_fn = mapping
+            try:
+                if ent_value:
+                    step_parameters[param_name] = cast_fn(ent_value)
+                    print(f"✅ Injected {param_name} = {step_parameters[param_name]}")
+            except ValueError:
+                print(f"⚠️ Failed to parse value '{ent_value}' for param '{param_name}'")
