@@ -9,6 +9,23 @@ class SemanticEmbedder:
         self.collection = self.client.get_or_create_collection("tmdb_endpoints")
 
     def _detect_intents(self, endpoint, parameters):
+
+        # 🎯 Person details
+        if "/person/" in endpoint and endpoint.count("{") == 1:
+            return [{"intent": "details.person", "confidence": 1.0}]
+
+        # 🎯 Person credits (add both intents for filmography-like queries)
+        if "/person/" in endpoint and "/movie_credits" in endpoint:
+            return [
+                {"intent": "credits.person", "confidence": 1.0},
+                {"intent": "details.person", "confidence": 0.8}
+            ]
+        if "/person/" in endpoint and "/tv_credits" in endpoint:
+            return [
+                {"intent": "credits.person", "confidence": 1.0},
+                {"intent": "details.person", "confidence": 0.8}
+            ]
+
         if "/recommendations" in endpoint or "/similar" in endpoint:
             return [{"intent": "recommendation", "confidence": 1.0}]
         if "/movie/" in endpoint and endpoint.count("{") == 1:
