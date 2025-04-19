@@ -25,7 +25,7 @@ class OpenAILLMClient:
         "query_entities": [
             {{
             "name": "Full name or title of a specific person, movie, keyword, etc.",
-            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', or 'network'"
+            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'rating', or 'date'"
             }}
         ]
         }}
@@ -36,6 +36,8 @@ class OpenAILLMClient:
         - Include all applicable `intents` and `entities`, even if no named `query_entity` is present.
         - Use lowercase values for all types and intents.
         - If a query is vague or exploratory, fall back to general types (e.g., 'movie', 'genre').
+        - Include rating values like 'above 7.5' as {{ "name": "7.5", "type": "rating" }}
+        - Include year references like 'from 2023' as {{ "name": "2023", "type": "date" }}
         - Do NOT include commentary — only respond with valid JSON.
 
         User Query:
