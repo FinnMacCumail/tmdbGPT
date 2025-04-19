@@ -43,6 +43,7 @@ def hybrid_search(prompt: str, top_k: int = 10) -> list:
     structured = openai_client.extract_entities_and_intents(prompt)
     return semantic_retrieval(structured, top_k=top_k)
 
+# This llm call not used directly in the application - it is for semantic embed testpurposes
 def extract_intent_entities(openai, query):
     prompt = f"""
     Extract intents and entities from the user's query using this schema:
@@ -74,7 +75,32 @@ def extract_intent_entities(openai, query):
     content = response.choices[0].message.content.strip()
 
     try:
-        return json.loads(content)
+        result = json.loads(content)
+
+        # ✅ Fallback correction for known streaming services
+        streaming_services = {
+            "netflix": "company",
+            "amazon prime": "company",
+            "prime video": "company",
+            "hulu": "company",
+            "disney+": "company",
+            "apple tv": "company",
+            "peacock": "company",
+            "paramount+": "company",
+            "hbo": "network",     # TMDB treats HBO as network
+            "starz": "network"
+        }
+
+        for ent in result.get("query_entities", []):
+            name_lower = ent.get("name", "").strip().lower()
+            for keyword, corrected_type in streaming_services.items():
+                if keyword in name_lower and ent.get("type") != corrected_type:
+                    print(f"🔁 Correcting '{ent['name']}' type: {ent['type']} → {corrected_type}")
+                    ent["type"] = corrected_type
+                    if corrected_type not in result["entities"]:
+                        result["entities"].append(corrected_type)
+
+        return result
     except json.JSONDecodeError:
         print("❌ Invalid JSON:\n", content)
         return None

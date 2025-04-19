@@ -53,11 +53,42 @@ class OpenAILLMClient:
                 ],
                 temperature=0.3,
             )
+
             content = response.choices[0].message.content
-            return json.loads(content)
+            result = json.loads(content)  # ✅ Safe JSON parsing
+
+            # ✅ Fallback correction for known streaming services
+            streaming_services = {
+                "netflix": "company",
+                "amazon prime": "company",
+                "prime video": "company",
+                "hulu": "company",
+                "disney+": "company",
+                "apple tv": "company",
+                "peacock": "company",
+                "paramount+": "company",
+                "hbo": "network",     # TMDB treats HBO as network
+                "starz": "network"
+            }
+
+            for ent in result.get("query_entities", []):
+                name_lower = ent.get("name", "").strip().lower()
+                for keyword, corrected_type in streaming_services.items():
+                    if keyword in name_lower and ent.get("type") != corrected_type:
+                        print(f"🔁 Correcting '{ent['name']}' type: {ent['type']} → {corrected_type}")
+                        ent["type"] = corrected_type
+                        if corrected_type not in result.get("entities", []):
+                            result["entities"].append(corrected_type)
+
+            return result
+
         except Exception as e:
             print(f"⚠️ LLM extraction failed: {e}")
-            return {"intents": [], "entities": [], "query_entities": []}
+            return {
+                "intents": [],
+                "entities": [],
+                "query_entities": []
+            }
 
     def generate_response(self, prompt: str) -> str:
         response = self.client.chat.completions.create(
