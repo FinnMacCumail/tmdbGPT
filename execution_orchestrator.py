@@ -315,6 +315,17 @@ class ExecutionOrchestrator:
             print("⚠️ Fallback already in completed steps — skipping reinjection.")
 
         return
+    
+    def _handle_generic_response(self, step, step_id, path, json_data, state):
+        summaries = ResultExtractor.extract(path, json_data, state.resolved_entities)
+        if summaries:
+            state.responses.extend(summaries)
+            ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1])
+        else:
+            print(f"⚠️ No summaries extracted from {step_id}")
+        state.completed_steps.append(step_id)
+        print(f"✅ Step marked completed: {step_id}")
+
 
                 
 class ExecutionTraceLogger:
