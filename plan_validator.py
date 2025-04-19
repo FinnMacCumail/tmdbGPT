@@ -151,7 +151,12 @@ class SymbolicConstraintFilter:
         query_intents = extraction_result.get("intents", [])
         media_pref = SymbolicConstraintFilter._infer_media_preference(entities)
         resolved_keys = set(resolved_entities.keys())
-
+        print("\n🔎 Symbolic Filter Debug — Candidates:")
+        for m in matches:
+            print(f"• {m.get('endpoint')}")
+            print(f"  → media_type: {SymbolicConstraintFilter._extract_media_type(m.get('endpoint', ''))}")
+            print(f"  → consumes_entities: {SymbolicConstraintFilter._extract_consumed_entities(m)}")
+            print(f"  → supported_intents: {SymbolicConstraintFilter._extract_supported_intents(m)}")
         filtered = []
         for match in matches:
             endpoint = match.get("endpoint") or match.get("path", "")
@@ -159,29 +164,32 @@ class SymbolicConstraintFilter:
             media_type = SymbolicConstraintFilter._extract_media_type(endpoint)
             consumes = SymbolicConstraintFilter._extract_consumed_entities(metadata)
             supported_intents = SymbolicConstraintFilter._extract_supported_intents(metadata)
+            final_score = match.get("final_score", 0)
 
-            # Media constraint
-            if media_pref != "any" and media_type != "any" and media_type != media_pref:
-                continue  # mismatch between intent and endpoint media type
+            media_ok = (media_pref == "any" or media_type == "any" or media_type == media_pref)
+            # Accept if:
+            # - the endpoint doesn't consume any specific entities
+            # - OR it does and at least one matches the resolved keys
+            if not consumes:
+                entities_ok = True
+                print(f"  ⚠️ No entity required — allowing endpoint through with matching intent only")
+            else:
+                entities_ok = SymbolicConstraintFilter._entities_are_compatible(resolved_keys, consumes)
 
-            # Entity compatibility
-            if not SymbolicConstraintFilter._entities_are_compatible(resolved_keys, consumes):
-                continue
+            intent_ok = not query_intents or SymbolicConstraintFilter._intent_is_supported(query_intents[0], supported_intents)
 
-            # (Optional) Intent constraint - only apply if intent is strong
-            if query_intents:
-                required_intent = query_intents[0]
-                if not SymbolicConstraintFilter._intent_is_supported(required_intent, supported_intents):
-                    continue
+            print(f"\n• {endpoint}")
+            print(f"  🔹 score: {final_score}")
+            print(f"  🔹 media_type: {media_type} (query: {media_pref}) → {'✅' if media_ok else '❌'}")
+            print(f"  🔹 consumes_entities: {consumes} (resolved: {list(resolved_keys)}) → {'✅' if entities_ok else '❌'}")
+            print(f"  🔹 supported_intents: {supported_intents} (query: {query_intents}) → {'✅' if intent_ok else '❌'}")
 
-            filtered.append(match)
-
-        if not filtered:
-            print("⚠️ No symbolic matches passed — falling back to semantic matches")
-            return matches
-
-        print(f"🎯 SymbolicConstraintFilter: {len(matches)} → {len(filtered)} after media/entity/intent filtering")
-        return filtered
+            if media_ok and entities_ok and intent_ok:
+                print("  ✅ INCLUDED in symbolic matches")
+                filtered.append(match)
+            else:
+                print("  ❌ EXCLUDED from symbolic matches")
+            return filtered
 
     @staticmethod
     def _infer_media_preference(entities: list) -> str:
@@ -220,9 +228,26 @@ class SymbolicConstraintFilter:
 
     @staticmethod
     def _entities_are_compatible(resolved_keys: set, consumes_entities: list) -> bool:
+        """
+        Map resolved entity keys like 'company_id' to 'with_companies'
+        and compare against what the endpoint actually supports.
+        """
+        JOIN_PARAM_MAP = {
+            "person_id": "with_people",
+            "genre_id": "with_genres",
+            "company_id": "with_companies",
+            "network_id": "with_networks",
+            "collection_id": "with_collections",
+            "keyword_id": "with_keywords",
+            "tv_id": "with_tv",
+            "movie_id": "with_movies"
+        }
+
         for key in resolved_keys:
-            if key in consumes_entities:
+            mapped_param = JOIN_PARAM_MAP.get(key)
+            if mapped_param and mapped_param in consumes_entities:
                 return True
+
         return False
 
     @staticmethod
