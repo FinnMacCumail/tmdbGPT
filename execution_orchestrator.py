@@ -108,14 +108,15 @@ class ExecutionOrchestrator:
         step_origin_depth = {}
         MAX_CHAIN_DEPTH = 3
 
-        i = 0
-        while i < len(state.plan_steps):
-            step = state.plan_steps[i]
-            print(f"\n▶️ Processing step: {step.get('step_id')}")
+        
+        while state.plan_steps:
+            step = state.plan_steps.pop(0)  # process from front
             step_id = step.get("step_id")
+            print(f"▶️ Popped step: {step_id}")
+            print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
+
             if step_id in state.completed_steps:
                 print(f"✅ Skipping already completed step: {step_id}")
-                i += 1
                 continue
             # Skip param injection if already relaxed
             if "_relaxed" not in step.get("step_id", ""):
@@ -128,8 +129,7 @@ class ExecutionOrchestrator:
             step_id = step.get("step_id")
             depth = step_origin_depth.get(step_id, 0)
             if depth > MAX_CHAIN_DEPTH:
-                print(f"🔁 Loop suppression: skipping step {step_id} (depth={depth})")
-                i += 1
+                print(f"🔁 Loop suppression: skipping step {step_id} (depth={depth})")                
                 continue
 
             # 🛡 Sanity check on parameters
@@ -163,8 +163,7 @@ class ExecutionOrchestrator:
             step_hash = sha256(dedup_key.encode()).hexdigest()
 
             if step_hash in seen_step_keys:
-                print(f"🔁 Skipping duplicate step_id {step_id} (hash={step_hash}) with same parameters")
-                i += 1
+                print(f"🔁 Skipping duplicate step_id {step_id} (hash={step_hash}) with same parameters")                
                 continue
 
             seen_step_keys.add(step_hash)
@@ -207,19 +206,18 @@ class ExecutionOrchestrator:
             except Exception as ex:
                 print(f"🔥 Step {step_id} failed with exception: {ex}")
                 ExecutionTraceLogger.log_step(step_id, path, f"Failed ({str(ex)})")
-                state.error = str(ex)
-
-            # ✅ Always move to the next step after processing
-            i += 1
+                state.error = str(ex)            
 
         return state
     
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
         seen_step_keys = seen_step_keys or set()
+        print(f"🔎 BEGIN _handle_discover_movie_step for {step_id}")
 
         filtered_movies = self._run_post_validations(step, json_data, state)
 
         if filtered_movies:
+            print(f"✅ Found {len(filtered_movies)} filtered result(s)")
             query_entities = state.extraction_result.get("query_entities", [])
             for movie in filtered_movies:
                 movie["final_score"] = 1.0
@@ -231,6 +229,7 @@ class ExecutionOrchestrator:
                 state.responses.append(f"📌 {summary}")
             ExecutionTraceLogger.log_step(step_id, path, "Validated", state.responses[-1])
             state.completed_steps.append(step_id)
+            print(f"✅ Step marked completed: {step_id}")
             return
 
         # Recovery mode — post-validation failed
@@ -244,8 +243,9 @@ class ExecutionOrchestrator:
         if "_relaxed_" in step_id:
             parts = step_id.split("_relaxed_")[1:]
             already_dropped.update(p.strip() for p in parts if p)
-            print(f"Already dropped: {already_dropped}")
-            print(f"Remaining: {[p for p in drop_candidates if p not in already_dropped and p in current_params]}")
+        remaining = [p for p in drop_candidates if p not in already_dropped and p in current_params]
+        print(f"🧩 Already dropped: {already_dropped}")
+        print(f"🔎 Remaining drop candidates: {remaining}")
 
         for param in drop_candidates:
             if param not in current_params or param in already_dropped:
@@ -255,37 +255,49 @@ class ExecutionOrchestrator:
             retry_step["parameters"] = current_params.copy()
             del retry_step["parameters"][param]
 
-            retry_step["step_id"] = f"{step_id}_relaxed_{param}"
+            base_id = step_id.split("_relaxed_")[0]
+            new_drops = already_dropped.union({param})
+            new_suffix = "_relaxed_" + "_relaxed_".join(sorted(new_drops))
+            retry_step["step_id"] = f"{base_id}{new_suffix}"
 
-            # Dedup by parameters
             param_string = "&".join(f"{k}={v}" for k, v in sorted(retry_step["parameters"].items()))
             dedup_key = f"{retry_step['endpoint']}?{param_string}"
             retry_hash = sha256(dedup_key.encode()).hexdigest()
 
+            print(f"🔁 Attempting retry step_id: {retry_step['step_id']}")
+            print(f"🔑 Retry hash: {retry_hash}")
+
             if retry_hash in seen_step_keys:
-                print(f"🔁 Skipping retry due to duplicate hash: {retry_step['step_id']}")
+                print(f"⛔ Duplicate retry hash detected — skipping: {retry_step['step_id']}")
                 continue
 
             if retry_step["step_id"] in state.completed_steps:
-                print(f"✅ Skipping already completed retry: {retry_step['step_id']}")
+                print(f"⛔ Already completed step_id: {retry_step['step_id']}")
                 continue
 
             seen_step_keys.add(retry_hash)
             state.plan_steps.insert(0, retry_step)
+            print(f"📥 Plan queue after retry insert: {[s['step_id'] for s in state.plan_steps]}")
+
             ExecutionTraceLogger.log_step(
                 step_id, path, "Recovery",
                 f"Retrying with {param} dropped → {retry_step['parameters']}"
             )
             print(f"♻️ Retrying by dropping: {param}")
-            return  # Only one retry at a time
+
+            # ✅ Prevent reprocessing
+            state.completed_steps.append(step_id)
+            print(f"✅ Marked original step completed after injecting retry: {step_id}")
+
+            return  # ✅ exit so the new step is handled
+
 
         # All retries exhausted
         print("🛑 All filter drop retries exhausted.")
 
-        # ✅ Mark the current exhausted step as completed
         state.completed_steps.append(step_id)
+        print(f"✅ Marked as completed: {step_id}")
 
-        # ✅ Inject trending fallback as last resort
         fallback_step = {
             "step_id": "fallback_trending",
             "endpoint": "/trending/movie/day",
@@ -299,7 +311,11 @@ class ExecutionOrchestrator:
                 "Injected trending fallback: /trending/movie/day"
             )
             print("🧭 Injected trending fallback step.")
+        else:
+            print("⚠️ Fallback already in completed steps — skipping reinjection.")
+
         return
+
                 
 class ExecutionTraceLogger:
     @staticmethod
