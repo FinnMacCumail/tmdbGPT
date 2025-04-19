@@ -185,7 +185,9 @@ class SymbolicConstraintFilter:
         "collections.movie": ["collection.details"],
 
         # Catch-all general fallback
-        "search": ["discovery.filtered", "credits.person", "details.movie"]
+        "search": ["discovery.filtered", "credits.person", "details.movie"],
+        "recommendation.similarity": ["recommendation", "discovery.filtered"],
+        "recommendation.suggested": ["recommendation", "discovery.filtered"]
     }
 
     @staticmethod
@@ -305,26 +307,12 @@ class SymbolicConstraintFilter:
 
         if not intent or not endpoint_intents:
             return False
-
-        INTENT_EQUIVALENTS = {
-            "search.multi": ["discovery.filtered", "credits.person", "details.movie"],
-            "search.movie": ["details.movie"],
-            "search.tv": ["details.tv"],
-            "search.person": ["credits.person"],
-            "search.collection": ["collection.details"],
-            "recommendation.similarity": ["recommendation"],
-            "reviews.movie": ["review.lookup"],
-            "reviews.tv": ["review.lookup"],
-            "collections.movie": ["collection.details"],
-            "companies.studio": ["company.details"],
-            "companies.network": ["network.details"]
-        }
-
+        
         if intent in endpoint_intents:
             return True
 
         # Fallback to equivalence set if available
-        for alias in INTENT_EQUIVALENTS.get(intent, []):
+        for alias in SymbolicConstraintFilter.INTENT_EQUIVALENTS.get(intent, []):
             if alias in endpoint_intents:
                 print(f"🔁 Intent fallback matched: {intent} → {alias}")
                 return True
