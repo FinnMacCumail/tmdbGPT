@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 import time
 from nlp_retriever import RerankPlanning, ResponseFormatter
+from plan_validator import SymbolicConstraintFilter
 
 load_dotenv()
 
@@ -100,6 +101,12 @@ def plan(state: AppState) -> AppState:
 
     # Phase 1: Rerank semantic matches using resolved entities
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
+    
+    ranked_matches = SymbolicConstraintFilter.apply(
+        ranked_matches,
+        extraction_result=state.extraction_result,
+        resolved_entities=state.resolved_entities
+    )
 
     # Phase 2: Filter to executable steps
     feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
