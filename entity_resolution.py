@@ -1,5 +1,6 @@
 import requests
 from collections import defaultdict
+from param_utils import GenreNormalizer
 
 
 class TMDBEntityResolver:
@@ -27,15 +28,36 @@ class TMDBEntityResolver:
             print(f"❌ Failed to load {media_type} genres: {e}")
             return {}
 
+    from param_utils import GenreNormalizer  # ✅ Make sure this import is at the top
+
     def resolve_entity(self, name, entity_type):
+        """
+        Resolves a given name and entity type into a TMDB ID.
+
+        - For genres: normalizes alias (e.g. 'sci-fi' → 'science fiction') and looks up in genre cache.
+        - For people, movies, keywords, etc.: performs a /search/{type} lookup via TMDB API.
+        """
         if not name or not entity_type:
             return None
 
+        name = name.strip().lower()
+
         if entity_type == "genre":
-            return (
-                self.genre_cache["movie"].get(name.lower()) or
-                self.genre_cache["tv"].get(name.lower())
+            # ✅ Normalize first (e.g. "sci-fi" → "science fiction")
+            normalized_name = GenreNormalizer.normalize(name)
+
+            # Check movie genres first, then fallback to TV genres
+            genre_id = (
+                self.genre_cache["movie"].get(normalized_name) or
+                self.genre_cache["tv"].get(normalized_name)
             )
+
+            if genre_id:
+                print(f"✅ Resolved genre '{name}' → '{normalized_name}' → {genre_id}")
+                return genre_id
+            else:
+                print(f"❌ Genre '{name}' not found after normalization as '{normalized_name}'")
+                return None
 
         if entity_type in {"person", "movie", "tv", "collection", "company", "keyword", "network"}:
             try:
@@ -46,12 +68,19 @@ class TMDBEntityResolver:
                 )
                 response.raise_for_status()
                 results = response.json().get("results", [])
+
                 for item in results:
                     label = item.get("name") or item.get("title")
-                    if label and label.lower() == name.lower():
+                    if label and label.lower() == name:
+                        print(f"✅ Resolved {entity_type} '{name}' → {item.get('id')}")
                         return item.get("id")
+
                 if results:
-                    return results[0].get("id")
+                    fallback_id = results[0].get("id")
+                    print(f"⚠️ Fallback resolution for {entity_type} '{name}' → {fallback_id}")
+                    return fallback_id
+
+                print(f"❌ No results for {entity_type} '{name}'")
             except Exception as e:
                 print(f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
 
