@@ -87,6 +87,8 @@ class PlanValidator:
 
 
     def inject_path_slot_parameters(self, step, resolved_entities, extraction_result=None):
+        if "parameters" not in step:
+            step["parameters"] = {}
         query_entities = extraction_result.get("query_entities", []) if extraction_result else []
         # ✅ FIXED: use LLM-detected entities instead of resolved entity keys
         entities = extraction_result.get("entities", []) if extraction_result else []
@@ -103,7 +105,7 @@ class PlanValidator:
                 step["parameters"][slot] = value
                 print(f"🧩 Injected path slot: {slot} = {value} into {step['endpoint']}")
 
-        print(f"✅ Final injected parameters: {step['parameters']}")
+        print(f"✅ Final injected parameters: {step.get('parameters', {})}")
         return step
     
     def validate(self, semantic_matches, state):
@@ -138,7 +140,47 @@ class PlanValidator:
 
         return filtered_matches
 
-class SymbolicConstraintFilter:
+class SymbolicConstraintFilter:   
+    INTENT_EQUIVALENTS = {
+        # Search-related intents
+        "search.multi": [
+            "discovery.filtered",
+            "credits.person",
+            "details.movie",
+            "details.tv",
+            "search.person",
+            "search.movie",
+            "search.tv"
+        ],
+        "search.movie": ["details.movie", "search.multi"],
+        "search.tv": ["details.tv", "search.multi"],
+        "search.person": ["credits.person", "search.multi"],
+        "search.collection": ["collection.details"],
+
+        # Recommendation equivalents
+        "recommendation.similarity": ["recommendation"],
+        "recommendation.suggested": ["recommendation"],
+
+        # Discovery equivalents
+        "discovery.genre_based": ["discovery.filtered"],
+        "discovery.temporal": ["discovery.filtered"],
+        "discovery.advanced": ["discovery.filtered"],
+
+        # Reviews
+        "reviews.movie": ["review.lookup"],
+        "reviews.tv": ["review.lookup"],
+
+        # Company/network details
+        "companies.studio": ["company.details"],
+        "companies.network": ["network.details"],
+
+        # Collections
+        "collections.movie": ["collection.details"],
+
+        # Catch-all general fallback
+        "search": ["discovery.filtered", "credits.person", "details.movie"]
+    }
+
     @staticmethod
     def apply(matches: list, extraction_result: dict, resolved_entities: dict) -> list:
         """
@@ -167,17 +209,15 @@ class SymbolicConstraintFilter:
             final_score = match.get("final_score", 0)
 
             media_ok = (media_pref == "any" or media_type == "any" or media_type == media_pref)
-            # Accept if:
-            # - the endpoint doesn't consume any specific entities
-            # - OR it does and at least one matches the resolved keys
+            # Symbolic entity filtering: always allow if no entities are required
+            entities_ok = SymbolicConstraintFilter.is_entity_compatible(resolved_keys, consumes)
             if not consumes:
-                entities_ok = True
                 print(f"  ⚠️ No entity required — allowing endpoint through with matching intent only")
-            else:
-                entities_ok = SymbolicConstraintFilter._entities_are_compatible(resolved_keys, consumes)
 
-            intent_ok = not query_intents or SymbolicConstraintFilter._intent_is_supported(query_intents[0], supported_intents)
-
+            # Intent match with fallback equivalence logic
+            intent = query_intents[0] if query_intents else None
+            intent_ok = SymbolicConstraintFilter._intent_is_supported(intent, supported_intents)
+            
             print(f"\n• {endpoint}")
             print(f"  🔹 score: {final_score}")
             print(f"  🔹 media_type: {media_type} (query: {media_pref}) → {'✅' if media_ok else '❌'}")
@@ -189,7 +229,7 @@ class SymbolicConstraintFilter:
                 filtered.append(match)
             else:
                 print("  ❌ EXCLUDED from symbolic matches")
-            return filtered
+        return filtered
 
     @staticmethod
     def _infer_media_preference(entities: list) -> str:
@@ -252,4 +292,65 @@ class SymbolicConstraintFilter:
 
     @staticmethod
     def _intent_is_supported(intent: str, endpoint_intents: list) -> bool:
-        return intent in endpoint_intents
+        """
+        Return True if the given intent is supported directly or via symbolic equivalence.
+        """
+
+        if not intent or not endpoint_intents:
+            return False
+
+        INTENT_EQUIVALENTS = {
+            "search.multi": ["discovery.filtered", "credits.person", "details.movie"],
+            "search.movie": ["details.movie"],
+            "search.tv": ["details.tv"],
+            "search.person": ["credits.person"],
+            "search.collection": ["collection.details"],
+            "recommendation.similarity": ["recommendation"],
+            "reviews.movie": ["review.lookup"],
+            "reviews.tv": ["review.lookup"],
+            "collections.movie": ["collection.details"],
+            "companies.studio": ["company.details"],
+            "companies.network": ["network.details"]
+        }
+
+        if intent in endpoint_intents:
+            return True
+
+        # Fallback to equivalence set if available
+        for alias in INTENT_EQUIVALENTS.get(intent, []):
+            if alias in endpoint_intents:
+                print(f"🔁 Intent fallback matched: {intent} → {alias}")
+                return True
+
+        return False
+
+    @staticmethod
+    def is_entity_compatible(resolved_keys: set, consumes_entities: list) -> bool:
+        """
+        Determines whether a given endpoint's required entities are satisfied
+        by the resolved entities in the query context.
+
+        - If the endpoint does not consume any entities, it's compatible by default.
+        - If it does, at least one resolved key must match a supported param (via JOIN_PARAM_MAP).
+        """
+        if not consumes_entities:
+            return True  # nothing required → allow by default
+
+        JOIN_PARAM_MAP = {
+            "person_id": "with_people",
+            "genre_id": "with_genres",
+            "company_id": "with_companies",
+            "network_id": "with_networks",
+            "collection_id": "with_collections",
+            "keyword_id": "with_keywords",
+            "tv_id": "with_tv",
+            "movie_id": "with_movies"
+        }
+
+        for key in resolved_keys:
+            mapped = JOIN_PARAM_MAP.get(key)
+            if mapped and mapped in consumes_entities:
+                return True
+
+        return False
+
