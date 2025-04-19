@@ -1,5 +1,6 @@
 import json
 from chromadb import PersistentClient
+from param_utils import ParameterMapper
 
 class PlanValidator:
     def __init__(self):
@@ -34,8 +35,8 @@ class PlanValidator:
             "credit": "with_credits",
             "language": "with_original_language",
             "country": "region",
-            "rating": "certification.gte",
-            "date": "primary_release_date.gte"
+            "rating": "vote_average.gte",  
+            "date": "primary_release_year" 
         }
         return list({
             ENTITY_PARAM_MAP.get(ent["type"])
@@ -89,11 +90,13 @@ class PlanValidator:
     def inject_path_slot_parameters(self, step, resolved_entities, extraction_result=None):
         if "parameters" not in step:
             step["parameters"] = {}
+
+        # ✅ Extract components from the extraction result
         query_entities = extraction_result.get("query_entities", []) if extraction_result else []
-        # ✅ FIXED: use LLM-detected entities instead of resolved entity keys
         entities = extraction_result.get("entities", []) if extraction_result else []
         intents = extraction_result.get("intents", []) if extraction_result else []
 
+        # ✅ Resolve implicit path parameters (e.g., media_type, time_window)
         path_slots = self.resolve_path_slots(
             query_entities=query_entities,
             entities=entities,
@@ -105,8 +108,12 @@ class PlanValidator:
                 step["parameters"][slot] = value
                 print(f"🧩 Injected path slot: {slot} = {value} into {step['endpoint']}")
 
+        # ✅ Inject value-based query filters (e.g. rating, year) using mapped param logic
+        ParameterMapper.inject_parameters_from_entities(query_entities, step["parameters"])
+
         print(f"✅ Final injected parameters: {step.get('parameters', {})}")
         return step
+
     
     def validate(self, semantic_matches, state):
         query_entities = []
