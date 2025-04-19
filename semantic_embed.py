@@ -106,7 +106,14 @@ class SemanticEmbedder:
 
     def _create_embedding_text(self, endpoint, details):
         desc = details.get("description", "")
-
+        if endpoint == "/discover/tv":
+            desc = (
+                "Endpoint supports discovery.filtered intent. "
+                "Entities: tv, person, company, genre. "
+                "Parameters: with_companies, with_people, with_genres. "
+                "Use this endpoint to find TV shows filtered by cast, studio, or genre. "
+                "Example: What are some Netflix original TV series?"
+            )
         # ✅ Strategy-aligned embedding text for discover/movie
         if endpoint == "/discover/movie":
             desc = (
@@ -126,7 +133,10 @@ class SemanticEmbedder:
             "param_names": json.dumps(param_names),
             "intents": json.dumps(self._detect_intents(endpoint, details.get("parameters", []))),
             "entities": ", ".join(self._detect_entities(details.get("parameters", []), endpoint)),
-            "consumes_entities": json.dumps([p["name"] for p in details.get("parameters", []) if p.get("in") == "path"]),
+            "consumes_entities": json.dumps([
+                p["name"] for p in details.get("parameters", [])
+                if p.get("in") in {"path", "query"} and p["name"].startswith("with_")
+            ]),
             "produces_entities": json.dumps(self._detect_produced_entities(endpoint))
         }
 
