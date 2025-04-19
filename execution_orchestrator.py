@@ -112,7 +112,11 @@ class ExecutionOrchestrator:
         while i < len(state.plan_steps):
             step = state.plan_steps[i]
             print(f"\n▶️ Processing step: {step.get('step_id')}")
-
+            step_id = step.get("step_id")
+            if step_id in state.completed_steps:
+                print(f"✅ Skipping already completed step: {step_id}")
+                i += 1
+                continue
             # Skip param injection if already relaxed
             if "_relaxed" not in step.get("step_id", ""):
                 step = self.validator.inject_path_slot_parameters(
@@ -211,8 +215,6 @@ class ExecutionOrchestrator:
         return state
     
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
-
-
         seen_step_keys = seen_step_keys or set()
 
         filtered_movies = self._run_post_validations(step, json_data, state)
@@ -228,6 +230,7 @@ class ExecutionOrchestrator:
                 summary = f"{title}: {overview}".strip(": ")
                 state.responses.append(f"📌 {summary}")
             ExecutionTraceLogger.log_step(step_id, path, "Validated", state.responses[-1])
+            state.completed_steps.append(step_id)
             return
 
         # Recovery mode — post-validation failed
@@ -235,18 +238,15 @@ class ExecutionOrchestrator:
         state.responses.append("⚠️ No valid results matched all required cast/director.")
 
         drop_candidates = ["with_people", "vote_average.gte", "with_genres", "primary_release_year"]
-        # Copy current step’s actual parameter state
         current_params = step.get("parameters", {}).copy()
-        # Identify all previously dropped filters by looking for _relaxed_ segments
+
         already_dropped = set()
         if "_relaxed_" in step_id:
-            # Split at each '_relaxed_' to extract all dropped parameters
             parts = step_id.split("_relaxed_")[1:]
             already_dropped.update(p.strip() for p in parts if p)
             print(f"Already dropped: {already_dropped}")
             print(f"Remaining: {[p for p in drop_candidates if p not in already_dropped and p in current_params]}")
 
-        # Drop the next filter that hasn't already been dropped
         for param in drop_candidates:
             if param not in current_params or param in already_dropped:
                 continue
@@ -255,7 +255,6 @@ class ExecutionOrchestrator:
             retry_step["parameters"] = current_params.copy()
             del retry_step["parameters"][param]
 
-            # Chain multiple drops into step_id
             retry_step["step_id"] = f"{step_id}_relaxed_{param}"
 
             # Dedup by parameters
@@ -264,6 +263,11 @@ class ExecutionOrchestrator:
             retry_hash = sha256(dedup_key.encode()).hexdigest()
 
             if retry_hash in seen_step_keys:
+                print(f"🔁 Skipping retry due to duplicate hash: {retry_step['step_id']}")
+                continue
+
+            if retry_step["step_id"] in state.completed_steps:
+                print(f"✅ Skipping already completed retry: {retry_step['step_id']}")
                 continue
 
             seen_step_keys.add(retry_hash)
@@ -274,20 +278,27 @@ class ExecutionOrchestrator:
             )
             print(f"♻️ Retrying by dropping: {param}")
             return  # Only one retry at a time
-        # If no retry was possible (all filters dropped or all variants deduped)
+
+        # All retries exhausted
         print("🛑 All filter drop retries exhausted.")
 
+        # ✅ Mark the current exhausted step as completed
+        state.completed_steps.append(step_id)
+
         # ✅ Inject trending fallback as last resort
-        state.plan_steps.insert(0, {
+        fallback_step = {
             "step_id": "fallback_trending",
             "endpoint": "/trending/movie/day",
             "parameters": {},
-        })
-        ExecutionTraceLogger.log_step(
-            step_id, path, "Fallback",
-            "Injected trending fallback: /trending/movie/day"
-        )
-        print("🧭 Injected trending fallback step.")
+        }
+
+        if fallback_step["step_id"] not in state.completed_steps:
+            state.plan_steps.insert(0, fallback_step)
+            ExecutionTraceLogger.log_step(
+                step_id, path, "Fallback",
+                "Injected trending fallback: /trending/movie/day"
+            )
+            print("🧭 Injected trending fallback step.")
         return
                 
 class ExecutionTraceLogger:
