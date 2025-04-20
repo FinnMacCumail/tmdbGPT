@@ -1,7 +1,7 @@
-# batch_test.py
 import os
 from datetime import datetime
-from app import build_app_graph, AppState
+from app import build_app_graph
+from response_formatter import ResponseFormatter
 
 # List of test queries
 queries = [
@@ -55,8 +55,9 @@ if __name__ == "__main__":
                 result = graph.invoke({"input": query})
                 responses = result.get("responses", [])
                 if responses:
+                    formatted = ResponseFormatter.format_responses(responses)
                     log_line("✅ Response:", log_file)
-                    for line in responses:
+                    for line in formatted:
                         log_line(f"  {line}", log_file)
                 else:
                     log_line("⚠️ No response returned.", log_file)
@@ -64,4 +65,4 @@ if __name__ == "__main__":
                 log_line(f"❌ Error on query: {query}", log_file)
                 log_line(f"   → {e}", log_file)
 
-    print(f"\n📝 Results saved to: {log_path}")
+    print(f"📝 Results saved to: {log_path}")
