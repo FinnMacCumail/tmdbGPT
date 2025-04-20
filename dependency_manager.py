@@ -56,57 +56,40 @@ class DependencyManager:
         """Serialize dependency graph to JSON-serializable format"""
         return json_graph.node_link_data(self.graph)
 
-    def analyze_dependencies(self, plan: List[Dict]) -> None:
-        """Build comprehensive dependency graph considering both entity and step dependencies.
-        
-        Args:
-            plan: List of steps with potential dependencies. Each step should contain:
-                - parameters: For entity dependencies ($entity syntax)
-                - requires_steps: List of step_ids this step depends on (optional)
-                - produces_entities: List of entities this step generates (optional)
+    def analyze_dependencies(state):
         """
-        graph = self.execution_state.dependency_graph
-        graph.clear()
+        Detect and intersect movie_ids across person role steps.
+        Injects /movie/{id}/credits validation steps for common movie IDs.
+        """
+        person_steps = [step for step in state.completed_steps if step.startswith("step_cast_") or step.startswith("step_director_")]
+        movie_id_sets = []
+        id_to_step_map = {}
 
-        # First pass: Create nodes and entity relationships
-        for step in plan:
-            # Generate step ID if missing
-            step_id = step.setdefault('step_id', str(uuid.uuid4()))
-            
-            # Add node with step metadata
-            graph.add_node(step_id, **step)
-            
-            # Track entity production
-            for entity in step.get('produces_entities', []):
-                graph.add_node(entity, type='entity')
-                graph.add_edge(step_id, entity)
+        for step_id in person_steps:
+            step_result = state.data_registry.get(step_id, {})
+            ids = set()
+            for item in step_result.get("crew", []) + step_result.get("cast", []):
+                if "id" in item:
+                    ids.add(item["id"])
+            if ids:
+                movie_id_sets.append(ids)
+                id_to_step_map[step_id] = ids
 
-            # Entity dependencies from parameters
-            required_entities = [
-                p[1:] for p in step.get('parameters', {}).values()
-                if isinstance(p, str) and p.startswith("$")
-            ]
-            for entity in required_entities:
-                if entity not in graph:
-                    graph.add_node(entity, type='entity')
-                graph.add_edge(entity, step_id)
+        if len(movie_id_sets) < 2:
+            return state  # Not enough for intersection
 
-        # Second pass: Handle step-to-step dependencies
-        for step in plan:
-            step_id = step['step_id']
-            
-            # Explicit step dependencies
-            for dep_id in step.get('requires_steps', []):
-                if dep_id in graph:
-                    graph.add_edge(dep_id, step_id)
-                else:
-                    print(f"⚠️ Missing step dependency: {dep_id} -> {step_id}")
+        intersected_ids = set.intersection(*movie_id_sets)
+        validation_steps = []
 
-            # Implicit dependencies via produced entities
-            for entity in step.get('produces_entities', []):
-                for consumer in graph.successors(entity):
-                    if consumer != step_id:  # Avoid self-reference
-                        graph.add_edge(step_id, consumer)
+        for movie_id in sorted(intersected_ids):
+            validation_steps.append({
+                "step_id": f"step_validate_{movie_id}",
+                "endpoint": f"/movie/{movie_id}/credits"
+            })
+
+        # Inject validation steps to plan
+        state.plan_steps = validation_steps + state.plan_steps
+        return state
     
     def build_dependency_graph(self, steps: list):
         """Create execution order based on entity dependencies"""
@@ -115,3 +98,31 @@ class DependencyManager:
             for dep in step.get('dependencies', []):
                 if dep in self.graph:
                     self.graph.add_edge(dep, step['step_id'])
+
+    def expand_plan_with_dependencies(state, resolved_entities):
+        """Plan symbolic joins from role-tagged person entities."""
+        query_entities = state.extraction_result.get("query_entities", [])
+        plan_steps = state.plan_steps
+        new_steps = []
+
+        seen_ids = set()
+        for ent in query_entities:
+            if ent.get("type") != "person":
+                continue
+            person_id = ent.get("resolved_id")
+            role = ent.get("role") or "cast"
+            if person_id and person_id not in seen_ids:
+                seen_ids.add(person_id)
+                step_id = f"step_{role}_{person_id}"
+                new_steps.append({
+                    "step_id": step_id,
+                    "endpoint": f"/person/{person_id}/movie_credits",
+                    "produces": ["movie_id"],
+                    "role": role,
+                    "from_person_id": person_id,
+                    "filters": [{"role": role}]
+                })
+
+        # Insert new dependency steps at the start of the plan (or wherever appropriate)
+        state.plan_steps = new_steps + plan_steps
+        return state
