@@ -287,11 +287,14 @@ class ResultExtractor:
     def extract(endpoint: str, json_data: dict, resolved_entities: dict = None) -> list:
         summaries = []
         resolved_entities = resolved_entities or {}
-
+        seen = set()
         # Special case: enrich /search/person results
         if "/search/person" in endpoint:
             for result in json_data.get("results", []):
-                name = result.get("name", "")
+                name = result.get("name", "").strip()
+                if name.lower() in seen:
+                    continue
+                seen.add(name.lower())
                 known_for = result.get("known_for", [])
                 known_titles = [k.get("title") or k.get("name") for k in known_for if k.get("title") or k.get("name")]
                 if not known_titles:
@@ -339,9 +342,13 @@ class ResultExtractor:
                     or item.get("job")
                     or item.get("character")
                     or item.get("description")
-                    or ""
+                    or "No synopsis available."
                 )
                 overview = str(overview)
+
+                # Optionally skip if even title is missing
+                if not title and not overview:
+                    continue
 
                 if "/keywords" in endpoint:
                     summaries.append({
