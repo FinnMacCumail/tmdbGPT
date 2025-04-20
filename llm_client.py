@@ -9,7 +9,6 @@ class OpenAILLMClient:
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def extract_entities_and_intents(self, query: str) -> dict:
-        
         prompt = f"""
         You are a TMDB assistant. Analyze the user's query and extract three components using this exact JSON schema:
 
@@ -41,7 +40,7 @@ class OpenAILLMClient:
         - Do NOT include commentary — only respond with valid JSON.
 
         User Query:
-        \"{query.strip()}\"
+        "{query.strip()}"
 
         Respond ONLY with valid JSON.
         """
@@ -69,7 +68,7 @@ class OpenAILLMClient:
                 "apple tv": "company",
                 "peacock": "company",
                 "paramount+": "company",
-                "hbo": "network",     # TMDB treats HBO as network
+                "hbo": "network",
                 "starz": "network"
             }
 
@@ -81,6 +80,18 @@ class OpenAILLMClient:
                         ent["type"] = corrected_type
                         if corrected_type not in result.get("entities", []):
                             result["entities"].append(corrected_type)
+
+            # ✅ Inject role tags (cast/director) based on wording or fallback heuristic
+            person_entities = [e for e in result.get("query_entities", []) if e.get("type") == "person"]
+            for ent in person_entities:
+                name = ent["name"].lower()
+                if "directed by" in query.lower() and name in query.lower():
+                    ent["role"] = "director"
+                elif any(kw in query.lower() for kw in ["starring", "featuring", "actor", "acted by"]) and name in query.lower():
+                    ent["role"] = "cast"
+                elif len(person_entities) == 2:
+                    # fallback: first is cast, second is director
+                    ent["role"] = "cast" if ent == person_entities[0] else "director"
 
             return result
 
@@ -94,7 +105,7 @@ class OpenAILLMClient:
 
     def generate_response(self, prompt: str) -> str:
         response = self.client.chat.completions.create(
-            model="gpt-4-turbo",  # or gpt-4 if you have access
+            model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful API assistant."},
                 {"role": "user", "content": prompt}
