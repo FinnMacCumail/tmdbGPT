@@ -12,6 +12,7 @@ from typing import Optional, Dict, List
 import time
 from nlp_retriever import RerankPlanning, ResponseFormatter
 from plan_validator import SymbolicConstraintFilter
+from response_formatter import ResponseFormatter
 
 load_dotenv()
 
@@ -162,40 +163,14 @@ def plan(state: AppState) -> AppState:
 
 def execute(state: AppState) -> AppState:
     print("→ running node: EXECUTE")
-    dependency_manager.analyze_dependencies(state.plan_steps)
+    dependency_manager.analyze_dependencies(state)
     updated_state = orchestrator.execute(state.model_copy(update={"pending_steps": state.plan_steps}))
     return updated_state.model_copy(update={"executed": True, "step": "execute"})
 
-def respond(state: AppState) -> AppState:
+def respond(state):
     print("→ running node: RESPOND")
-
-    # 1. Collect validated titles from /discover/movie summaries
-    validated_titles = {
-        r["title"].strip().lower()
-        for r in state.responses
-        if isinstance(r, dict)
-        and r.get("source") == "/discover/movie"
-        and r.get("type") == "movie_summary"
-    }
-
-    # 2. Filter down string-based fallbacks if they duplicate validated results
-    filtered = []
-    last_title = None
-    for r in state.responses:
-        if isinstance(r, str):
-            if r.startswith("🎬"):
-                last_title = r[2:].split(":")[0].strip().lower()
-            if r.startswith("📦 Source: /person") and last_title in validated_titles:
-                print(f"🧹 Suppressing fallback for: {last_title}")
-                continue
-        filtered.append(r)
-
-    state.responses = filtered
-
-    output = ResponseFormatter.format_responses(state.responses)
-    if not output:
-        output = ["⚠️ No results matched all filters."]
-    return state.model_copy(update={"status": "done", "step": "respond", "responses": output})
+    formatted = ResponseFormatter.format_responses(state.responses)
+    return {"output": formatted}
 
 def build_app_graph():
     builder = StateGraph(AppState)
