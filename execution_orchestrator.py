@@ -88,10 +88,18 @@ class ExecutionOrchestrator:
                             director_ok = PostValidator.has_director(result_data, director_name)
                             print(f"🎬 Director match for {movie_id}: {director_ok}")
 
-                        if cast_ok and director_ok:
+                        score = 0.0
+                        if cast_ok:
+                            score += 0.5
+                        if director_ok:
+                            score += 0.5
+
+                        if score > 0:
+                            movie["final_score"] = score
+                            print(f"🧮 Partial match for {movie_id}: score={score}")
                             validated.append(movie)
                         else:
-                            print(f"❌ Skipping {movie_id}: cast_ok={cast_ok}, director_ok={director_ok}")
+                            print(f"❌ Skipping {movie_id}: no required match")
                     except Exception as e:
                         print(f"⚠️ Validation failed for movie_id={movie_id}: {e}")
                 break  # Only apply first matching rule
@@ -220,6 +228,7 @@ class ExecutionOrchestrator:
             for movie in filtered_movies:
                 movie["final_score"] = 1.0
             ranked = EntityAwareReranker.boost_by_entity_mentions(filtered_movies, query_entities)
+            state.data_registry[step_id]["validated"] = ranked
             for movie in ranked:
                 title = movie.get("title") or movie.get("name")
                 overview = movie.get("overview", "")
