@@ -28,7 +28,10 @@ class ExecutionOrchestrator:
         "followup_endpoint_template": "/movie/{movie_id}/credits",
         "validator": PostValidator.has_director,
         "args_builder": lambda step, state: {
-            "director_name": _infer_director_name(state)
+            "director_name": next((
+                e["name"] for e in state.extraction_result.get("query_entities", [])
+                if e.get("type") == "person" and e.get("role") == "director"
+            ), None)
         },
         "arg_source": "credits"
     }
@@ -104,7 +107,9 @@ class ExecutionOrchestrator:
             step_id = step.get("step_id")
             print(f"▶️ Popped step: {step_id}")
             print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
-
+            if not state.plan_steps:
+                from dependency_manager import DependencyManager
+                state = DependencyManager.analyze_dependencies(state)
             if step_id in state.completed_steps:
                 print(f"✅ Skipping already completed step: {step_id}")
                 continue
