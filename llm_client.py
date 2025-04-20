@@ -26,7 +26,9 @@ class OpenAILLMClient:
             "name": "Full name or title of a specific person, movie, keyword, etc.",
             "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'rating', or 'date'"
             }}
-        ]
+        ],
+            "question_type": "count | summary | timeline | comparison | fact | list",
+            "response_format": "count_summary | summary | timeline | side_by_side | ranked_list"
         }}
 
         Guidelines:
@@ -37,6 +39,11 @@ class OpenAILLMClient:
         - If a query is vague or exploratory, fall back to general types (e.g., 'movie', 'genre').
         - Include rating values like 'above 7.5' as {{ "name": "7.5", "type": "rating" }}
         - Include year references like 'from 2023' as {{ "name": "2023", "type": "date" }}
+        - Use 'count_summary' for queries like "how many movies..."
+        - Use 'timeline' for "what was the first... what came after..."
+        - Use 'side_by_side' for "which is better, X or Y?"
+        - Use 'summary' for bios or overviews.
+        - Default to 'ranked_list' for recommendations or results.
         - Do NOT include commentary — only respond with valid JSON.
 
         User Query:
