@@ -29,7 +29,8 @@ class FallbackHandler:
                 "parameters": {
                     "sort_by": "popularity.desc",
                     "page": 1
-                }
+                },
+                "fallback_injected": True  # ✅ Add this flag
             })
         return steps
 
