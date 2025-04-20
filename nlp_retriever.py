@@ -71,7 +71,8 @@ class ResponseFormatter:
         formatted = []
         for item in responses:
             if isinstance(item, str):
-                formatted.append(f"📌 {item}")
+                tag = "📦 Fallback" if "trending" in item.lower() else "♻️ Relaxed" if "relaxed" in item.lower() else "📌"
+                formatted.append(f"{tag} {item}")
             elif isinstance(item, dict):
                 response_type = item.get("type")
 
@@ -79,7 +80,8 @@ class ResponseFormatter:
                     title = item.get("title", "Unknown Title")
                     overview = item.get("overview", "")
                     source = item.get("source", "")
-                    formatted.append(f"🎬 {title}: {overview}")
+                    tag = "📦" if "trending" in source else "♻️" if "relaxed" in source else "🎬"
+                    formatted.append(f"{tag} {title}: {overview}")
                     if source:
                         formatted.append(f"📦 Source: {source}")
 
