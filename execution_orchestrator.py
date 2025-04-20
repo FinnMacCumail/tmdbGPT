@@ -314,7 +314,12 @@ class ExecutionOrchestrator:
     
     def _handle_generic_response(self, step, step_id, path, json_data, state):
         summaries = ResultExtractor.extract(path, json_data, state.resolved_entities)
-
+        # Always apply fallback tagging FIRST (if applicable)
+        if step.get("fallback_injected") and isinstance(json_data, dict) and "results" in json_data:
+            print(f"♻️ Tagging fallback-injected results from {step['endpoint']}")
+            for movie in json_data["results"]:
+                movie["final_score"] = 0.3
+                movie["source"] = step["endpoint"] + "_relaxed"
         # If this is a credits endpoint and we have role-tagged people, validate them
         if "credits" in path and any(e.get("role") for e in state.extraction_result.get("query_entities", [])):
             print(f"🧪 Validating roles from credits for {step_id}")
