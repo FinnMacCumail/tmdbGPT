@@ -10,32 +10,30 @@ import json
 class ExecutionOrchestrator:
     
     VALIDATION_REGISTRY = [
-        {
-            "endpoint": "/discover/movie",
-            "trigger_param": "with_people",
-            "followup_endpoint_template": "/movie/{movie_id}/credits",
-            "validator": PostValidator.has_all_cast,
-            "args_builder": lambda step, state: {
-                "required_ids": [
-                    int(pid)
-                    for pid in step["parameters"].get("with_people", "").split(",")
-                    if pid.isdigit()
-                ]
-            },
-            "arg_source": "credits"
+    {
+        "endpoint": "/discover/movie",
+        "trigger_param": "with_people",
+        "followup_endpoint_template": "/movie/{movie_id}/credits",
+        "validator": PostValidator.has_all_cast,
+        "args_builder": lambda step, state: {
+            "required_ids": [
+                int(p) for p in step["parameters"].get("with_people", "").split(",") if p.isdigit()
+            ]
         },
-        {
-            "endpoint": "/discover/movie",
-            "trigger_param": "director_name",
-            "followup_endpoint_template": "/movie/{movie_id}/credits",
-            "validator": PostValidator.has_director,
-            "args_builder": lambda step, state: {
-                "director_name": state.extraction_result.get("query_entities", [None])[0]
-            },
-            "arg_source": "credits"
-        }
-        # Add more validations here
-    ]
+        "arg_source": "credits"
+    },
+    {
+        "endpoint": "/discover/movie",
+        "trigger_param": "with_people",
+        "followup_endpoint_template": "/movie/{movie_id}/credits",
+        "validator": PostValidator.has_director,
+        "args_builder": lambda step, state: {
+            "director_name": _infer_director_name(state)
+        },
+        "arg_source": "credits"
+    }
+]
+
     
     def __init__(self, base_url, headers):
         from dependency_manager import DependencyManager
@@ -326,7 +324,20 @@ class ExecutionOrchestrator:
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
 
-
+    def _infer_director_name(state):
+        """
+        Heuristically pick the director from query_entities based on absence in cast or known role cues.
+        This is a soft fallback — Phase 16 will enrich role tagging further.
+        """
+        person_ids = set(state.resolved_entities.get("person_id", []))
+        for ent in state.extraction_result.get("query_entities", []):
+            if ent["type"] == "person":
+                # If the person isn't in the resolved cast list, assume they are the director
+                if ent.get("resolved_id") not in person_ids:
+                    return ent["name"]
+        # fallback: return the last person in list if > 1
+        people = [e["name"] for e in state.extraction_result.get("query_entities", []) if e["type"] == "person"]
+        return people[-1] if len(people) > 1 else people[0]
                 
 class ExecutionTraceLogger:
     @staticmethod
