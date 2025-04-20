@@ -82,16 +82,20 @@ class OpenAILLMClient:
                             result["entities"].append(corrected_type)
 
             # ✅ Inject role tags (cast/director) based on wording or fallback heuristic
-            person_entities = [e for e in result.get("query_entities", []) if e.get("type") == "person"]
-            for ent in person_entities:
+            person_entities = [e for e in result.get("query_entities", []) if e.get("type") == "person"]            
+            # Assign roles using better fallback logic
+            for i, ent in enumerate(person_entities):
                 name = ent["name"].lower()
                 if "directed by" in query.lower() and name in query.lower():
                     ent["role"] = "director"
                 elif any(kw in query.lower() for kw in ["starring", "featuring", "actor", "acted by"]) and name in query.lower():
                     ent["role"] = "cast"
                 elif len(person_entities) == 2:
-                    # fallback: first is cast, second is director
-                    ent["role"] = "cast" if ent == person_entities[0] else "director"
+                    # Fallback: assume 1st = director, 2nd = cast
+                    ent["role"] = "director" if i == 0 else "cast"
+                else:
+                    # Safe fallback
+                    ent["role"] = "cast"
 
             return result
 
