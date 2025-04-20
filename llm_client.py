@@ -91,8 +91,11 @@ class OpenAILLMClient:
                 elif any(kw in query.lower() for kw in ["starring", "featuring", "actor", "acted by"]) and name in query.lower():
                     ent["role"] = "cast"
                 elif len(person_entities) == 2:
-                    # Fallback: assume 1st = director, 2nd = cast
-                    ent["role"] = "director" if i == 0 else "cast"
+                    # Heuristic: if 'directed' appears, assign first match to director
+                    if "directed by" in query.lower():
+                        ent["role"] = "director" if i == 0 else "cast"
+                    else:
+                        ent["role"] = "cast" if i == 0 else "director"
                 else:
                     # Safe fallback
                     ent["role"] = "cast"
