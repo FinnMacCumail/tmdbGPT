@@ -226,7 +226,7 @@ class ExecutionOrchestrator:
             print(f"✅ Found {len(filtered_movies)} filtered result(s)")
             query_entities = state.extraction_result.get("query_entities", [])
             for movie in filtered_movies:
-                movie["final_score"] = 1.0
+                movie["final_score"] = movie.get("final_score", 1.0)
             ranked = EntityAwareReranker.boost_by_entity_mentions(filtered_movies, query_entities)
             state.data_registry[step_id]["validated"] = ranked
             for movie in ranked:
