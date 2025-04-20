@@ -54,16 +54,7 @@ class ExecutionOrchestrator:
                 build_args = rule["args_builder"]
                 args = build_args(step, state)
 
-                # Fallback assumption: two people → one cast, one director
-                people_ids = step["parameters"].get("with_people", "")
-                person_ids = [int(pid) for pid in people_ids.split(",") if pid.isdigit()]
-                cast_id = person_ids[0] if len(person_ids) >= 1 else None
-
                 query_entities = state.extraction_result.get("query_entities", [])
-                director_name = None
-                for qe in query_entities:
-                    if qe["name"].lower() != state.resolved_entities.get("person_id", [])[0]:
-                        director_name = qe["name"]
 
                 for movie in movie_results:
                     movie_id = movie.get("id")
@@ -77,16 +68,9 @@ class ExecutionOrchestrator:
                             continue
                         result_data = response.json()
 
-                        cast_ok = True
-                        director_ok = True
-
-                        if cast_id:
-                            cast_ok = PostValidator.has_all_cast(result_data, [cast_id])
-                            print(f"🎭 Cast match for {movie_id}: {cast_ok}")
-
-                        if director_name:
-                            director_ok = PostValidator.has_director(result_data, director_name)
-                            print(f"🎬 Director match for {movie_id}: {director_ok}")
+                        role_results = PostValidator.validate_person_roles(result_data, query_entities)
+                        cast_ok = role_results.get("cast_ok", False)
+                        director_ok = role_results.get("director_ok", False)
 
                         score = 0.0
                         if cast_ok:
