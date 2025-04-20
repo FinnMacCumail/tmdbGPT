@@ -288,6 +288,25 @@ class ResultExtractor:
         summaries = []
         resolved_entities = resolved_entities or {}
 
+        # Special case: enrich /search/person results
+        if "/search/person" in endpoint:
+            for result in json_data.get("results", []):
+                name = result.get("name", "")
+                known_for = result.get("known_for", [])
+                known_titles = [k.get("title") or k.get("name") for k in known_for if k.get("title") or k.get("name")]
+                if not known_titles:
+                    continue  # Skip people with no known works
+
+                overview = f"Known for: {', '.join(known_titles)}"
+                summaries.append({
+                    "type": "movie_summary",
+                    "title": name,
+                    "overview": overview,
+                    "source": endpoint
+                })
+            return summaries
+
+
         print(f"📊 Top-level keys in response: {list(json_data.keys())}")
         for k, v in json_data.items():
             print(f"  → {k}: {type(v)}")
