@@ -2,23 +2,19 @@ import unittest
 from unittest.mock import patch, MagicMock
 from execution_orchestrator import ExecutionOrchestrator
 from copy import deepcopy
+import math
 
 class MockAppState:
     def __init__(self):
         self.extraction_result = {
             "query_entities": [
-                {"name": "Emma Stone", "type": "person", "resolved_id": 54693},
-                {"name": "Warner Bros", "type": "company", "resolved_id": 174},
-                {"name": "comedy", "type": "genre", "resolved_id": 35}
+                {"name": "Brad Pitt", "type": "person", "resolved_id": 287},
+                {"name": "Christopher Nolan", "type": "person", "resolved_id": 525}
             ],
             "intents": ["discovery.filtered"],
-            "entities": ["person", "company", "genre", "movie"]
+            "entities": ["person", "movie"]
         }
-        self.resolved_entities = {
-            "person_id": [54693],
-            "company_id": [174],
-            "genre_id": [35]
-        }
+        self.resolved_entities = {"person_id": [287, 525]}
         self.plan_steps = []
         self.completed_steps = []
         self.data_registry = {}
@@ -31,9 +27,9 @@ class MockAppState:
                 setattr(clone, k, v)
         return clone
 
-class TestMultiEntityJoin(unittest.TestCase):
+class TestPartialScoreValidation(unittest.TestCase):
     @patch("requests.get")
-    def test_person_company_genre_discovery(self, mock_get):
+    def test_director_only_validation_score_half(self, mock_get):
         orchestrator = ExecutionOrchestrator("https://api.themoviedb.org/3", headers={"Authorization": "Bearer dummy"})
         state = MockAppState()
 
@@ -42,36 +38,37 @@ class TestMultiEntityJoin(unittest.TestCase):
             mock_response.status_code = 200
             if "credits" in url:
                 mock_response.json.return_value = {
-                    "cast": [{"id": 54693}],  # Emma Stone
-                    "crew": [{"name": "Some Director", "job": "Director"}]
+                    "cast": [{"id": 999999}],  # ❌ Wrong actor ID
+                    "crew": [{"name": "Christopher Nolan", "job": "Director"}]
                 }
             else:
                 mock_response.json.return_value = {
                     "results": [
-                        {"id": 77, "title": "Easy A", "overview": "A smart, funny teen comedy."}
+                        {"id": 101, "title": "Tenet", "overview": "A time-bending thriller by Christopher Nolan."}
                     ]
                 }
             return mock_response
 
         mock_get.side_effect = mocked_tmdb_get
 
-        # Inject plan with multiple filters
         state.plan_steps = [{
             "step_id": "step_0",
             "endpoint": "/discover/movie",
             "parameters": {
-                "with_people": "54693",
-                "with_companies": "174",
-                "with_genres": "35"
+                "with_people": "287,525"
             }
         }]
 
         final_state = orchestrator.execute(state)
 
-        print("✅ Completed steps:", final_state.completed_steps)
-        print("📥 Responses:", final_state.responses)
+        validated = final_state.data_registry.get("step_0", {}).get("validated", [])
+        print("🧾 Validated payload:", validated)
+        for r in validated:
+            print("▶️ Score for", r.get("title"), "→", r.get("final_score"))
+
         self.assertIn("step_0", final_state.completed_steps)
-        self.assertTrue(any("Easy A" in r for r in final_state.responses), "Expected movie not found")
+        self.assertTrue(any("Tenet" in str(r) for r in validated), "Expected movie not returned")
+        self.assertTrue(all(math.isclose(r.get("final_score", 0), 0.5, rel_tol=1e-3) for r in validated), "Expected partial score of 0.5")
 
 if __name__ == "__main__":
     unittest.main()
