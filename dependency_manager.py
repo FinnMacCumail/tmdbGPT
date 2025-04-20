@@ -55,7 +55,8 @@ class DependencyManager:
     def serialize(self) -> dict:
         """Serialize dependency graph to JSON-serializable format"""
         return json_graph.node_link_data(self.graph)
-
+    
+    @staticmethod
     def analyze_dependencies(state):
         """
         Detect and intersect movie_ids across person role steps.
