@@ -95,6 +95,10 @@ class ExecutionOrchestrator:
         return validated or movie_results
     
     def execute(self, state):
+        print(f"\n[DEBUG] Entering Orchestrator Execution")
+        print(f"🧭 [DEBUG] Initial question_type: {state.question_type}")
+        print(f"🎨 [DEBUG] Initial response_format: {state.response_format}")
+
         state.error = None
         state.data_registry = {}
         state.completed_steps = []
@@ -104,10 +108,15 @@ class ExecutionOrchestrator:
 
         print(f"🧭 Question Type: {getattr(state, 'question_type', None)}")
         print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
-        
+
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
             step_id = step.get("step_id")
+
+            print(f"\n[DEBUG] Executing Step: {step_id}")
+            print(f"[DEBUG] Current question_type: {state.question_type}")
+            print(f"[DEBUG] Current response_format: {state.response_format}")
+
             print(f"▶️ Popped step: {step_id}")
             print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
             if not state.plan_steps:
@@ -209,7 +218,8 @@ class ExecutionOrchestrator:
                 state.error = str(ex)            
 
         # 👇 Safely determine the format type from state
-        format_type = getattr(state, "response_format", "summary")
+        #format_type = getattr(state, "response_format", "summary")
+        format_type = state.response_format or "summary"
         renderer = RESPONSE_RENDERERS.get(format_type, format_summary)
 
         # 👇 Generate final formatted output
@@ -220,7 +230,7 @@ class ExecutionOrchestrator:
 
         # 👇 You can optionally assign it to state if needed
         state.formatted_response = final_output
-
+        print("[DEBUG] Orchestrator execution completed.")
         return state
     
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
