@@ -58,23 +58,20 @@ def register_renderer(name):
 
 @register_renderer("count_summary")
 def format_count_summary(state) -> list:
-    count = sum(
-        1 for r in state.responses
-        if isinstance(r, dict)
-        and r.get("type") == "movie_summary"
-        and r.get("title")
-        and "tv" not in r.get("source", "")
-    )
+    movie_count = 0
+    tv_count = 0
 
-    person_names = [
-        e["name"] for e in state.extraction_result.get("query_entities", [])
-        if e.get("type") == "person"
-    ]
-    label = ", ".join(person_names) or "This person"
-    summary = f"🎬 {label} has been in {count} movie(s)."
+    for r in state.responses:
+        if r.get("type") == "movie_summary":
+            src = r.get("source", "")
+            if "movie_credits" in src:
+                movie_count += 1
+            elif "tv_credits" in src:
+                tv_count += 1
 
-    return [summary] + ResponseFormatter.format_responses(state.responses)
-
+    name = state.extraction_result.get("query_entities", [{}])[0].get("name", "This person")
+    output = f"🎬 {name} has appeared in {movie_count} movie(s) and {tv_count} TV show(s)."
+    return [{"type": "count_summary", "text": output}]
 
 @register_renderer("ranked_list")
 def format_ranked_list(state) -> list:
