@@ -196,9 +196,11 @@ class PlanValidator:
         
         
         #✅ Step 3: Call LLM to get only the relevant endpoints        
-        llm = OpenAILLMClient()
+        
         query = getattr(state, "input", "") or getattr(state, "raw_query", "")
-        recommended = llm.get_focused_endpoints(query, filtered_matches)
+        question_type = state.extraction_result.get("question_type")
+        llm = OpenAILLMClient()
+        recommended = llm.get_focused_endpoints(query, filtered_matches, question_type=question_type)
         print(f"📤 LLM recommended endpoints: {recommended}")
         if recommended:
             before = len(filtered_matches)
