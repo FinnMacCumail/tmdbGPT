@@ -253,66 +253,94 @@ class SymbolicConstraintFilter:
         "recommendation.suggested": ["recommendation", "discovery.filtered"]
     }
 
+    # @staticmethod
+    # def apply(matches: list, extraction_result: dict, resolved_entities: dict) -> list:
+    #     """
+    #     General symbolic filtering based on:
+    #     - Entity compatibility (resolved entity must be consumable by endpoint)
+    #     - Media type consistency (tv/movie intent should match endpoint media_type)
+    #     - Optional: Intent compatibility (e.g., discovery.filtered only matches discover endpoints)
+    #     """
+
+    #     question_type = extraction_result.get("question_type")
+    #     allowed_intents = set()
+    #     if question_type in QUESTION_TYPE_ROUTING:
+    #         allowed_intents = set(QUESTION_TYPE_ROUTING[question_type].get("preferred_intents", []))
+
+    #     entities = extraction_result.get("entities", [])
+    #     query_intents = extraction_result.get("intents", [])
+    #     media_pref = SymbolicConstraintFilter._infer_media_preference(entities)
+    #     resolved_keys = set(resolved_entities.keys())
+    #     print("\n🔎 Symbolic Filter Debug — Candidates:")
+    #     for m in matches:
+    #         print(f"• {m.get('endpoint')}")
+    #         print(f"  → media_type: {SymbolicConstraintFilter._extract_media_type(m.get('endpoint', ''))}")
+    #         print(f"  → consumes_entities: {SymbolicConstraintFilter._extract_consumed_entities(m)}")
+    #         print(f"  → supported_intents: {SymbolicConstraintFilter._extract_supported_intents(m)}")
+    #     filtered = []
+    #     for match in matches:
+    #         endpoint = match.get("endpoint") or match.get("path", "")
+    #         metadata = match.get("metadata", match)  # fallback to root if inlined
+    #         media_type = SymbolicConstraintFilter._extract_media_type(endpoint)
+    #         consumes = SymbolicConstraintFilter._extract_consumed_entities(metadata)
+    #         supported_intents = SymbolicConstraintFilter._extract_supported_intents(metadata)
+    #         final_score = match.get("final_score", 0)
+
+    #         media_ok = (media_pref == "any" or media_type == "any" or media_type == media_pref)
+    #         # Symbolic entity filtering: always allow if no entities are required
+    #         entities_ok = is_entity_compatible(resolved_keys, consumes)
+    #         if not consumes:
+    #             print(f"  ⚠️ No entity required — allowing endpoint through with matching intent only")
+
+    #         # Intent match with fallback equivalence logic
+    #         intent = query_intents[0] if query_intents else None
+    #         intent_ok = SymbolicConstraintFilter._intent_is_supported(
+    #             intent, supported_intents, question_type
+    #         )
+            
+    #         intent_overlap = bool(set(supported_intents) & allowed_intents)
+
+    #         print(f"\n• {endpoint}")
+    #         print(f"  🔹 score: {final_score}")
+    #         print(f"  🔹 media_type: {media_type} (query: {media_pref}) → {'✅' if media_ok else '❌'}")
+    #         print(f"  🔹 consumes_entities: {consumes} (resolved: {list(resolved_keys)}) → {'✅' if entities_ok else '❌'}")
+    #         print(f"  🔹 supported_intents: {supported_intents} (query: {query_intents}) → {'✅' if intent_ok else '❌'}")
+
+    #         print(f"  🔹 allowed_intents (for type={question_type}): {allowed_intents}")
+    #         print(f"  🔹 intent_overlap: {intent_overlap}")
+
+    #         if media_ok and entities_ok and intent_ok and intent_overlap:
+    #             print("  ✅ INCLUDED in symbolic matches")
+    #             filtered.append(match)
+    #         else:
+    #             print("  ❌ EXCLUDED from symbolic matches")
+    #     return filtered
     @staticmethod
     def apply(matches: list, extraction_result: dict, resolved_entities: dict) -> list:
-        """
-        General symbolic filtering based on:
-        - Entity compatibility (resolved entity must be consumable by endpoint)
-        - Media type consistency (tv/movie intent should match endpoint media_type)
-        - Optional: Intent compatibility (e.g., discovery.filtered only matches discover endpoints)
-        """
-
         question_type = extraction_result.get("question_type")
-        allowed_intents = set()
-        if question_type in QUESTION_TYPE_ROUTING:
-            allowed_intents = set(QUESTION_TYPE_ROUTING[question_type].get("preferred_intents", []))
-
-        entities = extraction_result.get("entities", [])
         query_intents = extraction_result.get("intents", [])
-        media_pref = SymbolicConstraintFilter._infer_media_preference(entities)
         resolved_keys = set(resolved_entities.keys())
-        print("\n🔎 Symbolic Filter Debug — Candidates:")
-        for m in matches:
-            print(f"• {m.get('endpoint')}")
-            print(f"  → media_type: {SymbolicConstraintFilter._extract_media_type(m.get('endpoint', ''))}")
-            print(f"  → consumes_entities: {SymbolicConstraintFilter._extract_consumed_entities(m)}")
-            print(f"  → supported_intents: {SymbolicConstraintFilter._extract_supported_intents(m)}")
+
+        routing = QUESTION_TYPE_ROUTING.get(question_type, {})
+        allowed_intents = set(routing.get("preferred_intents", []) + routing.get("fallback_intents", []))
+
         filtered = []
         for match in matches:
             endpoint = match.get("endpoint") or match.get("path", "")
-            metadata = match.get("metadata", match)  # fallback to root if inlined
-            media_type = SymbolicConstraintFilter._extract_media_type(endpoint)
-            consumes = SymbolicConstraintFilter._extract_consumed_entities(metadata)
+            metadata = match.get("metadata", match)
             supported_intents = SymbolicConstraintFilter._extract_supported_intents(metadata)
-            final_score = match.get("final_score", 0)
 
-            media_ok = (media_pref == "any" or media_type == "any" or media_type == media_pref)
-            # Symbolic entity filtering: always allow if no entities are required
-            entities_ok = is_entity_compatible(resolved_keys, consumes)
-            if not consumes:
-                print(f"  ⚠️ No entity required — allowing endpoint through with matching intent only")
+            # NEW INTENT FALLBACK CHECK
+            intent_overlap = any(intent in allowed_intents for intent in supported_intents)
 
-            # Intent match with fallback equivalence logic
-            intent = query_intents[0] if query_intents else None
-            intent_ok = SymbolicConstraintFilter._intent_is_supported(intent, supported_intents)
-            
-            intent_overlap = bool(set(supported_intents) & allowed_intents)
-
-            print(f"\n• {endpoint}")
-            print(f"  🔹 score: {final_score}")
-            print(f"  🔹 media_type: {media_type} (query: {media_pref}) → {'✅' if media_ok else '❌'}")
-            print(f"  🔹 consumes_entities: {consumes} (resolved: {list(resolved_keys)}) → {'✅' if entities_ok else '❌'}")
-            print(f"  🔹 supported_intents: {supported_intents} (query: {query_intents}) → {'✅' if intent_ok else '❌'}")
-
-            print(f"  🔹 allowed_intents (for type={question_type}): {allowed_intents}")
-            print(f"  🔹 intent_overlap: {intent_overlap}")
-
-            if media_ok and entities_ok and intent_ok and intent_overlap:
-                print("  ✅ INCLUDED in symbolic matches")
+            if intent_overlap:
+                print(f"✅ Allowed intent overlap: {supported_intents} matches allowed intents {allowed_intents}")
                 filtered.append(match)
             else:
-                print("  ❌ EXCLUDED from symbolic matches")
+                print(f"❌ Excluded endpoint '{endpoint}' due to intent mismatch (supported: {supported_intents}, allowed: {allowed_intents})")
+
         return filtered
+
 
     @staticmethod
     def _infer_media_preference(entities: list) -> str:
@@ -374,18 +402,19 @@ class SymbolicConstraintFilter:
         return False
 
     @staticmethod
-    def _intent_is_supported(intent: str, endpoint_intents: list) -> bool:
-        """
-        Return True if the given intent is supported directly or via symbolic equivalence.
-        """
-
+    def _intent_is_supported(intent: str, endpoint_intents: list, question_type: str) -> bool:
         if not intent or not endpoint_intents:
             return False
-        
-        if intent in endpoint_intents:
+
+        # Fetch preferred and fallback intents from routing matrix
+        routing = QUESTION_TYPE_ROUTING.get(question_type, {})
+        allowed_intents = set(routing.get("preferred_intents", []) + routing.get("fallback_intents", []))
+
+        # Direct match or fallback equivalence
+        if intent in allowed_intents and set(endpoint_intents) & allowed_intents:
             return True
 
-        # Fallback to equivalence set if available
+        # Apply symbolic intent equivalence from INTENT_EQUIVALENTS
         for alias in SymbolicConstraintFilter.INTENT_EQUIVALENTS.get(intent, []):
             if alias in endpoint_intents:
                 print(f"🔁 Intent fallback matched: {intent} → {alias}")
