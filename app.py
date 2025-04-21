@@ -38,6 +38,9 @@ class AppState(BaseModel):
     completed_steps: Optional[List[str]] = Field(default_factory=list)
     pending_steps: Optional[List[Dict]] = Field(default_factory=list)
     formatted_response: Optional[Any] = None
+    # ✅ Add these for Phase 17.2 support
+    question_type: Optional[str] = None
+    response_format: Optional[str] = None
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
@@ -165,13 +168,28 @@ def plan(state: AppState) -> AppState:
 def execute(state: AppState) -> AppState:
     print("→ running node: EXECUTE")
     dependency_manager.analyze_dependencies(state)
-    updated_state = orchestrator.execute(state.model_copy(update={"pending_steps": state.plan_steps}))
-    return updated_state.model_copy(update={"executed": True, "step": "execute"})
+    updated_state = orchestrator.execute(state.model_copy(update={
+        "pending_steps": state.plan_steps,
+        "question_type": state.question_type,
+        "response_format": state.response_format,
+    }))
+    print(f"🧭 Question Type: {updated_state.question_type}")
+    print(f"🎨 Response Format: {updated_state.response_format}")
+    return updated_state.model_copy(update={"plan_steps": []})
+    #return updated_state.model_copy(update={"executed": True, "step": "execute"})
 
-def respond(state):
+def respond(state: AppState):
     print("→ running node: RESPOND")
+    # If already formatted by orchestrator, return it
+    if state.formatted_response:
+        print("🧾 Returning pre-formatted response")
+        return {"responses": state.formatted_response}
+    
+    # Fallback (shouldn't happen if orchestrator handles formatting)
+    print("⚠️ No formatted response found. Using default formatter.")
     formatted = ResponseFormatter.format_responses(state.responses)
-    return {"output": formatted}
+    return {"responses": formatted}
+
 
 def build_app_graph():
     builder = StateGraph(AppState)
