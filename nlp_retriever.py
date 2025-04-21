@@ -288,48 +288,42 @@ class ResultExtractor:
         summaries = []
         resolved_entities = resolved_entities or {}
         seen = set()
-        # Special case: enrich /search/person results
+
+        print(f"📊 Top-level keys in response: {list(json_data.keys())}")
+        for k, v in json_data.items():
+            print(f"  → {k}: {type(v)}")
+
+        # --- Special Case: /search/person
         if "/search/person" in endpoint:
             for result in json_data.get("results", []):
                 name = result.get("name", "").strip()
                 if name.lower() in seen:
                     continue
                 seen.add(name.lower())
-                known_for = result.get("known_for", [])
-                known_titles = [k.get("title") or k.get("name") for k in known_for if k.get("title") or k.get("name")]
-                if not known_titles:
-                    continue  # Skip people with no known works
 
-                overview = f"Known for: {', '.join(known_titles)}"
+                known_for = result.get("known_for", [])
+                known_titles = [
+                    k.get("title") or k.get("name")
+                    for k in known_for if isinstance(k, dict)
+                    and (k.get("title") or k.get("name"))
+                ]
+                if not known_titles:
+                    continue
+
                 summaries.append({
                     "type": "movie_summary",
                     "title": name,
-                    "overview": overview,
+                    "overview": f"Known for: {', '.join(known_titles)}",
                     "source": endpoint
                 })
             return summaries
 
-
-        print(f"📊 Top-level keys in response: {list(json_data.keys())}")
-        for k, v in json_data.items():
-            print(f"  → {k}: {type(v)}")
-
-        # Try detecting candidate lists (e.g., results, keywords, genres)
-        candidate_lists = [v for v in json_data.values() if isinstance(v, list)]
+        # --- General Case: Extract from list-based responses
+        candidate_lists = [
+            v for v in json_data.values() if isinstance(v, list)
+        ]
         if not candidate_lists and "results" in json_data:
             candidate_lists = [json_data["results"]]
-        if not candidate_lists:
-            # Try flat dicts with known display fields
-            title = json_data.get("title") or json_data.get("name")
-            overview = json_data.get("overview") or ""
-            if title or overview:
-                summaries.append({
-                    "type": "movie_summary",
-                    "title": title,
-                    "overview": str(overview),
-                    "source": endpoint
-                })
-            return summaries
 
         for item_list in candidate_lists:
             for item in item_list:
@@ -344,27 +338,43 @@ class ResultExtractor:
                     or item.get("description")
                     or "No synopsis available."
                 )
-                overview = str(overview)
 
-                # Optionally skip if even title is missing
                 if not title and not overview:
                     continue
 
-                if "/keywords" in endpoint:
-                    summaries.append({
-                        "type": "keyword_summary",
-                        "title": title,
-                        "overview": "",
-                        "source": endpoint
-                    })
-                elif title or overview:
-                    summaries.append({
-                        "type": "movie_summary",
-                        "title": title,
-                        "overview": overview,
-                        "source": endpoint
-                    })
+                result_type = "keyword_summary" if "/keywords" in endpoint else "movie_summary"
 
+                summaries.append({
+                    "type": result_type,
+                    "title": title,
+                    "overview": str(overview),
+                    "source": endpoint
+                })
+
+        # --- Flat dict fallback (for /person/{person_id} and others)
+        flat_title = json_data.get("title") or json_data.get("name")
+        flat_overview = json_data.get("overview") or json_data.get("biography") or ""
+
+        if flat_title or flat_overview:
+            is_person_profile = (
+                "/person/" in endpoint
+                and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"])
+            )
+            profile_type = "person_profile" if is_person_profile else "movie_summary"
+
+            if is_person_profile:
+                print(f"👤 Adding person_profile for {flat_title}")
+            else:
+                print(f"🎬 Adding movie_summary for {flat_title}")
+
+            summaries.append({
+                "type": profile_type,
+                "title": flat_title,
+                "overview": flat_overview.strip(),
+                "source": endpoint
+            })
+
+        print(f"🎯 Endpoint for profile detection: {endpoint}")
         return summaries
     
 class EnhancedIntentAnalyzer:
