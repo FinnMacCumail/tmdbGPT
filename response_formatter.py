@@ -47,3 +47,45 @@ class ResponseFormatter:
 
         sorted_lines = sorted(enriched, key=lambda x: x["score"], reverse=True)
         return [entry["line"] for entry in sorted_lines]
+    
+RESPONSE_RENDERERS = {}
+
+def register_renderer(name):
+    def decorator(func):
+        RESPONSE_RENDERERS[name] = func
+        return func
+    return decorator
+
+@register_renderer("count_summary")
+def format_count_summary(state) -> list:
+    count = sum(
+        1 for r in state.responses
+        if isinstance(r, dict)
+        and r.get("type") == "movie_summary"
+        and r.get("title")
+        and "tv" not in r.get("source", "")
+    )
+
+    person_names = [
+        e["name"] for e in state.extraction_result.get("query_entities", [])
+        if e.get("type") == "person"
+    ]
+    label = ", ".join(person_names) or "This person"
+    summary = f"🎬 {label} has been in {count} movie(s)."
+
+    return [summary] + ResponseFormatter.format_responses(state.responses)
+
+
+@register_renderer("ranked_list")
+def format_ranked_list(state) -> list:
+    return ResponseFormatter.format_responses(state.responses)
+
+
+@register_renderer("summary")
+def format_summary(state) -> list:
+    profiles = [r for r in state.responses if r.get("type") == "person_profile"]
+    if profiles:
+        name = profiles[0].get("title", "Unknown")
+        overview = profiles[0].get("overview", "")
+        return [f"👤 {name}: {overview}"]
+    return ResponseFormatter.format_responses(state.responses)
