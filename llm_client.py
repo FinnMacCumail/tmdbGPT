@@ -59,7 +59,7 @@ class OpenAILLMClient:
                     {"role": "system", "content": "You extract structured TMDB intents and entities."},
                     {"role": "user", "content": prompt.strip()}
                 ],
-                temperature=0.3,
+                temperature=0,
             )
 
             content = response.choices[0].message.content
@@ -116,14 +116,59 @@ class OpenAILLMClient:
                 "entities": [],
                 "query_entities": []
             }
+        
+    def get_focused_endpoints(self, query, symbolic_matches):
+        endpoint_descriptions = []
+        for match in symbolic_matches:
+            endpoint_descriptions.append({
+                "path": match.get("path") or match.get("endpoint"),
+                "media_type": match.get("media_type", "any"),
+                "supported_intents": match.get("intents", []),
+                "consumes_entities": match.get("consumes_entities", [])
+            })
 
-    def generate_response(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful API assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-        )
-        return response.choices[0].message.content
+        prompt = f"""
+    You are a TMDB planning assistant. Based on the user’s query and filtered candidate endpoints, return the ones clearly needed to answer the question.
+
+    Query:
+    "{query}"
+
+    Options:
+    {json.dumps(endpoint_descriptions, indent=2)}
+
+    Respond with JSON:
+    {{ "recommended_endpoints": ["/person/{{person_id}}/movie_credits", ...] }}
+    """
+
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+            )
+
+            content = response.choices[0].message.content
+            result = json.loads(content)
+
+            print(f"🔍 LLM Response (raw): {content}")
+            print(f"📤 Final extracted endpoint list: {result.get('recommended_endpoints')}")
+
+            return result.get("recommended_endpoints", [])
+
+        except Exception as e:
+            print(f"⚠️ Failed to get focused endpoints: {e}")
+            return []
+
+
+
+    # The method below is redundant - it and the classes that use it need to be cleaned!
+    # def generate_response(self, prompt: str) -> str:
+    #     response = self.client.chat.completions.create(
+    #         model="gpt-4-turbo",
+    #         messages=[
+    #             {"role": "system", "content": "You are a helpful API assistant."},
+    #             {"role": "user", "content": prompt}
+    #         ],
+    #         temperature=0.3,
+    #     )
+    #     return response.choices[0].message.content
