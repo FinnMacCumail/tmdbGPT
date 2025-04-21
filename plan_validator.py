@@ -4,6 +4,47 @@ from param_utils import ParameterMapper
 from llm_client import OpenAILLMClient
 from param_utils import is_entity_compatible
 
+QUESTION_TYPE_ROUTING = {
+    "count": {
+        "preferred_intents": ["credits.person", "credits.movie", "credits.tv"],
+        "fallback_intents": ["details.person"],
+        "response_format": "count_summary",
+        "description": "Returns a numeric count of appearances"
+    },
+    "summary": {
+        "preferred_intents": ["details.person", "details.movie", "details.tv"],
+        "fallback_intents": [],
+        "response_format": "summary",
+        "description": "Returns a biography or synopsis"
+    },
+    "fact": {
+        "preferred_intents": ["details.movie", "details.person"],
+        "fallback_intents": [],
+        "response_format": "summary",
+        "description": "Provides a factual answer about a movie or person"
+    },
+    "timeline": {
+        "preferred_intents": ["credits.person", "credits.tv", "credits.movie"],
+        "fallback_intents": ["details.movie"],
+        "response_format": "timeline",
+        "description": "Returns entries ordered by release date"
+    },
+    "comparison": {
+        "preferred_intents": ["details.movie", "details.person"],
+        "fallback_intents": [],
+        "response_format": "comparison",
+        "description": "Returns a side-by-side comparison"
+    },
+    "list": {
+        "preferred_intents": ["discovery.filtered", "discovery.advanced", "search.movie", "search.person"],
+        "fallback_intents": [],
+        "response_format": "list",
+        "description": "Returns a list of matching items"
+    }
+}
+
+
+
 class PlanValidator:
     def __init__(self):
         self.client = PersistentClient(path="./chroma_db")
@@ -220,6 +261,12 @@ class SymbolicConstraintFilter:
         - Media type consistency (tv/movie intent should match endpoint media_type)
         - Optional: Intent compatibility (e.g., discovery.filtered only matches discover endpoints)
         """
+
+        question_type = extraction_result.get("question_type")
+        allowed_intents = set()
+        if question_type in QUESTION_TYPE_ROUTING:
+            allowed_intents = set(QUESTION_TYPE_ROUTING[question_type].get("preferred_intents", []))
+
         entities = extraction_result.get("entities", [])
         query_intents = extraction_result.get("intents", [])
         media_pref = SymbolicConstraintFilter._infer_media_preference(entities)
@@ -249,13 +296,18 @@ class SymbolicConstraintFilter:
             intent = query_intents[0] if query_intents else None
             intent_ok = SymbolicConstraintFilter._intent_is_supported(intent, supported_intents)
             
+            intent_overlap = bool(set(supported_intents) & allowed_intents)
+
             print(f"\n• {endpoint}")
             print(f"  🔹 score: {final_score}")
             print(f"  🔹 media_type: {media_type} (query: {media_pref}) → {'✅' if media_ok else '❌'}")
             print(f"  🔹 consumes_entities: {consumes} (resolved: {list(resolved_keys)}) → {'✅' if entities_ok else '❌'}")
             print(f"  🔹 supported_intents: {supported_intents} (query: {query_intents}) → {'✅' if intent_ok else '❌'}")
 
-            if media_ok and entities_ok and intent_ok:
+            print(f"  🔹 allowed_intents (for type={question_type}): {allowed_intents}")
+            print(f"  🔹 intent_overlap: {intent_overlap}")
+
+            if media_ok and entities_ok and intent_ok and intent_overlap:
                 print("  ✅ INCLUDED in symbolic matches")
                 filtered.append(match)
             else:
