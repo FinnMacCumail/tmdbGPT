@@ -285,6 +285,12 @@ class RerankPlanning:
 class ResultExtractor:
     @staticmethod
     def extract(endpoint: str, json_data: dict, resolved_entities: dict = None) -> list:
+        if "movie_credits" in endpoint:
+            movie_credits = json_data.get("cast", [])
+            return [
+                {"type": "movie_summary", "title": movie.get("title"), "source": endpoint}
+                for movie in movie_credits
+            ]
         summaries = []
         resolved_entities = resolved_entities or {}
         seen = set()
