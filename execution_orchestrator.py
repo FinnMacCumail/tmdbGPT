@@ -139,7 +139,9 @@ class ExecutionOrchestrator:
             path = step.get("endpoint")
             for k, v in params.items():
                 if f"{{{k}}}" in path:
-                    path = path.replace(f"{{{k}}}", str(v))
+                    # Fix: handle list injection
+                    value = v[0] if isinstance(v, list) else v
+                    path = path.replace(f"{{{k}}}", str(value))
                     print(f"🧩 Replaced path slot: {{{k}}} → {v}")
             print(f"🛠️ Resolved full path: {path}")
             path = PathRewriter.rewrite(path, state.resolved_entities)
