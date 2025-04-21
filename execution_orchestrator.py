@@ -316,33 +316,44 @@ class ExecutionOrchestrator:
     
     def _handle_generic_response(self, step, step_id, path, json_data, state):
         summaries = ResultExtractor.extract(path, json_data, state.resolved_entities)
-        # Always apply fallback tagging FIRST (if applicable)
+        query_entities = state.extraction_result.get("query_entities", [])
+        role_tagged = any(e.get("role") for e in query_entities)
+
+        # Always apply fallback tagging first
         if step.get("fallback_injected") and isinstance(json_data, dict) and "results" in json_data:
             print(f"♻️ Tagging fallback-injected results from {step['endpoint']}")
             for movie in json_data["results"]:
                 movie["final_score"] = 0.3
                 movie["source"] = step["endpoint"] + "_relaxed"
-        # If this is a credits endpoint and we have role-tagged people, validate them
-        if "credits" in path and any(e.get("role") for e in state.extraction_result.get("query_entities", [])):
-            print(f"🧪 Validating roles from credits for {step_id}")
-            results = PostValidator.validate_person_roles(json_data, state.extraction_result.get("query_entities", []))
-            cast_ok = results.get("cast_ok", False)
-            director_ok = results.get("director_ok", False)
 
-            if cast_ok and director_ok:
-                print("✅ Role validation passed — generating movie_summary")
-                state.responses.append({
-                    "type": "movie_summary",
-                    "title": "Inception",  # TODO: replace with dynamic lookup later
-                    "overview": "Directed by Christopher Nolan starring Brad Pitt.",  # TODO: make dynamic
-                    "source": path
-                })
+        if "credits" in path:
+            if role_tagged:
+                print(f"🧪 Validating roles from credits for {step_id}")
+                results = PostValidator.validate_person_roles(json_data, query_entities)
+                cast_ok = results.get("cast_ok", False)
+                director_ok = results.get("director_ok", False)
+
+                if cast_ok or director_ok:
+                    print("✅ Role validation passed — generating movie_summary")
+                    state.responses.append({
+                        "type": "movie_summary",
+                        "title": "PLACEHOLDER",
+                        "overview": "Directed by ...",  # optional
+                        "source": path
+                    })
+                else:
+                    print("❌ Role validation failed — but appending fallback summaries")
+                    if summaries:
+                        state.responses.extend(summaries)
             else:
-                print("❌ Role validation failed — no movie summary added.")
+                print("⚠️ No role specified — appending all extracted summaries")
+                if summaries:
+                    state.responses.extend(summaries)
         else:
             if summaries:
                 state.responses.extend(summaries)
-                ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1])
+
+        ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [])
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
 
