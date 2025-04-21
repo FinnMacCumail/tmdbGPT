@@ -2,6 +2,7 @@ import json
 from chromadb import PersistentClient
 from param_utils import ParameterMapper
 from llm_client import OpenAILLMClient
+from param_utils import is_entity_compatible
 
 class PlanValidator:
     def __init__(self):
@@ -240,7 +241,7 @@ class SymbolicConstraintFilter:
 
             media_ok = (media_pref == "any" or media_type == "any" or media_type == media_pref)
             # Symbolic entity filtering: always allow if no entities are required
-            entities_ok = SymbolicConstraintFilter.is_entity_compatible(resolved_keys, consumes)
+            entities_ok = is_entity_compatible(resolved_keys, consumes)
             if not consumes:
                 print(f"  ⚠️ No entity required — allowing endpoint through with matching intent only")
 
@@ -340,33 +341,4 @@ class SymbolicConstraintFilter:
 
         return False
 
-    @staticmethod
-    def is_entity_compatible(resolved_keys: set, consumes_entities: list) -> bool:
-        """
-        Determines whether a given endpoint's required entities are satisfied
-        by the resolved entities in the query context.
-
-        - If the endpoint does not consume any entities, it's compatible by default.
-        - If it does, at least one resolved key must match a supported param (via JOIN_PARAM_MAP).
-        """
-        if not consumes_entities:
-            return True  # nothing required → allow by default
-
-        JOIN_PARAM_MAP = {
-            "person_id": "with_people",
-            "genre_id": "with_genres",
-            "company_id": "with_companies",
-            "network_id": "with_networks",
-            "collection_id": "with_collections",
-            "keyword_id": "with_keywords",
-            "tv_id": "with_tv",
-            "movie_id": "with_movies"
-        }
-
-        for key in resolved_keys:
-            mapped = JOIN_PARAM_MAP.get(key)
-            if mapped and mapped in consumes_entities:
-                return True
-
-        return False
 
