@@ -8,7 +8,7 @@ from langgraph.graph import StateGraph, END
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 import time
 from nlp_retriever import RerankPlanning, ResponseFormatter
 from plan_validator import SymbolicConstraintFilter
@@ -37,6 +37,7 @@ class AppState(BaseModel):
     data_registry: Optional[Dict] = Field(default_factory=dict)  # for orchestrator context
     completed_steps: Optional[List[str]] = Field(default_factory=list)
     pending_steps: Optional[List[Dict]] = Field(default_factory=list)
+    formatted_response: Optional[Any] = None
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
