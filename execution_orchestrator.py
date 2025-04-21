@@ -6,6 +6,7 @@ from post_validator import PostValidator
 from entity_reranker import EntityAwareReranker 
 from plan_validator import PlanValidator
 import json
+from response_formatter import RESPONSE_RENDERERS, format_summary
 
 class ExecutionOrchestrator:
     
@@ -101,6 +102,8 @@ class ExecutionOrchestrator:
         step_origin_depth = {}
         MAX_CHAIN_DEPTH = 3
 
+        print(f"🧭 Question Type: {getattr(state, 'question_type', None)}")
+        print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
         
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
@@ -204,6 +207,19 @@ class ExecutionOrchestrator:
                 print(f"🔥 Step {step_id} failed with exception: {ex}")
                 ExecutionTraceLogger.log_step(step_id, path, f"Failed ({str(ex)})")
                 state.error = str(ex)            
+
+        # 👇 Safely determine the format type from state
+        format_type = getattr(state, "response_format", "summary")
+        renderer = RESPONSE_RENDERERS.get(format_type, format_summary)
+
+        # 👇 Generate final formatted output
+        final_output = renderer(state)
+
+        print("\n--- FINAL RESPONSE ---")
+        print(final_output)
+
+        # 👇 You can optionally assign it to state if needed
+        state.formatted_response = final_output
 
         return state
     
