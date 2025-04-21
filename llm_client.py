@@ -117,7 +117,7 @@ class OpenAILLMClient:
                 "query_entities": []
             }
         
-    def get_focused_endpoints(self, query, symbolic_matches):
+    def get_focused_endpoints(self, query, symbolic_matches, question_type=None):
         endpoint_descriptions = []
         for match in symbolic_matches:
             endpoint_descriptions.append({
@@ -127,13 +127,31 @@ class OpenAILLMClient:
                 "consumes_entities": match.get("consumes_entities", [])
             })
 
-        prompt = f"""
-    You are a TMDB planning assistant. Based on the user’s query and filtered candidate endpoints, return the ones clearly needed to answer the question.
+        # Debugging information
+        print(f"\n🔍 [LLM Endpoint Planner Debugging] 🔍")
+        print(f"→ Query: '{query}'")
+        print(f"→ Question Type: '{question_type}'")
+        print(f"→ Candidate Endpoints (before filtering): {json.dumps(endpoint_descriptions, indent=2)}\n")
 
-    Query:
+        prompt = f"""
+    You are a TMDB symbolic planning assistant. Your task is to recommend a concise set of TMDB endpoints required to answer the user's question based on the extracted question type and intents.
+
+    Question Type: "{question_type}"
+
+    Question types explained:
+    - "count": User expects numeric counts (e.g., number of movies an actor has been in).
+    - "summary": User expects a brief overview or bio.
+    - "timeline": User expects chronologically ordered results (e.g., career timeline).
+    - "comparison": User expects side-by-side comparisons.
+    - "fact": User expects a simple factual answer.
+    - "list": User expects a curated list of items.
+
+    Given the user's query and these candidate endpoints, respond ONLY with endpoints directly useful to answer the query according to the extracted question type.
+
+    User Query:
     "{query}"
 
-    Options:
+    Candidate Endpoints:
     {json.dumps(endpoint_descriptions, indent=2)}
 
     Respond with JSON:
@@ -150,13 +168,16 @@ class OpenAILLMClient:
             content = response.choices[0].message.content
             result = json.loads(content)
 
-            print(f"🔍 LLM Response (raw): {content}")
-            print(f"📤 Final extracted endpoint list: {result.get('recommended_endpoints')}")
+            # More detailed debugging
+            print(f"\n✅ [LLM Planner Response Debugging] ✅")
+            print(f"Raw LLM Output: {content}")
+            recommended_endpoints = result.get('recommended_endpoints', [])
+            print(f"Extracted recommended endpoints: {recommended_endpoints}\n")
 
-            return result.get("recommended_endpoints", [])
+            return recommended_endpoints
 
         except Exception as e:
-            print(f"⚠️ Failed to get focused endpoints: {e}")
+            print(f"⚠️ [LLM Planner Exception] Failed to get focused endpoints: {e}")
             return []
 
 
