@@ -170,8 +170,8 @@ def execute(state: AppState) -> AppState:
     dependency_manager.analyze_dependencies(state)
     updated_state = orchestrator.execute(state.model_copy(update={
         "pending_steps": state.plan_steps,
-        "question_type": state.question_type,
-        "response_format": state.response_format,
+        "question_type": state.extraction_result.get("question_type"),  # Explicitly set
+        "response_format": state.extraction_result.get("response_format"),
     }))
     print(f"🧭 Question Type: {updated_state.question_type}")
     print(f"🎨 Response Format: {updated_state.response_format}")
