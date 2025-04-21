@@ -1,6 +1,7 @@
 import json
 from chromadb import PersistentClient
 from param_utils import ParameterMapper
+from llm_client import OpenAILLMClient
 
 class PlanValidator:
     def __init__(self):
@@ -125,25 +126,45 @@ class PlanValidator:
             elif hasattr(result, "query_entities"):
                 query_entities = result.query_entities
 
+        # ✅ Step 1: Ensure param compatibility was handled
         required_params = self._resolve_required_parameters_from_entities(query_entities)
         print(f"🔍 Resolved required parameters: {required_params}")
 
         if not required_params:
             print("🔎 No symbolic filtering required — using all semantic matches.")
-            return semantic_matches
+            filtered_matches = semantic_matches
+        else:
+            filtered_matches = []
+            for m in semantic_matches:
+                path = m["path"]
+                if self._endpoint_supports_required_params(path, required_params):
+                    print(f"✅ Included: {path}")
+                    filtered_matches.append(m)
+                else:
+                    print(f"❌ Excluded: {path} — missing one of: {required_params}")
 
-        filtered_matches = []
-        for m in semantic_matches:
-            path = m["path"]
-            if self._endpoint_supports_required_params(path, required_params):
-                print(f"✅ Included: {path}")
-                filtered_matches.append(m)
-            else:
-                print(f"❌ Excluded: {path} — missing one of: {required_params}")
+            if not filtered_matches:
+                print("⚠️ No strict param-compatible endpoints found, falling back to semantic matches.")
+                filtered_matches = semantic_matches
 
-        if not filtered_matches:
-            print("⚠️ No strict param-compatible endpoints found, falling back to semantic matches.")
-            return semantic_matches
+        # ✅ Step 2: Normalize .path key so LLM can read it
+        for m in filtered_matches:
+            if "path" not in m and "endpoint" in m:
+                m["path"] = m["endpoint"]
+        
+        
+        #✅ Step 3: Call LLM to get only the relevant endpoints        
+        llm = OpenAILLMClient()
+        query = getattr(state, "input", "") or getattr(state, "raw_query", "")
+        recommended = llm.get_focused_endpoints(query, filtered_matches)
+        print(f"📤 LLM recommended endpoints: {recommended}")
+        if recommended:
+            before = len(filtered_matches)
+            filtered_matches = [
+                m for m in filtered_matches
+                if m.get("path") in recommended or m.get("endpoint") in recommended
+            ]
+            print(f"🧭 LLM endpoint focus pruning: {before} → {len(filtered_matches)}")
 
         return filtered_matches
 
