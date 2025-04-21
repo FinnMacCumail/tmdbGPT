@@ -118,44 +118,40 @@ class OpenAILLMClient:
             }
         
     def get_focused_endpoints(self, query, symbolic_matches, question_type=None):
-        endpoint_descriptions = []
-        for match in symbolic_matches:
-            endpoint_descriptions.append({
-                "path": match.get("path") or match.get("endpoint"),
-                "media_type": match.get("media_type", "any"),
-                "supported_intents": match.get("intents", []),
-                "consumes_entities": match.get("consumes_entities", [])
-            })
+        endpoint_descriptions = [
+            {
+                "path": m.get("path") or m.get("endpoint"),
+                "media_type": m.get("media_type", "any"),
+                "supported_intents": m.get("intents", []),
+                "consumes_entities": m.get("consumes_entities", [])
+            }
+            for m in symbolic_matches
+        ]
 
-        # Debugging information
-        print(f"\n🔍 [LLM Endpoint Planner Debugging] 🔍")
-        print(f"→ Query: '{query}'")
-        print(f"→ Question Type: '{question_type}'")
-        print(f"→ Candidate Endpoints (before filtering): {json.dumps(endpoint_descriptions, indent=2)}\n")
+        # Verbose debugging
+        print(f"\n🔎 [Debug] Query: '{query}'")
+        print(f"🔎 [Debug] Question Type: '{question_type}'")
+        print(f"🔎 [Debug] Candidate Endpoints: {json.dumps(endpoint_descriptions, indent=2)}")
 
         prompt = f"""
-    You are a TMDB symbolic planning assistant. Your task is to recommend a concise set of TMDB endpoints required to answer the user's question based on the extracted question type and intents.
+    You're a TMDB planner assistant. Given the user's query and the extracted question type '{question_type}', choose the relevant endpoints needed to accurately fulfill the user's request.
 
-    Question Type: "{question_type}"
+    Question Type Context:
+    - "count": Numeric totals or counts.
+    - "summary": Brief descriptions or bios.
+    - "timeline": Chronological sequences of events or works.
+    - "comparison": Side-by-side comparisons.
+    - "fact": Direct factual answers.
+    - "list": Curated lists or filtered recommendations.
 
-    Question types explained:
-    - "count": User expects numeric counts (e.g., number of movies an actor has been in).
-    - "summary": User expects a brief overview or bio.
-    - "timeline": User expects chronologically ordered results (e.g., career timeline).
-    - "comparison": User expects side-by-side comparisons.
-    - "fact": User expects a simple factual answer.
-    - "list": User expects a curated list of items.
-
-    Given the user's query and these candidate endpoints, respond ONLY with endpoints directly useful to answer the query according to the extracted question type.
-
-    User Query:
+    Query:
     "{query}"
 
     Candidate Endpoints:
     {json.dumps(endpoint_descriptions, indent=2)}
 
     Respond with JSON:
-    {{ "recommended_endpoints": ["/person/{{person_id}}/movie_credits", ...] }}
+    {{ "recommended_endpoints": ["/endpoint/path", ...] }}
     """
 
         try:
@@ -168,18 +164,16 @@ class OpenAILLMClient:
             content = response.choices[0].message.content
             result = json.loads(content)
 
-            # More detailed debugging
-            print(f"\n✅ [LLM Planner Response Debugging] ✅")
-            print(f"Raw LLM Output: {content}")
+            # More verbose debugging output
             recommended_endpoints = result.get('recommended_endpoints', [])
-            print(f"Extracted recommended endpoints: {recommended_endpoints}\n")
+            print(f"\n✅ [Debug] Raw LLM Output: {content}")
+            print(f"✅ [Debug] Recommended Endpoints: {recommended_endpoints}")
 
             return recommended_endpoints
 
         except Exception as e:
-            print(f"⚠️ [LLM Planner Exception] Failed to get focused endpoints: {e}")
+            print(f"⚠️ [Debug] LLM Planner Error: {e}")
             return []
-
 
 
     # The method below is redundant - it and the classes that use it need to be cleaned!
