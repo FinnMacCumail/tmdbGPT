@@ -17,3 +17,4 @@ sec_intent_chroma_db/
 logs/
 unit_test.py
 unit_test2.py
+unit_tests/
