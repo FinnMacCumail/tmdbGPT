@@ -1,185 +1,207 @@
 import json
+import os
+from tqdm import tqdm
+from chromadb import PersistentClient
 from sentence_transformers import SentenceTransformer
-import chromadb
 
-class SemanticEmbedder:
-    def __init__(self):
-        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
-        self.client = chromadb.PersistentClient(path="./chroma_db")
-        self.collection = self.client.get_or_create_collection("tmdb_endpoints")
+PARAM_TO_ENTITY_MAP = {
+    "first_air_date_year": "date",
+    "region": "country",
+    "year": "date",
+    "primary_release_year": "date",
+    "certification_country": "country",
+    "primary_release_date.gte": "date",
+    "primary_release_date.lte": "date",
+    "release_date.gte": "date",
+    "release_date.lte": "date",
+    "vote_average.gte": "rating",
+    "vote_average.lte": "rating",
+    "with_people": "person",
+    "with_companies": "company",
+    "with_genres": "genre",
+    "without_genres": "genre",
+    "with_keywords": "keyword",
+    "without_keywords": "keyword",
+    "with_original_language": "language",
+    "with_watch_providers": "watch_provider",
+    "watch_region": "country",
+    "air_date.gte": "date",
+    "air_date.lte": "date",
+    "first_air_date.gte": "date",
+    "first_air_date.lte": "date",
+    "with_networks": "network",
+    "movie_id": "movie",
+    "person_id": "person",
+    "tv_id": "tv",
+    "network_id": "network",
+    "company_id": "company",
+    "collection_id": "collection"
+}
 
-    def _detect_intents(self, endpoint, parameters):
+client = PersistentClient(path="./chroma_db")
+collection = client.get_or_create_collection("tmdb_endpoints")
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # 🎯 Person details
-        if "/person/" in endpoint and endpoint.count("{") == 1:
-            return [{"intent": "details.person", "confidence": 1.0}]
+with open("data/tmdb.json") as f:
+    raw = json.load(f)
+    index = raw.get("paths", {})
 
-        # 🎯 Person credits (add both intents for filmography-like queries)
-        if "/person/" in endpoint and "/movie_credits" in endpoint:
-            return [
-                {"intent": "credits.person", "confidence": 1.0},
-                {"intent": "details.person", "confidence": 0.8}
-            ]
-        if "/person/" in endpoint and "/tv_credits" in endpoint:
-            return [
-                {"intent": "credits.person", "confidence": 1.0},
-                {"intent": "details.person", "confidence": 0.8}
-            ]
+def _detect_intents(path, description):
+    intents = []
+    path_lower = path.lower()
+    desc = description.lower()
+    if "/person/" in path_lower and "/movie_credits" in path_lower:
+        intents += ["credits.person"]
+    if "/person/" in path_lower and "/tv_credits" in path_lower:
+        intents += ["credits.person"]
+    if "/person/" in path_lower and "/images" in path_lower:
+        intents.append("media_assets.image")
+    if "/movie/" in path_lower and "/keywords" in path_lower:
+        intents.append("keywords.movie")
+    if "/tv/" in path_lower and "/keywords" in path_lower:
+        intents.append("keywords.tv")
+    if "/movie/" in path_lower and "/similar" in path_lower:
+        intents.append("recommendation.similarity")
+    if "/movie/" in path_lower and "/recommendations" in path_lower:
+        intents.append("recommendation.suggested")
+    if "/movie/" in path_lower:
+        intents.append("details.movie")
+    if "/tv/" in path_lower:
+        intents.append("details.tv")
+    if "/collection/" in path_lower:
+        intents.append("collection.details")
+    if "/company/" in path_lower:
+        intents += ["company.details", "companies.studio"]
+    if "/network/" in path_lower:
+        intents += ["network.details", "companies.network"]
+    if "/person/" in path_lower:
+        intents += ["details.person"]
+    if "/genre/movie" in path_lower:
+        intents.append("genre.list.movie")
+    if "/genre/tv" in path_lower:
+        intents.append("genre.list.tv")
+    if "/review" in path_lower:
+        intents += ["review.lookup", "reviews.movie", "reviews.tv"]
+    if "/discover/movie" in path_lower:
+        intents += ["discovery.filtered", "discovery.advanced", "discovery.genre_based", "discovery.temporal"]
+    if "/discover/tv" in path_lower:
+        intents += ["discovery.filtered", "discovery.advanced", "discovery.genre_based", "discovery.temporal"]
+    if "/trending" in path_lower:
+        intents += ["trending.popular", "trending.top_rated"]
+    if "/search/movie" in path_lower:
+        intents.append("search.movie")
+    if "/search/tv" in path_lower:
+        intents.append("search.tv")
+    if "/search/person" in path_lower:
+        intents.append("search.person")
+    if "/search/collection" in path_lower:
+        intents.append("search.collection")
+    if "/search/company" in path_lower:
+        intents.append("search.company")
+    if not intents:
+        intents.append("miscellaneous")
+    return intents
 
-        if "/recommendations" in endpoint or "/similar" in endpoint:
-            return [{"intent": "recommendation", "confidence": 1.0}]
-        if "/movie/" in endpoint and endpoint.count("{") == 1:
-            return [{"intent": "details.movie", "confidence": 1.0}]
-        if "/tv/" in endpoint and endpoint.count("{") == 1:
-            return [{"intent": "details.tv", "confidence": 1.0}]
-        if endpoint.startswith("/discover/"):
-            return [{"intent": "discovery.filtered", "confidence": 1.0}]
-        if endpoint.startswith("/trending/"):
-            return [{"intent": "trending.popular", "confidence": 1.0}]
-        if endpoint.startswith("/search/movie"):
-            return [{"intent": "search.movie", "confidence": 1.0}]
-        if endpoint.startswith("/search/person"):
-            return [{"intent": "search.person", "confidence": 1.0}]
-        if endpoint.startswith("/search/tv"):
-            return [{"intent": "search.tv", "confidence": 1.0}]
-        if endpoint.startswith("/search/company"):
-            return [{"intent": "search.company", "confidence": 1.0}]
-        if endpoint.startswith("/search/collection"):
-            return [{"intent": "search.collection", "confidence": 1.0}]
-        if "credits" in endpoint:
-            return [{"intent": "credits.person", "confidence": 1.0}]
-        if "/collection/" in endpoint:
-            return [{"intent": "collection.details", "confidence": 1.0}]
-        if "/company/" in endpoint:
-            return [{"intent": "company.details", "confidence": 1.0}]
-        if "/network/" in endpoint:
-            return [{"intent": "network.details", "confidence": 1.0}]
-        if "/movie/" in endpoint and "keywords" in endpoint:
-            return [{"intent": "keywords.movie", "confidence": 1.0}]
-        if "/credit/" in endpoint:
-            return [{"intent": "credits.lookup", "confidence": 1.0}]
-        if endpoint.startswith("/genre/movie/list"):
-            return [{"intent": "genre.list.movie", "confidence": 1.0}]
-        if endpoint.startswith("/genre/tv/list"):
-            return [{"intent": "genre.list.tv", "confidence": 1.0}]
-        if endpoint.startswith("/review/"):
-            return [{"intent": "review.lookup", "confidence": 1.0}]
-        return [{"intent": "miscellaneous", "confidence": 0.3}]
+def _detect_entities(endpoint, parameters):
+    entities = set()
+    for param in parameters:
+        entity = PARAM_TO_ENTITY_MAP.get(param)
+        if entity:
+            entities.add(entity)
+    for slot in ["movie_id", "person_id", "tv_id", "company_id", "collection_id", "network_id"]:
+        if f"{{{slot}}}" in endpoint:
+            entities.add(PARAM_TO_ENTITY_MAP.get(slot))
+    return list(entities)
 
-    def _detect_entities(self, parameters, endpoint):
-        param_names = [p["name"] for p in parameters if isinstance(p, dict)]
-        detected = []
-        if "with_people" in param_names or "person_id" in endpoint:
-            detected.append("person")
-        if "with_genres" in param_names or "genre_id" in endpoint:
-            detected.append("genre")
-        if "with_companies" in param_names:
-            detected.append("company")
-        if "movie_id" in endpoint:
-            detected.append("movie")
-        if "tv_id" in endpoint:
-            detected.append("tv")
-        if "collection_id" in endpoint:
-            detected.append("collection")
-        if "company_id" in endpoint:
-            detected.append("company")
-        if "network_id" in endpoint:
-            detected.append("network")
-        if "credit_id" in endpoint:
-            detected.append("credit")
-        if "review_id" in endpoint:
-            detected.append("review")
-        return detected
+def _detect_produced_entities(endpoint: str, parameters: list) -> list:
+    produces = []
+    path = endpoint.lower()
+    if "/discover/movie" in path:
+        produces.append("movie")
+    if "/discover/tv" in path:
+        produces.append("tv")
+    if "/person/" in path and "/movie_credits" in path:
+        produces.append("movie")
+    if "/person/" in path and "/tv_credits" in path:
+        produces.append("tv")
+    if "/search/person" in path:
+        produces.append("person")
+    if "/search/movie" in path:
+        produces.append("movie")
+    if "/search/tv" in path:
+        produces.append("tv")
+    if "/search/collection" in path:
+        produces.append("collection")
+    if "/search/company" in path:
+        produces.append("company")
+    if "/search/network" in path:
+        produces.append("network")
+    if "/search/keyword" in path:
+        produces.append("keyword")
+    if "/movie/" in path and ("/similar" in path or "/recommendations" in path):
+        produces.append("movie")
+    if "/tv/" in path and ("/similar" in path or "/recommendations" in path):
+        produces.append("tv")
+    if "/collection/" in path:
+        produces.append("movie")
+    return list(set(produces))
 
-    def _detect_produced_entities(self, endpoint):
-        produced = []
-        if "credits" in endpoint:
-            if "/movie/" in endpoint:
-                produced.append("movie_id")
-            if "/tv/" in endpoint:
-                produced.append("tv_id")
-            if "/person/" in endpoint:
-                produced.extend(["movie_id", "tv_id"])
-        if "/recommendations" in endpoint or "/similar" in endpoint:
-            if "/movie/" in endpoint:
-                produced.append("movie_id")
-            if "/tv/" in endpoint:
-                produced.append("tv_id")
-        if "/collection/" in endpoint:
-            produced.append("collection_id")
-        if "/company/" in endpoint:
-            produced.append("company_id")
-        if "/network/" in endpoint:
-            produced.append("network_id")
-        if "/genre/" in endpoint:
-            produced.append("genre_id")
-        if "/keyword/" in endpoint:
-            produced.append("keyword_id")
-        if "/review/" in endpoint:
-            produced.append("review_id")
-        if "/credit/" in endpoint:
-            produced.append("credit_id")
-        return list(set(produced))
+def _override_description(endpoint_path: str, original: str) -> str:
+    if endpoint_path == "/discover/movie":
+        return (
+            "Endpoint supports discovery.filtered intent. "
+            "Entities: person, genre, date. "
+            "Parameters: with_people, with_genres, primary_release_year. "
+            "Use to find movies filtered by cast, genre, and year. "
+            "Example: Find movies with both Robert De Niro and Al Pacino."
+        )
+    if endpoint_path == "/discover/tv":
+        return (
+            "Endpoint supports discovery.filtered intent. "
+            "Entities: tv, person, genre, company, network. "
+            "Parameters: with_people, with_genres, with_networks, with_companies, first_air_date_year. "
+            "Use to find TV shows filtered by cast, genre, studio, or year. "
+            "Example: Best Netflix crime shows from 2020."
+        )
+    return original
 
-    def _create_embedding_text(self, endpoint, details):
-        desc = details.get("description", "")
-        if endpoint == "/discover/tv":
-            desc = (
-                "Endpoint supports discovery.filtered intent. "
-                "Entities: tv, person, company, genre. "
-                "Parameters: with_companies, with_people, with_genres. "
-                "Use this endpoint to find TV shows filtered by cast, studio, or genre. "
-                "Example: What are some Netflix original TV series?"
-            )
-        # ✅ Strategy-aligned embedding text for discover/movie
-        if endpoint == "/discover/movie":
-            desc = (
-                "Endpoint supports discovery.filtered intent. "
-                "Entities: person, movie. "
-                "Parameters: with_people, with_genres, primary_release_year. "
-                "Use this to find movies filtered by cast, genre, and year. "
-                "Example: Find movies with both Robert De Niro and Al Pacino."
-            )
+def _create_embedding_text(path, description):
+    return f"{path}\n{_override_description(path, description)}"
 
-        return f"Endpoint: {endpoint}\nDescription: {desc.strip()}"
+def _create_metadata(endpoint_path, obj):
+    description = obj.get("description", "")
+    parameters = obj.get("parameters", {}).keys()
+    return {
+        "path": endpoint_path,
+        "description": description,
+        "intents": json.dumps([{ "intent": i } for i in _detect_intents(endpoint_path, description)]),
+        "media_type": "tv" if "/tv" in endpoint_path else "movie" if "/movie" in endpoint_path else "any",
+        "consumes_entities": json.dumps(_detect_entities(endpoint_path, parameters)),
+        "produces_entities": json.dumps(_detect_produced_entities(endpoint_path, parameters))
+    }
 
-    def _create_metadata(self, endpoint, details):
-        param_names = [p["name"] for p in details.get("parameters", []) if isinstance(p, dict)]
-        return {
-            "path": endpoint,
-            "param_names": json.dumps(param_names),
-            "intents": json.dumps(self._detect_intents(endpoint, details.get("parameters", []))),
-            "entities": ", ".join(self._detect_entities(details.get("parameters", []), endpoint)),
-            "consumes_entities": json.dumps([
-                p["name"] for p in details.get("parameters", [])
-                if p.get("in") in {"path", "query"} and p["name"].startswith("with_")
-            ]),
-            "produces_entities": json.dumps(self._detect_produced_entities(endpoint))
-        }
+def process_endpoints():
 
-    def process_endpoints(self):
-        with open("data/tmdb.json") as f:
-            schema = json.load(f)
+    ids, docs, metas, embs = [], [], [], []
 
-        ids, docs, metas, embs = [], [], [], []
+    for path, obj in tqdm(index.items()):
+        embedding_text = _create_embedding_text(path, obj.get("description", ""))
+        metadata = _create_metadata(path, obj)
+        embedding = embedder.encode(embedding_text).tolist()
 
-        for path, methods in schema.get("paths", {}).items():
-            get_method = methods.get("get")
-            if not get_method:
-                continue
-
-            embedding_text = self._create_embedding_text(path, get_method)
-            metadata = self._create_metadata(path, get_method)
-            embedding = self.embedder.encode(embedding_text).tolist()
-
-            ids.append(path)
-            docs.append(embedding_text)
-            metas.append(metadata)
-            embs.append(embedding)
-
-        print(f"📦 Upserting {len(ids)} endpoints into ChromaDB (tmdb_endpoints)...")
-        self.collection.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=embs)
-        print("✅ Done.")
+        ids.append(path)
+        docs.append(embedding_text)
+        embs.append(embedding)
+        metas.append(metadata)
+    
+    print(f"📦 Upserting {len(ids)} endpoints into ChromaDB (tmdb_endpoints)...")
+    collection.upsert(
+        ids=ids,
+        documents=docs,
+        embeddings=embs,
+        metadatas=metas
+    )
+    print("✅ Done embedding TMDB endpoints")
 
 if __name__ == "__main__":
-    SemanticEmbedder().process_endpoints()
+    process_endpoints()
