@@ -41,6 +41,13 @@ def is_entity_compatible(resolved_keys: set, consumes_entities: list) -> bool:
     }
 
     for key in resolved_keys:
+        # Handle both 'with_people' (query params) and path slot entities like 'person_id'
+        if key.endswith("_id"):
+            entity_type = key.replace("_id", "")
+            if entity_type in consumes_entities:
+                return True
+
+        # Also support JOIN_PARAM_MAP logic (still useful for discover endpoints)
         param = JOIN_PARAM_MAP.get(key)
         if param and param in consumes_entities:
             return True
