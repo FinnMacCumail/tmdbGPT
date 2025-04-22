@@ -79,29 +79,32 @@ def format_count_summary(state) -> dict:
     }
 
 @register_renderer("ranked_list")
-def format_ranked_list(state) -> list:
-    #return ResponseFormatter.format_responses(state.responses)
+def format_ranked_list(state) -> dict:
     lines = ResponseFormatter.format_responses(state.responses)
-    return lines[:10]  # ✅ only return top 10
-
+    return {
+        "response_format": "ranked_list",
+        "question_type": "list",
+        "entries": lines[:10]
+    }
 
 @register_renderer("summary")
-def format_summary(state) -> list:
-    # profiles = [r for r in state.responses if r.get("type") == "person_profile"]
-    # if profiles:
-    #     name = profiles[0].get("title", "Unknown")
-    #     overview = profiles[0].get("overview", "")
-    #     return [f"👤 {name}: {overview}"]
-    # return ResponseFormatter.format_responses(state.responses)
+def format_summary(state) -> dict:
     profiles = [r for r in state.responses if r.get("type") == "person_profile"]
     if profiles:
         name = profiles[0].get("title", "Unknown")
         overview = profiles[0].get("overview", "")
-        return [f"👤 {name}: {overview}"]
+        return {
+            "response_format": "summary",
+            "question_type": "summary",
+            "entity": name,
+            "text": f"👤 {name}: {overview}"
+        }
 
-    # Cap the fallback list to 10 summaries
-    lines = ResponseFormatter.format_responses(state.responses)
-    return lines[:10]
+    return {
+        "response_format": "summary",
+        "question_type": "summary",
+        "text": "⚠️ No summary available."
+    }
 
 @register_renderer("timeline")
 def format_timeline(state) -> list:
