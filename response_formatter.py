@@ -57,7 +57,7 @@ def register_renderer(name):
     return decorator
 
 @register_renderer("count_summary")
-def format_count_summary(state) -> list:
+def format_count_summary(state) -> dict:
     movie_count = 0
     tv_count = 0
 
@@ -71,7 +71,12 @@ def format_count_summary(state) -> list:
 
     name = state.extraction_result.get("query_entities", [{}])[0].get("name", "This person")
     output = f"🎬 {name} has appeared in {movie_count} movie(s) and {tv_count} TV show(s)."
-    return [{"type": "count_summary", "text": output}]
+    return {
+        "response_format": "count_summary",
+        "question_type": "count",
+        "entity": name,
+        "text": output
+    }
 
 @register_renderer("ranked_list")
 def format_ranked_list(state) -> list:
@@ -132,11 +137,12 @@ def format_timeline(state) -> list:
     # Sort by year if present, otherwise by score
     timeline_entries.sort(key=lambda x: x.get("release_year") or 3000)
 
-    return [{
-        "type": "timeline",
+    return {
+        "response_format": "timeline",
+        "question_type": "timeline",
         "entity": state.extraction_result.get("query_entities", [{}])[0].get("name", ""),
         "entries": timeline_entries
-    }]
+    }
 
 @register_renderer("comparison")
 def format_comparison(state) -> dict:
@@ -174,14 +180,9 @@ def format_comparison(state) -> dict:
     right_entries.sort(key=lambda x: x["score"], reverse=True)
 
     return {
-        "type": "comparison",
-        "left": {
-            "name": left_name,
-            "entries": left_entries[:3]
-        },
-        "right": {
-            "name": right_name,
-            "entries": right_entries[:3]
-        }
+        "response_format": "comparison",
+        "question_type": "comparison",
+        "left": { "name": left_name, "entries": left_entries[:3] },
+        "right": { "name": right_name, "entries": right_entries[:3] }
     }
 
