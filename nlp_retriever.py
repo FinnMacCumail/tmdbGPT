@@ -336,7 +336,7 @@ class ResultExtractor:
                 if not isinstance(item, dict):
                     continue
 
-                title = item.get("title") or item.get("name", "")
+                title = item.get("title") or item.get("name", "Untitled")
                 overview = (
                     item.get("overview")
                     or item.get("job")
@@ -348,13 +348,24 @@ class ResultExtractor:
                 if not title and not overview:
                     continue
 
-                result_type = "keyword_summary" if "/keywords" in endpoint else "movie_summary"
+                # ✅ Set result_type dynamically
+                if "/keywords" in endpoint:
+                    result_type = "keyword_summary"
+                elif "/person/" in endpoint and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"]):
+                    result_type = "person_profile"
+                else:
+                    result_type = "movie_summary"
+
+                score = float(item.get("vote_average", 0)) / 10.0  # Normalize to 0.0–1.0 scale
+                release_date = item.get("release_date") or item.get("first_air_date")
 
                 summaries.append({
                     "type": result_type,
-                    "title": title,
-                    "overview": str(overview),
-                    "source": endpoint
+                    "title": title or "Untitled",
+                    "overview": str(overview).strip() or "No synopsis available.",
+                    "source": endpoint,
+                    "final_score": round(score, 2),
+                    "release_date": release_date
                 })
 
         # --- Flat dict fallback (for /person/{person_id} and others)
@@ -375,11 +386,11 @@ class ResultExtractor:
 
             summaries.append({
                 "type": profile_type,
-                "title": flat_title,
-                "overview": flat_overview.strip(),
-                "source": endpoint
+                "title": flat_title or "Untitled",
+                "overview": flat_overview.strip() or "No bio available.",
+                "source": endpoint,
+                "final_score": 1.0
             })
-
         print(f"🎯 Endpoint for profile detection: {endpoint}")
         return summaries
     
