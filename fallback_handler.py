@@ -1,6 +1,5 @@
 # fallback_handler.py
 from typing import Dict, List
-from dependency_manager import ExecutionState
 
 class FallbackHandler:
     @staticmethod
@@ -32,51 +31,4 @@ class FallbackHandler:
                 },
                 "fallback_injected": True  # ✅ Add this flag
             })
-        return steps
-
-    @staticmethod
-    def format_fallback(entities: Dict) -> str:
-        """Create response from raw entities"""
-        return "\n".join(
-            f"{k.replace('_id', '').title()}: {v}"
-            for k, v in entities.items()
-        )
-    
-    @staticmethod
-    def rag_fallback(query: str) -> List[Dict]:
-        """Basic search+details plan when RAG fails"""
-        return [{
-            "step_id": "fallback_search",
-            "endpoint": "/search/multi",
-            "parameters": {"query": query}
-        }]
-    
-class AdaptiveFallback:
-    def generate_fallback(self, state: ExecutionState) -> List[Dict]:
-        """Generate steps based on available entities and intents"""
-        # Prioritize entity-based fallbacks
-        for entity in ['person', 'movie', 'tv']:
-            if f"{entity}_id" in state.resolved_entities:
-                return [{
-                    "step_id": f"fallback_{entity}",
-                    "endpoint": f"/{entity}/{state.resolved_entities[f'{entity}_id']}",
-                    "operation_type": "data_retrieval",
-                    "requires_entities": [f"{entity}_id"]
-                }]
-        
-        # Intent-based fallback
-        if state.detected_intents.get('primary') == 'trending':
-            return [{
-                "step_id": "fallback_trending",
-                "endpoint": "/trending/movie/week",
-                "operation_type": "data_retrieval",
-                "parameters": {"time_window": "week"}
-            }]
-        
-        # Default discovery fallback
-        return [{
-            "step_id": "fallback_discover",
-            "endpoint": "/discover/movie",
-            "operation_type": "data_retrieval",
-            "parameters": {"sort_by": "popularity.desc"}
-        }]
+        return steps            

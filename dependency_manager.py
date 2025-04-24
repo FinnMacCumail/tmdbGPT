@@ -1,61 +1,7 @@
 # dependency_manager.py
-from typing import Dict, List, Set, TypedDict, Any, Optional
-import re
-from pydantic import BaseModel, ConfigDict
-from networkx import DiGraph
-import uuid
-import time
-import networkx as nx
-from networkx.readwrite import json_graph
-
-class EntityLifecycleEntry(TypedDict):
-    type: str  # 'production' or 'consumption'
-    step_id: str
-    timestamp: float
-
-class ExecutionState(BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
-
-    error: Optional[str] = None
-
-    raw_entities: Dict[str, Any] = {}
-    resolved_entities: Dict[str, Any] = {}
-    entity_dependencies: Dict[str, List[str]] = {}
-
-    detected_intents: Dict[str, Any] = {}
-    data_registry: Dict[str, Any] = {}
-    pending_steps: List[Dict] = []
-    completed_steps: List[Dict] = []
-
-    entity_lifecycle: Dict[str, List[Any]] = {}  # Assuming EntityLifecycleEntry elsewhere
-    dependency_graph: DiGraph = DiGraph()
-
-    query_type: str = "general_info"
-    specialized_params: Dict = {}
-    response_format: str = "standard_biography"
-
-    api_results: Dict[str, Any] = {}
-
-    def track_entity_activity(self, entity: str, activity_type: str, step: Dict):
-        """Record entity production or consumption"""
-        entry = EntityLifecycleEntry(
-            type=activity_type,
-            step_id=step.get('step_id', 'unknown'),
-            timestamp=time.time()
-        )
-        self.entity_lifecycle.setdefault(entity, []).append(entry)    
-    
-
+from typing import Any
+  
 class DependencyManager:
-    def __init__(self):
-        self.execution_state = ExecutionState()
-        self.graph = nx.DiGraph()
-
-    def serialize(self) -> dict:
-        """Serialize dependency graph to JSON-serializable format"""
-        return json_graph.node_link_data(self.graph)
-    
     @staticmethod
     def analyze_dependencies(state):
         """
@@ -90,15 +36,7 @@ class DependencyManager:
 
         # Inject validation steps to plan
         state.plan_steps = validation_steps + state.plan_steps
-        return state
-    
-    def build_dependency_graph(self, steps: list):
-        """Create execution order based on entity dependencies"""
-        for step in steps:
-            self.graph.add_node(step['step_id'])
-            for dep in step.get('dependencies', []):
-                if dep in self.graph:
-                    self.graph.add_edge(dep, step['step_id'])
+        return state        
 
     def expand_plan_with_dependencies(state, resolved_entities):
         """Plan symbolic joins from role-tagged person entities."""

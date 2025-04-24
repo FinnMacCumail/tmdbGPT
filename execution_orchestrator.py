@@ -382,22 +382,7 @@ class ExecutionOrchestrator:
         ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [])
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
-
-    def _infer_director_name(state):
-        """
-        Heuristically pick the director from query_entities based on absence in cast or known role cues.
-        This is a soft fallback — Phase 16 will enrich role tagging further.
-        """
-        person_ids = set(state.resolved_entities.get("person_id", []))
-        for ent in state.extraction_result.get("query_entities", []):
-            if ent["type"] == "person":
-                # If the person isn't in the resolved cast list, assume they are the director
-                if ent.get("resolved_id") not in person_ids:
-                    return ent["name"]
-        # fallback: return the last person in list if > 1
-        people = [e["name"] for e in state.extraction_result.get("query_entities", []) if e["type"] == "person"]
-        return people[-1] if len(people) > 1 else people[0]
-                
+     
 class ExecutionTraceLogger:
     @staticmethod
     def log_step(step_id, path, status, summary=None):

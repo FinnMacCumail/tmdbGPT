@@ -89,6 +89,7 @@ class OpenAILLMClient:
                             result["entities"].append(corrected_type)
 
             # ✅ Inject role tags (cast/director) based on wording or fallback heuristic
+            # Hacky - needs replacing in PGPV -  symbolic joins and validation cycles
             person_entities = [e for e in result.get("query_entities", []) if e.get("type") == "person"]            
             # Assign roles using better fallback logic
             for i, ent in enumerate(person_entities):
@@ -174,16 +175,3 @@ class OpenAILLMClient:
         except Exception as e:
             print(f"⚠️ [Debug] LLM Planner Error: {e}")
             return []
-
-
-    # The method below is redundant - it and the classes that use it need to be cleaned!
-    # def generate_response(self, prompt: str) -> str:
-    #     response = self.client.chat.completions.create(
-    #         model="gpt-4-turbo",
-    #         messages=[
-    #             {"role": "system", "content": "You are a helpful API assistant."},
-    #             {"role": "user", "content": prompt}
-    #         ],
-    #         temperature=0.3,
-    #     )
-    #     return response.choices[0].message.content

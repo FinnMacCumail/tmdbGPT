@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Any
 import time
-from nlp_retriever import RerankPlanning, ResponseFormatter
+from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
 from response_formatter import ResponseFormatter
 
@@ -50,8 +50,7 @@ def extract_entities(state: AppState) -> AppState:
     print("→ running node: EXTRACT_ENTITIES")    
     extraction = openai_client.extract_entities_and_intents(state.input)
     print("📤 Extracted entities:")
-    for k, v in extraction.items():
-        print(f" - {k}: {v}")
+    
     if not extraction:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
@@ -59,8 +58,7 @@ def extract_entities(state: AppState) -> AppState:
 def resolve_entities(state: AppState) -> AppState:
     print("→ running node: RESOLVE_ENTITIES")
     extraction = state.extraction_result
-    query_entities = extraction.get("query_entities", [])
-    base_entities = set(extraction.get("entities", []))  # from LLM extraction
+    query_entities = extraction.get("query_entities", [])    
 
     # ✅ Use multi-entity resolver
     resolved_entities, unresolved_entities = entity_resolver.resolve_entities(query_entities)

@@ -84,15 +84,7 @@ class TMDBEntityResolver:
             except Exception as e:
                 print(f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
 
-        return None
-
-    def resolve_multiple(self, names, entity_type, top_k=3):
-        results = []
-        for name in names:
-            _id = self.resolve_entity(name, entity_type)
-            if _id:
-                results.append(_id)
-        return results
+        return None    
 
     def resolve_entities(self, query_entities):
         resolved, unresolved = [], []
