@@ -173,3 +173,67 @@ def format_comparison(state) -> dict:
         "left": {"name": left_name, "entries": left_entries[:3]},
         "right": {"name": right_name, "entries": right_entries[:3]}
     }
+
+def generate_explanation(extraction_result: dict) -> str:
+    """
+    Create a human-readable explanation of what the search tried to do.
+
+    Args:
+        extraction_result (dict): Output from extract_entities_and_intents()
+
+    Returns:
+        str: Natural language explanation
+    """
+    if not extraction_result:
+        return "Searching for relevant items..."
+
+    entities = extraction_result.get("entities", [])
+    query_entities = extraction_result.get("query_entities", [])
+    intents = extraction_result.get("intents", [])
+    question_type = extraction_result.get("question_type", "list")
+
+    parts = []
+
+    # --- Focus on who/what is involved
+    names = [qe["name"] for qe in query_entities if qe.get("name")]
+    if names:
+        parts.append(f"starring {', '.join(names)}")
+
+    # --- Entity-based context
+    if "genre" in entities:
+        parts.append("by genre")
+    if "company" in entities:
+        parts.append("produced by specific studios")
+    if "network" in entities:
+        parts.append("available on specific networks")
+    if "collection" in entities:
+        parts.append("as part of a collection")
+
+    # --- Date or rating
+    if "date" in entities:
+        parts.append("released after a certain year")
+    if "rating" in entities:
+        parts.append("with a minimum rating")
+
+    # --- Base media type
+    if "tv" in entities and "movie" not in entities:
+        media_type = "TV shows"
+    elif "movie" in entities and "tv" not in entities:
+        media_type = "movies"
+    else:
+        media_type = "movies or TV shows"
+
+    # --- Intent flavor
+    if any(i.startswith("trending") for i in intents):
+        flavor = "Trending"
+    elif any(i.startswith("recommendation") for i in intents):
+        flavor = "Recommended"
+    else:
+        flavor = "Searching for"
+
+    # --- Compose final explanation
+    filters = ", ".join(parts)
+    if filters:
+        return f"{flavor} {media_type} {filters}."
+    else:
+        return f"{flavor} {media_type}."
