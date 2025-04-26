@@ -13,6 +13,8 @@ from llm_client import OpenAILLMClient
 from json import JSONDecodeError
 from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
+from plan_validator import PlanValidator
+
 # Load API keys
 dotenv_path = os.path.join(os.getcwd(), ".env")
 load_dotenv(dotenv_path, override=True)
@@ -170,21 +172,43 @@ class RerankPlanning:
         """
         Reorder and annotate matches based on parameter feasibility.
         Promote steps with resolved entities; demote those with missing params.
+        Boost endpoints that support optional semantically inferred parameters.
         """
         reranked = []
-        for match in matches:
-            endpoint = match["endpoint"]
-            needs = []
-            penalty = 0
 
+        # ✅ Load optional semantic parameters if query available
+        validator = PlanValidator()
+        query_text = resolved_entities.get("__query", "")  # ⚡ expect __query injected upstream
+        optional_params = validator.infer_semantic_parameters(query_text) if query_text else []
+        SAFE_OPTIONAL_PARAMS = {
+            "vote_average.gte", "vote_count.gte", "primary_release_year",
+            "release_date.gte", "with_runtime.gte", "with_runtime.lte",
+            "with_original_language", "region"
+        }
+
+        for match in matches:
+            endpoint = match.get("endpoint", "")
+            needs = []
+            penalty = 0.0
+            boost = 0.0
+
+            # --- Symbolic Entity Requirement Checking ---
             for key in ["person_id", "movie_id", "tv_id", "collection_id", "company_id"]:
                 if f"{{{key}}}" in endpoint and not resolved_entities.get(key):
                     needs.append(key)
                     penalty += 0.4
 
-            score = match["final_score"] - penalty
+            # --- Semantic Parameter Boosting ---
+            supported = match.get("supported_parameters", [])
+            for param in optional_params:
+                if param in SAFE_OPTIONAL_PARAMS and param in supported:
+                    boost += 0.02
+
+            base_score = match.get("final_score", 0)
+            final_score = round(base_score + boost - penalty, 3)
+
             match.update({
-                "final_score": round(score, 3),
+                "final_score": final_score,
                 "missing_entities": needs,
                 "is_entrypoint": bool("/search" in endpoint)
             })
