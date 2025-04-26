@@ -2,7 +2,7 @@ import json
 from chromadb import PersistentClient
 from param_utils import ParameterMapper
 from llm_client import OpenAILLMClient
-from param_utils import is_entity_compatible
+from sentence_transformers import SentenceTransformer
 
 QUESTION_TYPE_ROUTING = {
     "count": {
@@ -51,6 +51,7 @@ class PlanValidator:
         self.param_collection = self.client.get_or_create_collection("tmdb_parameters")
         self.PARAM_USED_IN = {}
         self._preload_parameter_usage()
+        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
     def _preload_parameter_usage(self):
         results = self.param_collection.get(include=["metadatas"])
@@ -157,7 +158,31 @@ class PlanValidator:
         print(f"✅ Final injected parameters: {step.get('parameters', {})}")
         return step
 
-    
+    # phase 2.2 - Semantic Parameter Inference (Dynamic Enhancement)
+    def infer_semantic_parameters(self, query_text: str) -> list:
+        """
+        Perform semantic search over TMDB parameters to suggest useful filters
+        based on the meaning of the user's query.
+
+        Args:
+            query_text (str): Natural language query from user.
+
+        Returns:
+            list: List of suggested TMDB parameter names.
+        """
+        # Embed the query locally
+        query_embedding = self.embedding_model.encode(query_text).tolist()
+
+        # Search the TMDB parameters collection
+        results = self.param_collection.query(
+            query_embeddings=[query_embedding],
+            n_results=5
+        )
+
+        # Extract suggested parameter names
+        suggested_parameters = results.get("ids", [[]])[0]
+        return suggested_parameters
+
     def validate(self, semantic_matches, state):
         query_entities = []
 
