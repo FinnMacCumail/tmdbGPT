@@ -4,147 +4,130 @@ from tqdm import tqdm
 from chromadb import PersistentClient
 from sentence_transformers import SentenceTransformer
 
-PARAM_TO_ENTITY_MAP = {
-    "first_air_date_year": "date",
-    "region": "country",
-    "year": "date",
-    "primary_release_year": "date",
-    "certification_country": "country",
-    "primary_release_date.gte": "date",
-    "primary_release_date.lte": "date",
-    "release_date.gte": "date",
-    "release_date.lte": "date",
-    "vote_average.gte": "rating",
-    "vote_average.lte": "rating",
-    "with_people": "person",
-    "with_companies": "company",
-    "with_genres": "genre",
-    "without_genres": "genre",
-    "with_keywords": "keyword",
-    "without_keywords": "keyword",
-    "with_original_language": "language",
-    "with_watch_providers": "watch_provider",
-    "watch_region": "country",
-    "air_date.gte": "date",
-    "air_date.lte": "date",
-    "first_air_date.gte": "date",
-    "first_air_date.lte": "date",
-    "with_networks": "network",
-    "movie_id": "movie",
-    "person_id": "person",
-    "tv_id": "tv",
-    "network_id": "network",
-    "company_id": "company",
-    "collection_id": "collection"
-}
-
+# Initialize ChromaDB and SentenceTransformer
 client = PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("tmdb_endpoints")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
+# Load TMDB endpoints
 with open("data/tmdb.json") as f:
     raw = json.load(f)
     index = raw.get("paths", {})
 
-def _detect_intents(path, description):
+# Load dynamically built parameter-to-entity mapping
+with open("data/param_to_entity_map.json") as f:
+    PARAM_TO_ENTITY_MAP = json.load(f)
+
+
+def _detect_intents(path: str, description: str) -> list:
     intents = []
     path_lower = path.lower()
-    desc = description.lower()
-    if "/person/" in path_lower and "/movie_credits" in path_lower:
-        intents += ["credits.person"]
-    if "/person/" in path_lower and "/tv_credits" in path_lower:
-        intents += ["credits.person"]
-    if "/person/" in path_lower and "/images" in path_lower:
-        intents.append("media_assets.image")
-    if "/movie/" in path_lower and "/keywords" in path_lower:
-        intents.append("keywords.movie")
-    if "/tv/" in path_lower and "/keywords" in path_lower:
-        intents.append("keywords.tv")
-    if "/movie/" in path_lower and "/similar" in path_lower:
+    description_lower = description.lower()
+
+    if "/discover/" in path_lower:
+        intents += ["discovery.filtered", "discovery.advanced", "discovery.genre_based", "discovery.temporal"]
+    elif "/search/" in path_lower:
+        if "/person" in path_lower:
+            intents.append("search.person")
+        elif "/movie" in path_lower:
+            intents.append("search.movie")
+        elif "/tv" in path_lower:
+            intents.append("search.tv")
+        elif "/collection" in path_lower:
+            intents.append("search.collection")
+        elif "/company" in path_lower:
+            intents.append("search.company")
+        else:
+            intents.append("search.multi")
+    elif "/recommendations" in path_lower or "/similar" in path_lower:
         intents.append("recommendation.similarity")
-    if "/movie/" in path_lower and "/recommendations" in path_lower:
-        intents.append("recommendation.suggested")
-    if "/movie/" in path_lower:
-        intents.append("details.movie")
-    if "/tv/" in path_lower:
-        intents.append("details.tv")
-    if "/collection/" in path_lower:
-        intents.append("collection.details")
-    if "/company/" in path_lower:
-        intents += ["company.details", "companies.studio"]
-    if "/network/" in path_lower:
-        intents += ["network.details", "companies.network"]
-    if "/person/" in path_lower:
-        intents += ["details.person"]
-    if "/genre/movie" in path_lower:
-        intents.append("genre.list.movie")
-    if "/genre/tv" in path_lower:
-        intents.append("genre.list.tv")
-    if "/review" in path_lower:
-        intents += ["review.lookup", "reviews.movie", "reviews.tv"]
-    if "/discover/movie" in path_lower:
-        intents += ["discovery.filtered", "discovery.advanced", "discovery.genre_based", "discovery.temporal"]
-    if "/discover/tv" in path_lower:
-        intents += ["discovery.filtered", "discovery.advanced", "discovery.genre_based", "discovery.temporal"]
-    if "/trending" in path_lower:
+        if "/movie" in path_lower:
+            intents.append("recommendation.suggested")
+    elif "/credits" in path_lower:
+        if "/movie" in path_lower:
+            intents.append("credits.movie")
+        elif "/tv" in path_lower:
+            intents.append("credits.tv")
+        elif "/person" in path_lower:
+            intents.append("credits.person")
+    elif "/images" in path_lower or "/videos" in path_lower:
+        intents.append("media_assets.image")
+    elif "/trending" in path_lower:
         intents += ["trending.popular", "trending.top_rated"]
-    if "/search/movie" in path_lower:
-        intents.append("search.movie")
-    if "/search/tv" in path_lower:
-        intents.append("search.tv")
-    if "/search/person" in path_lower:
-        intents.append("search.person")
-    if "/search/collection" in path_lower:
-        intents.append("search.collection")
-    if "/search/company" in path_lower:
-        intents.append("search.company")
+    elif "/review" in path_lower:
+        intents.append("review.lookup")
+    elif "/genre/movie" in path_lower:
+        intents.append("genre.list.movie")
+    elif "/genre/tv" in path_lower:
+        intents.append("genre.list.tv")
+    else:
+        if "/movie" in path_lower:
+            intents.append("details.movie")
+        elif "/tv" in path_lower:
+            intents.append("details.tv")
+        elif "/person" in path_lower:
+            intents.append("details.person")
+        elif "/company" in path_lower:
+            intents.append("company.details")
+        elif "/network" in path_lower:
+            intents.append("network.details")
+        elif "/collection" in path_lower:
+            intents.append("collection.details")
+
     if not intents:
         intents.append("miscellaneous")
+
     return intents
 
-def _detect_entities(endpoint, parameters):
+
+def _detect_entities(endpoint: str, parameters: list) -> list:
     entities = set()
+
+    # Check query parameters
     for param in parameters:
         entity = PARAM_TO_ENTITY_MAP.get(param)
         if entity:
             entities.add(entity)
-    for slot in ["movie_id", "person_id", "tv_id", "company_id", "collection_id", "network_id"]:
-        if f"{{{slot}}}" in endpoint:
-            entities.add(PARAM_TO_ENTITY_MAP.get(slot))
+
+    # Check path placeholders
+    for param, entity in PARAM_TO_ENTITY_MAP.items():
+        if f"{{{param}}}" in endpoint:
+            entities.add(entity)
+
     return list(entities)
 
+
 def _detect_produced_entities(endpoint: str, parameters: list) -> list:
-    produces = []
+    produces = set()
     path = endpoint.lower()
+
     if "/discover/movie" in path:
-        produces.append("movie")
+        produces.add("movie")
     if "/discover/tv" in path:
-        produces.append("tv")
+        produces.add("tv")
     if "/person/" in path and "/movie_credits" in path:
-        produces.append("movie")
+        produces.add("movie")
     if "/person/" in path and "/tv_credits" in path:
-        produces.append("tv")
+        produces.add("tv")
     if "/search/person" in path:
-        produces.append("person")
+        produces.add("person")
     if "/search/movie" in path:
-        produces.append("movie")
+        produces.add("movie")
     if "/search/tv" in path:
-        produces.append("tv")
+        produces.add("tv")
     if "/search/collection" in path:
-        produces.append("collection")
+        produces.add("collection")
     if "/search/company" in path:
-        produces.append("company")
+        produces.add("company")
     if "/search/network" in path:
-        produces.append("network")
+        produces.add("network")
     if "/search/keyword" in path:
-        produces.append("keyword")
-    if "/movie/" in path and ("/similar" in path or "/recommendations" in path):
-        produces.append("movie")
-    if "/tv/" in path and ("/similar" in path or "/recommendations" in path):
-        produces.append("tv")
+        produces.add("keyword")
     if "/collection/" in path:
-        produces.append("movie")
-    return list(set(produces))
+        produces.add("movie")
+
+    return list(produces)
+
 
 def _override_description(endpoint_path: str, original: str) -> str:
     if endpoint_path == "/discover/movie":
@@ -165,12 +148,15 @@ def _override_description(endpoint_path: str, original: str) -> str:
         )
     return original
 
+
 def _create_embedding_text(path, description):
     return f"{path}\n{_override_description(path, description)}"
+
 
 def _create_metadata(endpoint_path, obj):
     description = obj.get("description", "")
     parameters = obj.get("parameters", {}).keys()
+
     return {
         "path": endpoint_path,
         "description": description,
@@ -180,8 +166,8 @@ def _create_metadata(endpoint_path, obj):
         "produces_entities": json.dumps(_detect_produced_entities(endpoint_path, parameters))
     }
 
-def process_endpoints():
 
+def process_endpoints():
     ids, docs, metas, embs = [], [], [], []
 
     for path, obj in tqdm(index.items()):
@@ -193,7 +179,7 @@ def process_endpoints():
         docs.append(embedding_text)
         embs.append(embedding)
         metas.append(metadata)
-    
+
     print(f"📦 Upserting {len(ids)} endpoints into ChromaDB (tmdb_endpoints)...")
     collection.upsert(
         ids=ids,
@@ -203,5 +189,7 @@ def process_endpoints():
     )
     print("✅ Done embedding TMDB endpoints")
 
+
 if __name__ == "__main__":
     process_endpoints()
+
