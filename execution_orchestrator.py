@@ -113,6 +113,15 @@ class ExecutionOrchestrator:
             step = state.plan_steps.pop(0)  # process from front
             step_id = step.get("step_id")
 
+            # 🧩 pase 4 pgpv - NEW: Check if required entities are missing
+            missing_requires = [
+                req for req in step.get("requires", [])
+                if req not in state.resolved_entities
+            ]
+            if missing_requires:
+                print(f"⏭️ Skipping step {step_id}: missing required entities {missing_requires}")
+                continue  # Skip step safely
+
             print(f"\n[DEBUG] Executing Step: {step_id}")
             print(f"[DEBUG] Current question_type: {state.question_type}")
             print(f"[DEBUG] Current response_format: {state.response_format}")
