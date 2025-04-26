@@ -54,6 +54,7 @@ class AppState(BaseModel):
     question_type: Optional[str] = None
     response_format: Optional[str] = None
     execution_trace: Optional[List[dict]] = Field(default_factory=list)
+    relaxed_parameters: Optional[List[str]] = Field(default_factory=list)
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
@@ -215,7 +216,6 @@ def respond(state: AppState):
         print("🧾 Returning pre-formatted response")
         return {"responses": state.formatted_response}
     
-    # --- New fallback logic ---
     print("⚠️ No formatted response found. Using default formatter.")
     lines = ResponseFormatter.format_responses(state.responses)
 
@@ -223,8 +223,13 @@ def respond(state: AppState):
         explanation = generate_explanation(state.extraction_result)
         lines = [f"ℹ️ {explanation}"]
 
-    return {"responses": lines}
+    # ✅ NEW: Inject relaxation explanation at the top if any
+    if state.relaxed_parameters:
+        from response_formatter import generate_relaxation_explanation
+        relax_expl = generate_relaxation_explanation(state.relaxed_parameters)
+        lines.insert(0, relax_expl)
 
+    return {"responses": lines}
 
 
 def build_app_graph():
