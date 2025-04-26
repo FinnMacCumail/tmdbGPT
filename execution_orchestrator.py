@@ -8,6 +8,7 @@ from plan_validator import PlanValidator
 import json
 from response_formatter import RESPONSE_RENDERERS, format_summary
 from fallback_handler import FallbackHandler
+from post_validator import ResultScorer
 
 class ExecutionOrchestrator:
     
@@ -395,7 +396,20 @@ class ExecutionOrchestrator:
             else:
                 print("⚠️ No role specified — appending all extracted summaries")
                 if summaries:
+                    query_entities = state.extraction_result.get("query_entities", [])
+                    
+                    for summary in summaries:
+                        validations = ResultScorer.validate_entity_matches(summary, query_entities)
+                        score = ResultScorer.score_matches(validations)
+                        summary["final_score"] = max(summary.get("final_score", 0), score)
+                        print(f"🎯 Validated {summary['title']} → Score: {summary['final_score']}")
+
+                    # ✅ After scoring all summaries
                     state.responses.extend(summaries)
+
+                    if state.responses:
+                        state.responses.sort(key=lambda r: r.get("final_score", 0), reverse=True)
+                        print(f"✅ Responses sorted by final_score descending.")
         else:
             if summaries:
                 state.responses.extend(summaries)
