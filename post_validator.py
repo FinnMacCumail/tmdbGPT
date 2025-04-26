@@ -42,11 +42,16 @@ class PostValidator:
     # 🧩 NEW: Flexible Role Validation Function
     @staticmethod
     def validate_roles(credits: Dict, query_entities: List[Dict]) -> Dict[str, bool]:
+        """
+        Validate dynamically based on entity roles extracted from query.
+        Returns a dict like {"cast_ok": True, "director_ok": False, ...}
+        """
         results = {}
 
         for ent in query_entities:
             if ent.get("type") != "person":
                 continue
+
             role = ent.get("role", "cast")  # default to cast if missing
             name_or_id = ent.get("name") if role == "director" else ent.get("resolved_id")
 
@@ -54,18 +59,31 @@ class PostValidator:
             if not validator or not name_or_id:
                 continue
 
+            role_key = f"{role}_ok"
             if role == "cast":
-                if "cast_ok" not in results:
-                    results["cast_ok"] = validator(credits, [name_or_id])
-                else:
-                    results["cast_ok"] = results["cast_ok"] and validator(credits, [name_or_id])
+                # Validate cast using resolved person_id
+                passed = validator(credits, [name_or_id])
             elif role == "director":
-                if "director_ok" not in results:
-                    results["director_ok"] = validator(credits, name_or_id)
-                else:
-                    results["director_ok"] = results["director_ok"] or validator(credits, name_or_id)
+                # Validate director using person's name
+                passed = validator(credits, name_or_id)
             else:
-                role_key = f"{role}_ok"
-                results[role_key] = validator(credits, name_or_id)
+                # Future roles can go here
+                passed = validator(credits, name_or_id)
+
+            results[role_key] = passed
 
         return results
+
+    @staticmethod
+    def score_role_validation(role_results: Dict[str, bool]) -> float:
+        """
+        Given a dict of role validation results, return a score [0.0–1.0].
+        Each role passed contributes equally.
+        """
+        if not role_results:
+            return 0.0
+
+        num_passed = sum(1 for v in role_results.values() if v)
+        total_roles = len(role_results)
+        score = num_passed / total_roles
+        return round(score, 2)
