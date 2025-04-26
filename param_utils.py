@@ -1,5 +1,7 @@
 import json
 
+import os
+
 def normalize_parameters(value):
     """
     Normalize TMDB parameters field to ensure it is a dict.
@@ -122,3 +124,52 @@ class ParameterMapper:
                     print(f"✅ Injected {param_name} = {step_parameters[param_name]}")
             except ValueError:
                 print(f"⚠️ Failed to parse value '{ent_value}' for param '{param_name}'")
+
+                
+# --- Dynamic Entity → Parameter Map for Phase 2 ---
+
+# --- Load param_to_entity_map.json ---
+param_to_entity_map_path = os.path.join("data", "param_to_entity_map.json")
+
+with open(param_to_entity_map_path, "r", encoding="utf-8") as f:
+    PARAM_TO_ENTITY_MAP = json.load(f)
+
+# --- Reverse mapping: ENTITY → list of PARAMS ---
+ENTITY_TO_PARAM_MAP = {}
+
+for param, entity in PARAM_TO_ENTITY_MAP.items():
+    if entity not in ENTITY_TO_PARAM_MAP:
+        ENTITY_TO_PARAM_MAP[entity] = []
+    ENTITY_TO_PARAM_MAP[entity].append(param)
+
+# --- Function to resolve best param for a given entity ---
+def resolve_parameter_for_entity(entity_type: str) -> str:
+    """
+    Resolve a TMDB parameter for a given entity type.
+    Prefer 'with_*' symbolic query parameters first.
+    Then fallback to '*_id' path slot parameters.
+    """
+    candidates = ENTITY_TO_PARAM_MAP.get(entity_type)
+
+    if not candidates:
+        return None
+
+    # ✅ First priority: parameters starting with 'with_'
+    for param in candidates:
+        if param.startswith("with_"):
+            return param
+
+    # ✅ Second priority: parameters ending with '_id'
+    for param in candidates:
+        if param.endswith("_id"):
+            return param
+
+    # ✅ Fallback: first available candidate
+    return candidates[0]
+
+def normalize_entity_type(entity_type: str) -> str:
+    """
+    Normalize entity type strings.
+    Currently a no-op but ready for future extensions.
+    """
+    return entity_type.lower().strip()
