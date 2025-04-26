@@ -1,5 +1,6 @@
 # fallback_handler.py
 from typing import Dict, List
+from copy import deepcopy
 
 class FallbackHandler:
     @staticmethod
@@ -31,4 +32,36 @@ class FallbackHandler:
                 },
                 "fallback_injected": True  # ✅ Add this flag
             })
-        return steps            
+        return steps
+
+    @staticmethod
+    def relax_constraints(original_step: dict, already_dropped: set) -> list:
+        """
+        Given a step, progressively relax constraints by dropping parameters
+        based on a predefined priority: network > company > director > cast.
+        """
+        print(f"♻️ Relaxing constraints for: {original_step['step_id']}")
+
+        relaxation_priority = [
+            "with_networks",
+            "with_companies",
+            "director_id",   # future placeholder, director needs special handling
+            "with_people"
+        ]
+
+        current_params = original_step.get("parameters", {}).copy()
+        relaxed_steps = []
+
+        for param in relaxation_priority:
+            if param in current_params and param not in already_dropped:
+                new_step = deepcopy(original_step)
+                del new_step["parameters"][param]
+
+                base_id = original_step["step_id"].split("_relaxed_")[0]
+                new_suffix = "_relaxed_" + "_relaxed_".join(sorted(already_dropped.union({param})))
+                new_step["step_id"] = f"{base_id}{new_suffix}"
+
+                relaxed_steps.append(new_step)
+                already_dropped.add(param)
+
+        return relaxed_steps
