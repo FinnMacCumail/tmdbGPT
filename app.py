@@ -12,7 +12,7 @@ from typing import Optional, Dict, List, Any
 import time
 from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
-from response_formatter import ResponseFormatter
+from response_formatter import ResponseFormatter, generate_explanation
 from plan_validator import PlanValidator
 
 load_dotenv()
@@ -210,15 +210,20 @@ def execute(state: AppState) -> AppState:
 
 def respond(state: AppState):
     print("→ running node: RESPOND")
-    # If already formatted by orchestrator, return it
     if state.formatted_response:
         print("🧾 Returning pre-formatted response")
         return {"responses": state.formatted_response}
     
-    # Fallback (shouldn't happen if orchestrator handles formatting)
+    # --- New fallback logic ---
     print("⚠️ No formatted response found. Using default formatter.")
-    formatted = ResponseFormatter.format_responses(state.responses)
-    return {"responses": formatted}
+    lines = ResponseFormatter.format_responses(state.responses)
+
+    if not lines:
+        explanation = generate_explanation(state.extraction_result)
+        lines = [f"ℹ️ {explanation}"]
+
+    return {"responses": lines}
+
 
 
 def build_app_graph():
