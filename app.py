@@ -53,6 +53,7 @@ class AppState(BaseModel):
     # ✅ Add these for Phase 17.2 support
     question_type: Optional[str] = None
     response_format: Optional[str] = None
+    execution_trace: Optional[List[dict]] = Field(default_factory=list)
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
