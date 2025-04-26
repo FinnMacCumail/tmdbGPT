@@ -13,6 +13,7 @@ import time
 from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
 from response_formatter import ResponseFormatter
+from plan_validator import PlanValidator
 
 load_dotenv()
 
@@ -23,6 +24,17 @@ openai_client = OpenAILLMClient()
 dependency_manager = DependencyManager()
 orchestrator = ExecutionOrchestrator(BASE_URL, HEADERS)
 entity_resolver = TMDBEntityResolver(os.getenv('TMDB_API_KEY'), HEADERS)
+
+SAFE_OPTIONAL_PARAMS = {
+    "vote_average.gte",
+    "vote_count.gte",
+    "primary_release_year",
+    "release_date.gte",
+    "with_runtime.gte",
+    "with_runtime.lte",
+    "with_original_language",
+    "region"
+}
 
 class AppState(BaseModel):
     input: str
@@ -120,6 +132,22 @@ def plan(state: AppState) -> AppState:
         state.extraction_result, 
         state.resolved_entities
     )
+
+    # phase 2.2 of pggv--- Optional Enrichment: Suggest semantic parameters if query is vague ---
+    plan_validator = PlanValidator()
+    optional_params = plan_validator.infer_semantic_parameters(state.input)
+
+    for step in execution_steps:
+        if not step.get("parameters"):
+            step["parameters"] = {}
+
+        for param_name in optional_params:
+            if param_name in SAFE_OPTIONAL_PARAMS:
+                if param_name not in step["parameters"]:
+                    step["parameters"][param_name] = "<dynamic_value_or_prompt>"
+
+    print(f"💡 Smart enrichment added: {[p for p in optional_params if p in SAFE_OPTIONAL_PARAMS]}")
+
 
     # Phase 4: Deduplicate steps based on endpoint + parameter signature
     seen = set()
