@@ -1,0 +1,12 @@
+{
+  "movie_id": "movie",
+  "person_id": "person",
+  "tv_id": "tv",
+  "season_number": "season",
+  "episode_number": "episode",
+  "network_id": "network",
+  "company_id": "company",
+  "review_id": "review",
+  "collection_id": "collection",
+  "credit_id": "credit"
+}
