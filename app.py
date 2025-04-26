@@ -114,6 +114,10 @@ def retrieve_context(state: AppState) -> AppState:
 def plan(state: AppState) -> AppState:
     print("→ running node: PLAN")
 
+    # ✅ Inject the query text into resolved_entities for semantic parameter inference - phase2.2 pgpv
+    if "input" in state.__dict__:  # (in case state.input exists)
+        state.resolved_entities["__query"] = state.input
+    
     # Phase 1: Rerank semantic matches using resolved entities
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
     
