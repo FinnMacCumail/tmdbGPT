@@ -20,16 +20,12 @@ class QueryRequest(BaseModel):
 async def run_query(req: QueryRequest):
     try:
         result = graph.invoke({"input": req.query})
-        trace = {
-            "steps": [step.get("endpoint") or step.get("step_id") for step in result.get("plan_steps", [])],
-            "question_type": result.get("question_type"),
-            "resolved_entities": result.get("resolved_entities")
-        }
+        
         return {
             "status": "ok",
             "query": req.query,
             "response": result.get("formatted_response"),
-            "trace": trace
+            "trace": result.get("execution_trace", [])
         }
     except Exception as e:
         return {
