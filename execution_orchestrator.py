@@ -429,6 +429,42 @@ class ExecutionOrchestrator:
         ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [], state=state)
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
+
+    def _intersect_movie_ids_across_roles(self, state) -> set:
+        """
+        After executing dependency steps, find movies that appear across multiple entities' steps.
+        Loops through dependency steps, Collects movie IDs, Performs set intersection, Returns the movies that satisfy all entity constraints.
+        """
+        print("\n🔍 Intersecting movie IDs across resolved dependency steps...")
+        movie_sets = []
+        step_sources = []
+
+        for step_id in state.completed_steps:
+            if not step_id.startswith("step_cast_") and not step_id.startswith("step_director_") and not step_id.startswith("step_network_") and not step_id.startswith("step_company_"):
+                continue
+            
+            step_data = state.data_registry.get(step_id, {})
+            ids = set()
+
+            for movie in step_data.get("cast", []) + step_data.get("crew", []):
+                movie_id = movie.get("id")
+                if movie_id:
+                    ids.add(movie_id)
+
+            if ids:
+                movie_sets.append(ids)
+                step_sources.append(step_id)
+                print(f"📦 {step_id} produced {len(ids)} movie IDs.")
+
+        if len(movie_sets) < 2:
+            print("⚠️ Not enough entity sources to perform intersection.")
+            return set()
+
+        intersection = set.intersection(*movie_sets)
+        print(f"✅ Found {len(intersection)} common movies across {len(step_sources)} steps.")
+
+        return intersection
+
      
 class ExecutionTraceLogger:
     @staticmethod
