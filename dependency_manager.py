@@ -57,6 +57,7 @@ class DependencyManager:
                     "step_id": step_id,
                     "endpoint": f"/person/{person_id}/movie_credits",
                     "produces": ["movie_id"],
+                    "requires": ["person_id"],
                     "role": role,
                     "from_person_id": person_id,
                     "filters": [{"role": role}]
