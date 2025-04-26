@@ -20,49 +20,6 @@ def normalize_parameters(value):
         return {}
     return value if isinstance(value, dict) else {}
 
-def is_entity_compatible(resolved_keys: set, consumes_entities: list) -> bool:
-    """
-    Determines whether a given endpoint's required entities are satisfied
-    by the resolved entities in the query context.
-
-    - If the endpoint does not consume any entities, it's compatible by default.
-    - If it does, at least one resolved key must map to a valid `with_*` param.
-    """
-    if not consumes_entities:
-        return True  # ✅ Allow zero-entity endpoints like /trending/*
-
-    JOIN_PARAM_MAP = {
-        "person_id": "with_people",
-        "genre_id": "with_genres",
-        "company_id": "with_companies",
-        "network_id": "with_networks",
-        "collection_id": "with_collections",
-        "keyword_id": "with_keywords",
-        "tv_id": "with_tv",
-        "movie_id": "with_movies"
-    }
-
-    for key in resolved_keys:
-        # Handle both 'with_people' (query params) and path slot entities like 'person_id'
-        if key.endswith("_id"):
-            entity_type = key.replace("_id", "")
-            if entity_type in consumes_entities:
-                return True
-
-        # Also support JOIN_PARAM_MAP logic (still useful for discover endpoints)
-        param = JOIN_PARAM_MAP.get(key)
-        if param and param in consumes_entities:
-            return True
-
-    return False
-
-def is_intent_supported(intent: str, endpoint_intents: list) -> bool:
-    """
-    Return True if the given intent is among the endpoint's declared supported intents.
-    """
-    return intent in endpoint_intents
-
-
 class GenreNormalizer:
     GENRE_ALIASES = {
         "sci-fi": "science fiction",
