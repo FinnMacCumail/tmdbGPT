@@ -19,7 +19,8 @@ class PostValidator:
         runtime = movie_data.get("runtime")
         if runtime is None:
             return False
-        return (min_minutes is None or runtime >= min_minutes) and                (max_minutes is None or runtime <= max_minutes)
+        return (min_minutes is None or runtime >= min_minutes) and \
+               (max_minutes is None or runtime <= max_minutes)
 
     @staticmethod
     def has_keywords(movie_keywords: Dict, keyword_terms: List[str]) -> bool:
@@ -31,27 +32,40 @@ class PostValidator:
         found_ids = [g["id"] for g in movie_data.get("genres", [])]
         return any(gid in found_ids for gid in genre_ids)
 
+    # 🧩 NEW: Dynamic Role Validator Mapping
+    ROLE_VALIDATORS = {
+        "cast": has_all_cast.__func__,
+        "director": has_director.__func__,
+        # Placeholder: if you add more validators (writer, composer, producer), map them here
+    }
+
+    # 🧩 NEW: Flexible Role Validation Function
     @staticmethod
-    def validate_person_roles(credits: Dict, query_entities: List[Dict]) -> Dict[str, bool]:
-        cast_ids = []
-        director_names = []
+    def validate_roles(credits: Dict, query_entities: List[Dict]) -> Dict[str, bool]:
+        results = {}
 
         for ent in query_entities:
             if ent.get("type") != "person":
                 continue
-            role = ent.get("role")
-            if role == "director":
-                director_names.append(ent["name"])
-            elif role == "cast":
-                cast_ids.append(ent["resolved_id"])
-            else:
-                # fallback: assume cast if no role is specified
-                cast_ids.append(ent["resolved_id"])
+            role = ent.get("role", "cast")  # default to cast if missing
+            name_or_id = ent.get("name") if role == "director" else ent.get("resolved_id")
 
-        results = {}
-        if cast_ids:
-            results["cast_ok"] = PostValidator.has_all_cast(credits, cast_ids)
-        if director_names:
-            results["director_ok"] = any(PostValidator.has_director(credits, name) for name in director_names)
+            validator = PostValidator.ROLE_VALIDATORS.get(role)
+            if not validator or not name_or_id:
+                continue
+
+            if role == "cast":
+                if "cast_ok" not in results:
+                    results["cast_ok"] = validator(credits, [name_or_id])
+                else:
+                    results["cast_ok"] = results["cast_ok"] and validator(credits, [name_or_id])
+            elif role == "director":
+                if "director_ok" not in results:
+                    results["director_ok"] = validator(credits, name_or_id)
+                else:
+                    results["director_ok"] = results["director_ok"] or validator(credits, name_or_id)
+            else:
+                role_key = f"{role}_ok"
+                results[role_key] = validator(credits, name_or_id)
 
         return results
