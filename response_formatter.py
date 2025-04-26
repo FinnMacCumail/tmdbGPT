@@ -237,3 +237,30 @@ def generate_explanation(extraction_result: dict) -> str:
         return f"{flavor} {media_type} {filters}."
     else:
         return f"{flavor} {media_type}."
+    
+def generate_relaxation_explanation(dropped_constraints: List[str]) -> str:
+    """
+    Generate a human-readable explanation of which constraints were relaxed.
+    """
+    if not dropped_constraints:
+        return ""
+
+    pieces = []
+    mapping = {
+        "with_people": "specific actors",
+        "with_networks": "specific networks",
+        "with_companies": "specific studios",
+        "director_id": "specific directors",
+        "with_genres": "specific genres",
+        "primary_release_year": "specific release year",
+        "vote_average.gte": "minimum rating",
+        "with_runtime.gte": "minimum runtime",
+        "with_runtime.lte": "maximum runtime"
+    }
+
+    for param in dropped_constraints:
+        label = mapping.get(param, param)
+        pieces.append(f"relaxed {label}")
+
+    explanation = ", ".join(pieces)
+    return f"⚠️ Note: Some filters were relaxed to find results ({explanation})."
