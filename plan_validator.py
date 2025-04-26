@@ -185,13 +185,19 @@ class PlanValidator:
 
     def validate(self, semantic_matches, state):
         query_entities = []
+        extracted_intents = []
 
         if hasattr(state, "extraction_result"):
             result = getattr(state, "extraction_result")
             if isinstance(result, dict):
                 query_entities = result.get("query_entities", [])
+                extracted_intents = result.get("intents", [])
             elif hasattr(result, "query_entities"):
                 query_entities = result.query_entities
+                extracted_intents = getattr(result, "intents", [])
+
+        else:
+            extracted_intents = []
 
         # ✅ Step 1: Ensure param compatibility was handled
         required_params = self._resolve_required_parameters_from_entities(query_entities)
@@ -214,14 +220,31 @@ class PlanValidator:
                 print("⚠️ No strict param-compatible endpoints found, falling back to semantic matches.")
                 filtered_matches = semantic_matches
 
+        # ✅ Step 1.5: Ensure intent compatibility
+        print(f"🔍 Checking intent compatibility: {extracted_intents}")
+        intent_filtered_matches = []
+        for m in filtered_matches:
+            supported_intents = m.get("metadata", {}).get("supported_intents", [])
+            if not supported_intents or not extracted_intents:
+                # No intent constraint, allow
+                intent_filtered_matches.append(m)
+            elif any(intent in supported_intents for intent in extracted_intents):
+                intent_filtered_matches.append(m)
+            else:
+                print(f"❌ Excluded endpoint '{m['path']}' due to intent mismatch (supported: {supported_intents}, allowed: {extracted_intents})")
+
+        filtered_matches = intent_filtered_matches
+
+        if not filtered_matches:
+            print("⚠️ No endpoints matched extracted intents, falling back to semantic matches.")
+            filtered_matches = semantic_matches
+
         # ✅ Step 2: Normalize .path key so LLM can read it
         for m in filtered_matches:
             if "path" not in m and "endpoint" in m:
                 m["path"] = m["endpoint"]
-        
-        
-        #✅ Step 3: Call LLM to get only the relevant endpoints        
-        
+
+        # ✅ Step 3: Call LLM to get only the relevant endpoints
         query = getattr(state, "input", "") or getattr(state, "raw_query", "")
         question_type = state.extraction_result.get("question_type")
         llm = OpenAILLMClient()
@@ -397,12 +420,13 @@ class SymbolicConstraintFilter:
 
     @staticmethod
     def _extract_supported_intents(metadata: dict) -> list:
-        raw = metadata.get("intents", "[]")
-        try:
-            items = json.loads(raw) if isinstance(raw, str) else raw
-            return [item["intent"] for item in items if isinstance(item, dict)]
-        except:
-            return []
+        # raw = metadata.get("intents", "[]")
+        # try:
+        #     items = json.loads(raw) if isinstance(raw, str) else raw
+        #     return [item["intent"] for item in items if isinstance(item, dict)]
+        # except:
+        #     return []
+        return metadata.get("supported_intents", [])
 
     @staticmethod
     def _entities_are_compatible(resolved_keys: set, consumes_entities: list) -> bool:
