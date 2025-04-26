@@ -7,6 +7,7 @@ from entity_reranker import EntityAwareReranker
 from plan_validator import PlanValidator
 import json
 from response_formatter import RESPONSE_RENDERERS, format_summary
+from fallback_handler import FallbackHandler
 
 class ExecutionOrchestrator:
     
@@ -143,6 +144,11 @@ class ExecutionOrchestrator:
 
         print(f"🧭 Question Type: {getattr(state, 'question_type', None)}")
         print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
+
+        # ✅ phase 9.2 - pgpv - PLACE THIS RIGHT HERE before popping steps
+        intersected_ids = self._intersect_movie_ids_across_roles(state)
+        if intersected_ids:
+            self._inject_validation_steps(state, intersected_ids)
 
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
@@ -283,6 +289,7 @@ class ExecutionOrchestrator:
 
         filtered_movies = self._run_post_validations(step, json_data, state)
 
+        # ✅ Success: Validation passed
         if filtered_movies:
             print(f"✅ Found {len(filtered_movies)} filtered result(s)")
             query_entities = state.extraction_result.get("query_entities", [])
@@ -300,74 +307,37 @@ class ExecutionOrchestrator:
             print(f"✅ Step marked completed: {step_id}")
             return
 
-        # Recovery mode — post-validation failed
+        # ❌ Recovery: No valid results
+        print("⚠️ No valid results matched required cast/director.")
         ExecutionTraceLogger.log_step(step_id, path, "Filtered", "No matching results", state=state)
         state.responses.append("⚠️ No valid results matched all required cast/director.")
 
-        drop_candidates = ["with_people", "vote_average.gte", "with_genres", "primary_release_year"]
-        current_params = step.get("parameters", {}).copy()
-
+        # 🛠 Smart Relaxation Mode
         already_dropped = set()
         if "_relaxed_" in step_id:
             parts = step_id.split("_relaxed_")[1:]
             already_dropped.update(p.strip() for p in parts if p)
-        remaining = [p for p in drop_candidates if p not in already_dropped and p in current_params]
-        print(f"🧩 Already dropped: {already_dropped}")
-        print(f"🔎 Remaining drop candidates: {remaining}")
 
-        for param in drop_candidates:
-            if param not in current_params or param in already_dropped:
-                continue
+        relaxed_steps = FallbackHandler.relax_constraints(step, already_dropped)        
 
-            retry_step = deepcopy(step)
-            retry_step["parameters"] = current_params.copy()
-            del retry_step["parameters"][param]
+        if relaxed_steps:
+            for relaxed_step in relaxed_steps:
+                if relaxed_step["step_id"] not in state.completed_steps:
+                    state.plan_steps.insert(0, relaxed_step)
+                    print(f"♻️ Injected relaxed retry: {relaxed_step['step_id']}")
 
-            base_id = step_id.split("_relaxed_")[0]
-            new_drops = already_dropped.union({param})
-            new_suffix = "_relaxed_" + "_relaxed_".join(sorted(new_drops))
-            retry_step["step_id"] = f"{base_id}{new_suffix}"
+            # ✅ 9.6 - pgpv: Track dropped params
+            state.relaxed_parameters.extend(list(already_dropped))
 
-            param_string = "&".join(f"{k}={v}" for k, v in sorted(retry_step["parameters"].items()))
-            dedup_key = f"{retry_step['endpoint']}?{param_string}"
-            retry_hash = sha256(dedup_key.encode()).hexdigest()
-
-            print(f"🔁 Attempting retry step_id: {retry_step['step_id']}")
-            print(f"🔑 Retry hash: {retry_hash}")
-
-            if retry_hash in seen_step_keys:
-                print(f"⛔ Duplicate retry hash detected — skipping: {retry_step['step_id']}")
-                continue
-
-            if retry_step["step_id"] in state.completed_steps:
-                print(f"⛔ Already completed step_id: {retry_step['step_id']}")
-                continue
-
-            seen_step_keys.add(retry_hash)
-            state.plan_steps.insert(0, retry_step)
-            print(f"📥 Plan queue after retry insert: {[s['step_id'] for s in state.plan_steps]}")
-
-            #phase 6.1 - pgpv
             ExecutionTraceLogger.log_step(
-                retry_step["step_id"],
-                retry_step["endpoint"],
-                "Relaxed",
-                f"Dropped parameter: {param} → Retrying with {retry_step['parameters']}", state=state
+                step_id, path, "Relaxation Started", summary="Injected relaxed steps", state=state
             )
-            print(f"♻️ Retrying by dropping: {param}")
-
-            # ✅ Prevent reprocessing
             state.completed_steps.append(step_id)
-            print(f"✅ Marked original step completed after injecting retry: {step_id}")
+            print(f"✅ Marked original step completed after injecting relaxed retries.")
+            return
 
-            return  # ✅ exit so the new step is handled
-
-
-        # All retries exhausted
-        print("🛑 All filter drop retries exhausted.")
-
-        state.completed_steps.append(step_id)
-        print(f"✅ Marked as completed: {step_id}")
+        # 🛑 No more relaxations possible → fallback to trending
+        print("🛑 All filter drop retries exhausted. Injecting fallback trending...")
 
         fallback_step = {
             "step_id": "fallback_trending",
@@ -385,7 +355,11 @@ class ExecutionOrchestrator:
         else:
             print("⚠️ Fallback already in completed steps — skipping reinjection.")
 
+        state.completed_steps.append(step_id)
+        print(f"✅ Marked as completed: {step_id}")
+
         return
+
     
     def _handle_generic_response(self, step, step_id, path, json_data, state):
         summaries = ResultExtractor.extract(path, json_data, state.resolved_entities)
@@ -464,6 +438,26 @@ class ExecutionOrchestrator:
         print(f"✅ Found {len(intersection)} common movies across {len(step_sources)} steps.")
 
         return intersection
+    
+    def _inject_validation_steps(self, state, intersected_ids: set) -> None:
+        """
+        After intersecting movie/tv IDs, inject validation steps for the survivors.
+        """
+        validation_steps = []
+
+        for idx, media_id in enumerate(sorted(intersected_ids)):
+            validation_steps.append({
+                "step_id": f"step_validate_{media_id}",
+                "endpoint": f"/movie/{media_id}/credits",  # 🛠 expand to TV later too
+                "method": "GET",
+                "produces": ["cast", "crew"],
+                "requires": ["movie_id"],  # expandable later
+                "from_intersection": True  # ✅ Tag it
+            })
+
+        # Insert validation steps at the beginning of plan queue
+        print(f"✅ Injecting {len(validation_steps)} validation step(s) after intersection.")
+        state.plan_steps = validation_steps + state.plan_steps
 
      
 class ExecutionTraceLogger:
