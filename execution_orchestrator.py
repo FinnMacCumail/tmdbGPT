@@ -347,9 +347,12 @@ class ExecutionOrchestrator:
             state.plan_steps.insert(0, retry_step)
             print(f"📥 Plan queue after retry insert: {[s['step_id'] for s in state.plan_steps]}")
 
+            #phase 6.1 - pgpv
             ExecutionTraceLogger.log_step(
-                step_id, path, "Recovery",
-                f"Retrying with {param} dropped → {retry_step['parameters']}"
+                retry_step["step_id"],
+                retry_step["endpoint"],
+                "Relaxed",
+                f"Dropped parameter: {param} → Retrying with {retry_step['parameters']}"
             )
             print(f"♻️ Retrying by dropping: {param}")
 
