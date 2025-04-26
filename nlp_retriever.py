@@ -13,7 +13,7 @@ from llm_client import OpenAILLMClient
 from json import JSONDecodeError
 from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
-from plan_validator import PlanValidator
+from plan_validator import PlanValidator, SymbolicConstraintFilter
 
 # Load API keys
 dotenv_path = os.path.join(os.getcwd(), ".env")
@@ -192,19 +192,40 @@ class RerankPlanning:
             penalty = 0.0
             boost = 0.0
 
-            # --- Symbolic Entity Requirement Checking ---
+            # --- Symbolic Entity Missing Penalty ---
             for key in ["person_id", "movie_id", "tv_id", "collection_id", "company_id"]:
                 if f"{{{key}}}" in endpoint and not resolved_entities.get(key):
                     needs.append(key)
                     penalty += 0.4
 
-            # --- Semantic Parameter Boosting ---
+            # --- Boost if Optional Parameters Supported ---
             supported = match.get("supported_parameters", [])
+            optional_match_count = 0
+
             for param in optional_params:
                 if param in SAFE_OPTIONAL_PARAMS and param in supported:
                     boost += 0.02
+                    optional_match_count += 1
 
-            base_score = match.get("final_score", 0)
+            # --- Bonus Boost for Strong Param Coverage ---
+            if optional_match_count >= 3:
+                boost += 0.05
+                print(f"⭐ Strong optional param coverage bonus applied (+0.05) for {endpoint}")
+
+            # --- Apply Pre-Recorded Penalty from SymbolicConstraintFilter ---
+            additional_penalty = match.get("penalty", 0.0)
+            if additional_penalty > 0:
+                print(f"🔻 Applying additional penalty of {additional_penalty} to {endpoint}")
+                penalty += additional_penalty
+
+            # --- NEW: Penalty if Missing Supported Intents ---
+            supported_intents = SymbolicConstraintFilter._extract_supported_intents(match.get("metadata", match))
+            if not supported_intents:
+                penalty += 0.1
+                print(f"⚠️ Missing supported_intents penalty applied to {endpoint} (-0.1)")
+
+            # --- Final Scoring ---
+            base_score = match.get("final_score", 0.0)
             final_score = round(base_score + boost - penalty, 3)
 
             match.update({
@@ -213,6 +234,17 @@ class RerankPlanning:
                 "is_entrypoint": bool("/search" in endpoint)
             })
             reranked.append(match)
+
+            # --- Clean Debug Output ---
+            print("\n📊 Rerank Debug Info")
+            print(f"Endpoint: {endpoint}")
+            print(f"🔹 Base Score: {base_score}")
+            print(f"➕ Boost Applied: {round(boost, 3)}")
+            print(f"➖ Penalty Applied: {round(penalty, 3)}")
+            print(f"🎯 Final Score: {final_score}")
+            print(f"🔎 Missing Entities (path params): {needs}")
+            print("-" * 40)
+
 
         return sorted(reranked, key=lambda x: x["final_score"], reverse=True)
 
