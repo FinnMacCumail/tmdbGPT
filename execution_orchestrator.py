@@ -258,7 +258,7 @@ class ExecutionOrchestrator:
                         print(f"⚠️ Could not parse JSON or update state: {ex}")
             except Exception as ex:
                 print(f"🔥 Step {step_id} failed with exception: {ex}")
-                ExecutionTraceLogger.log_step(step_id, path, f"Failed ({str(ex)})")
+                ExecutionTraceLogger.log_step(step_id, path, f"Failed ({str(ex)})", state=state)
                 state.error = str(ex)            
 
         # 👇 Safely determine the format type from state
@@ -295,13 +295,13 @@ class ExecutionOrchestrator:
                 overview = movie.get("overview", "")
                 summary = f"{title}: {overview}".strip(": ")
                 state.responses.append(f"📌 {summary}")
-            ExecutionTraceLogger.log_step(step_id, path, "Validated", state.responses[-1])
+            ExecutionTraceLogger.log_step(step_id, path, "Validated", state.responses[-1], state=state)
             state.completed_steps.append(step_id)
             print(f"✅ Step marked completed: {step_id}")
             return
 
         # Recovery mode — post-validation failed
-        ExecutionTraceLogger.log_step(step_id, path, "Filtered", "No matching results")
+        ExecutionTraceLogger.log_step(step_id, path, "Filtered", "No matching results", state=state)
         state.responses.append("⚠️ No valid results matched all required cast/director.")
 
         drop_candidates = ["with_people", "vote_average.gte", "with_genres", "primary_release_year"]
@@ -352,7 +352,7 @@ class ExecutionOrchestrator:
                 retry_step["step_id"],
                 retry_step["endpoint"],
                 "Relaxed",
-                f"Dropped parameter: {param} → Retrying with {retry_step['parameters']}"
+                f"Dropped parameter: {param} → Retrying with {retry_step['parameters']}", state=state
             )
             print(f"♻️ Retrying by dropping: {param}")
 
@@ -379,7 +379,7 @@ class ExecutionOrchestrator:
             state.plan_steps.insert(0, fallback_step)
             ExecutionTraceLogger.log_step(
                 step_id, path, "Fallback",
-                "Injected trending fallback: /trending/movie/day"
+                "Injected trending fallback: /trending/movie/day", state=state
             )
             print("🧭 Injected trending fallback step.")
         else:
@@ -426,13 +426,13 @@ class ExecutionOrchestrator:
             if summaries:
                 state.responses.extend(summaries)
 
-        ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [])
+        ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [], state=state)
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
      
 class ExecutionTraceLogger:
     @staticmethod
-    def log_step(step_id, path, status, summary=None):
+    def log_step(step_id, path, status, summary=None, state=None):
         print("\n📍 Execution Trace")
         print(f"├─ Step: {step_id}")
         print(f"├─ Endpoint: {path}")
@@ -440,6 +440,15 @@ class ExecutionTraceLogger:
         if summary:
             text = summary if isinstance(summary, str) else json.dumps(summary)
             print(f"└─ Result: {text[:100]}{'...' if len(text) > 100 else ''}")
+
+        # ✅ NEW: Save trace into AppState if provided
+        if state is not None:
+            state.execution_trace.append({
+                "step_id": step_id,
+                "endpoint": path,
+                "status": status,
+                "notes": summary if isinstance(summary, str) else str(summary)
+            })
 
 # Usage inside orchestrator loop:
 # After each response:
