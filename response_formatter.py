@@ -85,7 +85,7 @@ def format_ranked_list(state) -> dict:
 
 @register_renderer("summary")
 def format_summary(state) -> dict:
-    profiles = [r for r in state.responses if r.get("type") == "person_profile"]
+    profiles = [r for r in state.responses if isinstance(r, dict) and r.get("type") == "person_profile"]
     if profiles:
         name = profiles[0].get("title", "Unknown")
         overview = profiles[0].get("overview", "")
