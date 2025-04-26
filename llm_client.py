@@ -4,6 +4,36 @@ from openai import OpenAI
 import os
 import json
 
+# 🔹 NEW: Simple inlined Role Lexicon
+ROLE_ALIASES = {
+    "directed by": "director",
+    "produced by": "producer",
+    "written by": "writer",
+    "scored by": "composer",
+    "starring": "cast",
+    "acted in": "cast",
+    "music by": "composer",
+    "featuring": "cast",
+    "performance by": "cast",
+}
+
+def infer_role_from_query(query: str) -> str:
+    query_lower = query.lower()
+    for phrase, role in ROLE_ALIASES.items():
+        if phrase in query_lower:
+            return role
+    return "cast"  # Safe fallback
+
+# For unit testing of phase 1 to be deleted
+REQUIRED_EXTRACTION_KEYS = {"query_entities", "intents", "entities", "question_type", "response_format"}
+
+def validate_extraction_schema(extraction: dict) -> bool:
+    missing = REQUIRED_EXTRACTION_KEYS - extraction.keys()
+    if missing:
+        raise ValueError(f"Extraction missing keys: {missing}")
+    return True
+
+
 class OpenAILLMClient:
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -65,6 +95,13 @@ class OpenAILLMClient:
             content = response.choices[0].message.content
             result = json.loads(content)  # ✅ Safe JSON parsing
 
+            # ✅ Safeguard extracted fields
+            result.setdefault("query_entities", [])
+            result.setdefault("intents", [])
+            result.setdefault("entities", [])
+            result.setdefault("question_type", "summary")
+            result.setdefault("response_format", "summary")
+
             # ✅ Fallback correction for known streaming services
             streaming_services = {
                 "netflix": "company",
@@ -88,25 +125,12 @@ class OpenAILLMClient:
                         if corrected_type not in result.get("entities", []):
                             result["entities"].append(corrected_type)
 
-            # ✅ Inject role tags (cast/director) based on wording or fallback heuristic
-            # Hacky - needs replacing in PGPV -  symbolic joins and validation cycles
-            person_entities = [e for e in result.get("query_entities", []) if e.get("type") == "person"]            
-            # Assign roles using better fallback logic
-            for i, ent in enumerate(person_entities):
-                name = ent["name"].lower()
-                if "directed by" in query.lower() and name in query.lower():
-                    ent["role"] = "director"
-                elif any(kw in query.lower() for kw in ["starring", "featuring", "actor", "acted by"]) and name in query.lower():
-                    ent["role"] = "cast"
-                elif len(person_entities) == 2:
-                    # Heuristic: if 'directed' appears, assign first match to director
-                    if "directed by" in query.lower():
-                        ent["role"] = "director" if i == 0 else "cast"
-                    else:
-                        ent["role"] = "cast" if i == 0 else "director"
-                else:
-                    # Safe fallback
-                    ent["role"] = "cast"
+            # ✅ Fallback: Ensure every person has a role, even if LLM missed it
+            for entity in result.get("query_entities", []):
+                if entity.get("type") == "person" and "role" not in entity:
+                    inferred_role = infer_role_from_query(query)
+                    entity["role"] = inferred_role
+                    print(f"🔎 Inferred missing role for '{entity['name']}': {inferred_role}")
 
             return result
 
