@@ -155,17 +155,17 @@ def _create_embedding_text(path, description):
 
 def _create_metadata(endpoint_path, obj):
     description = obj.get("description", "")
-    parameters = obj.get("parameters", {}).keys()
+    parameters = obj.get("parameters", {})
 
     return {
         "path": endpoint_path,
         "description": description,
         "intents": json.dumps([{ "intent": i } for i in _detect_intents(endpoint_path, description)]),
         "media_type": "tv" if "/tv" in endpoint_path else "movie" if "/movie" in endpoint_path else "any",
-        "consumes_entities": json.dumps(_detect_entities(endpoint_path, parameters)),
-        "produces_entities": json.dumps(_detect_produced_entities(endpoint_path, parameters))
+        "consumes_entities": json.dumps(_detect_entities(endpoint_path, parameters.keys())),
+        "produces_entities": json.dumps(_detect_produced_entities(endpoint_path, parameters.keys())),
+        "supports_parameters": json.dumps(list(parameters))  # 🔥 Fix: serialize as JSON string
     }
-
 
 def process_endpoints():
     ids, docs, metas, embs = [], [], [], []
