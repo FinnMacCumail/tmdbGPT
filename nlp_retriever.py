@@ -386,4 +386,33 @@ class ResultExtractor:
                 "final_score": 1.0
             })
         print(f"🎯 Endpoint for profile detection: {endpoint}")
-        return summaries         
+        return summaries    
+
+    @staticmethod
+    def post_filter_responses(responses, query_entities, extraction_result):
+        # Example: filter out entries without matching genres, people, etc
+        if not responses:
+            return []
+
+        # Basic rule: if query has genre/person and response does not mention, downrank or skip
+        genre_names = [e["name"].lower() for e in query_entities if e.get("type") == "genre"]
+        person_names = [e["name"].lower() for e in query_entities if e.get("type") == "person"]
+
+        filtered = []
+        for r in responses:
+            text = (r.get("title", "") + " " + r.get("overview", "")).lower()
+            keep = True
+
+            for genre in genre_names:
+                if genre not in text:
+                    keep = False
+
+            for person in person_names:
+                if person not in text:
+                    keep = False
+
+            if keep:
+                filtered.append(r)
+
+        return filtered
+     
