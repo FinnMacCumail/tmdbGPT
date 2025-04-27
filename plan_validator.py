@@ -395,3 +395,30 @@ class SymbolicConstraintFilter:
             "fact": ["/details", "/movie", "/person"]
         }
         return mapping.get(question_type, [])
+    
+    @staticmethod
+    def prioritize_media_type(matches, extraction_result):
+        """
+        Boost endpoint matches where media_type aligns with user intent.
+        """
+        intents = extraction_result.get("intents", [])
+
+        if any("tv" in intent.lower() for intent in intents):
+            desired_media_type = "tv"
+        elif any("movie" in intent.lower() for intent in intents):
+            desired_media_type = "movie"
+        else:
+            desired_media_type = None
+
+        if not desired_media_type:
+            return matches  # No strong signal, leave matches as is
+
+        for match in matches:
+            media_type = match.get("metadata", {}).get("media_type")
+            if media_type == desired_media_type:
+                match["score"] += 0.2  # Boost correct media type
+            elif media_type:
+                match["score"] -= 0.2  # Penalize wrong media type
+
+        return matches
+
