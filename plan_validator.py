@@ -38,6 +38,7 @@ QUESTION_TYPE_ROUTING = {
     "list": {
         "preferred_intents": ["discovery.filtered", "discovery.advanced", "search.movie", "search.person", "credits.person"],
         "fallback_intents": [],
+        "allowed_wildcards": ["discovery."],
         "response_format": "list",
         "description": "Returns a list of matching items"
     }
@@ -420,6 +421,17 @@ class SymbolicConstraintFilter:
             # --- Intent Overlap or Soft Relaxed Check ---
             intent_overlap = any(intent in allowed_intents for intent in supported_intents)
 
+            # 🧠 NEW: Dynamic fallback matching
+            routing = QUESTION_TYPE_ROUTING.get(question_type, {})
+            wildcards = routing.get("allowed_wildcards", [])
+
+            if not intent_overlap and wildcards:
+                for wildcard in wildcards:
+                    if any(supported_intent.startswith(wildcard) for supported_intent in supported_intents):
+                        print(f"⚡ Allowed wildcard intent '{supported_intents}' because matches wildcard '{wildcard}' for question_type '{question_type}'.")
+                        intent_overlap = True
+                        break
+
             if intent_overlap:
                 print(f"✅ Allowed intent overlap: {supported_intents} matches allowed intents {allowed_intents}")
                 filtered.append(match)
@@ -458,13 +470,13 @@ class SymbolicConstraintFilter:
     
     @staticmethod
     def _extract_supported_intents(metadata: dict) -> list:
-        # raw = metadata.get("intents", "[]")
-        # try:
-        #     items = json.loads(raw) if isinstance(raw, str) else raw
-        #     return [item["intent"] for item in items if isinstance(item, dict)]
-        # except:
-        #     return []
-        return metadata.get("supported_intents", [])
+        raw = metadata.get("supported_intents", [])
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except Exception:
+                return []
+        return raw
 
     @staticmethod
     def _expected_patterns_for_question_type(question_type: str) -> list:
