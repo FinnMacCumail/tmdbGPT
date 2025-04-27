@@ -282,6 +282,17 @@ class ExecutionOrchestrator:
         # 👇 You can optionally assign it to state if needed
         state.formatted_response = final_output
         print("[DEBUG] Orchestrator execution completed.")
+        # phase 17.4 - logging
+        if getattr(state, "relaxed_parameters", []):
+            relaxed_summary = ", ".join(sorted(set(state.relaxed_parameters)))
+            ExecutionTraceLogger.log_step(
+                "relaxation_summary",
+                path="(global)",  # not tied to a specific API path
+                status="Relaxation Summary",
+                summary=f"Relaxed constraints attempted before fallback: {relaxed_summary}",
+                state=state
+            )
+
         return state
     
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
@@ -325,7 +336,16 @@ class ExecutionOrchestrator:
             for relaxed_step in relaxed_steps:
                 if relaxed_step["step_id"] not in state.completed_steps:
                     state.plan_steps.insert(0, relaxed_step)
-                    print(f"♻️ Injected relaxed retry: {relaxed_step['step_id']}")
+                    constraint_dropped = relaxed_step["step_id"].split("_relaxed_")[1]
+                    print(f"♻️ Injected relaxed retry: {relaxed_step['step_id']} (Dropped {constraint_dropped})")
+                    
+                    ExecutionTraceLogger.log_step(
+                        relaxed_step["step_id"],  # log for the new relaxed step ID!
+                        path,
+                        status=f"Relaxation Injected ({constraint_dropped})",
+                        summary=f"Dropped constraint: {constraint_dropped}",
+                        state=state
+                    )
 
             # ✅ Track relaxed parameters
             state.relaxed_parameters.extend(list(already_dropped))
