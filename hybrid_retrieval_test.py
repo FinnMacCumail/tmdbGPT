@@ -17,6 +17,41 @@ chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
 openai_client = OpenAILLMClient()
 
+class MediaTypeAwareReranker:
+    @staticmethod
+    def boost_by_media_type(matches: list, extraction_result: dict, boost_weight: float = 0.2) -> list:
+        """
+        Boost final_score if endpoint's media_type matches query's intended media_type (tv/movie).
+        """
+        intents = extraction_result.get("intents", [])
+
+        # Infer desired media type
+        if any("tv" in intent.lower() for intent in intents):
+            desired_media_type = "tv"
+        elif any("movie" in intent.lower() for intent in intents):
+            desired_media_type = "movie"
+        else:
+            desired_media_type = None
+
+        if not desired_media_type:
+            return matches  # No strong signal
+
+        for m in matches:
+            try:
+                media_type = m.get("media_type") or m.get("metadata", {}).get("media_type", "any")
+            except Exception:
+                media_type = "any"
+
+            if media_type == desired_media_type:
+                m["final_score"] += boost_weight
+                m["final_score"] = round(m["final_score"], 3)
+            elif media_type != "any":
+                m["final_score"] -= boost_weight
+                m["final_score"] = round(m["final_score"], 3)
+
+        return sorted(matches, key=lambda x: x["final_score"], reverse=True)
+
+
 class ParameterAwareReranker:
     @staticmethod
     def boost_by_supported_parameters(matches: list, query_entities: list, boost_weight: float = 0.1) -> list:
@@ -237,6 +272,9 @@ def semantic_retrieval(extraction_result, top_k=10):
         matches, extraction_result.get("query_entities", [])
     )
 
+    matches = MediaTypeAwareReranker.boost_by_media_type(matches, extraction_result)
+
+
     return matches
 
 def convert_matches_to_execution_steps(matches, extraction_result, resolved_entities):
@@ -292,7 +330,12 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
         # tmdb up -
         plan_validator = PlanValidator()
         step = plan_validator.inject_parameters_from_query_entities(step, extraction_result.get("query_entities", []))
-
+        # 🔥 Then: enrich with semantic parameters (Phase 18.1 starter)
+        query_text = extraction_result.get("query_text") or extraction_result.get("raw_query") or ""
+        if query_text:
+            step = plan_validator.enrich_plan_with_semantic_parameters(
+                step, query_text=query_text
+            )
 
         steps.append(step)
 
