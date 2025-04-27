@@ -182,6 +182,45 @@ class PlanValidator:
         # Extract suggested parameter names
         suggested_parameters = results.get("ids", [[]])[0]
         return suggested_parameters
+    
+    def inject_parameters_from_query_entities(self, step: dict, query_entities: list) -> dict:
+        """
+        Dynamically inject missing parameters into a plan step based on extracted query entities.
+        Example: If the user mentions Crime genre, inject with_genres automatically.
+        """
+        from param_utils import resolve_parameter_for_entity
+
+        if "parameters" not in step:
+            step["parameters"] = {}
+
+        injected = []
+
+        for ent in query_entities:
+            ent_type = ent.get("type")
+            resolved_param = resolve_parameter_for_entity(ent_type)
+            if not resolved_param:
+                continue
+
+            # Avoid overwriting if already planned
+            if resolved_param in step["parameters"]:
+                continue
+
+            # Inject based on entity name or resolved ID
+            value = ent.get("resolved_id") or ent.get("name")
+            if not value:
+                continue
+
+            if isinstance(value, int):
+                step["parameters"][resolved_param] = str(value)
+            else:
+                step["parameters"][resolved_param] = value
+
+            injected.append((resolved_param, value))
+
+        if injected:
+            print(f"✅ Injected parameters from query entities: {injected}")
+
+        return step
 
     def validate(self, semantic_matches, state):
         query_entities = []
