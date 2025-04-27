@@ -16,6 +16,38 @@ chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
 openai_client = OpenAILLMClient()
 
+class ParameterAwareReranker:
+    @staticmethod
+    def boost_by_supported_parameters(matches: list, query_entities: list, boost_weight: float = 0.1) -> list:
+        """
+        Boost final_score if endpoint supports parameters matching query entity types.
+        """
+        from param_utils import resolve_parameter_for_entity
+
+        for m in matches:
+            try:
+                supports_parameters = json.loads(m.get("supports_parameters", "[]"))
+            except Exception:
+                supports_parameters = []
+
+            match_count = 0
+
+            for ent in query_entities:
+                entity_type = ent.get("type")
+                if not entity_type:
+                    continue
+
+                resolved_param = resolve_parameter_for_entity(entity_type)
+                if resolved_param and resolved_param in supports_parameters:
+                    match_count += 1
+
+            if match_count:
+                m["final_score"] += match_count * boost_weight
+                m["final_score"] = round(m["final_score"], 3)
+
+        return sorted(matches, key=lambda x: x["final_score"], reverse=True)
+
+
 # Map entity types to their join query parameters
 JOIN_PARAM_MAP = {
     "person_id": "with_people",
@@ -197,6 +229,10 @@ def semantic_retrieval(extraction_result, top_k=10):
 
     # 🧠 Boost by matched named entities (if any)
     matches = EntityAwareReranker.boost_by_entity_mentions(
+        matches, extraction_result.get("query_entities", [])
+    )
+
+    matches = ParameterAwareReranker.boost_by_supported_parameters(
         matches, extraction_result.get("query_entities", [])
     )
 
