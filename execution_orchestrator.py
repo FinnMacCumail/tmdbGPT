@@ -7,7 +7,7 @@ from entity_reranker import EntityAwareReranker
 from plan_validator import PlanValidator
 import json
 from response_formatter import RESPONSE_RENDERERS, format_summary
-from fallback_handler import FallbackHandler
+from fallback_handler import FallbackHandler, FallbackSemanticBuilder
 from post_validator import ResultScorer
 
 class ExecutionOrchestrator:
@@ -333,7 +333,7 @@ class ExecutionOrchestrator:
             parts = step_id.split("_relaxed_")[1:]
             already_dropped.update(p.strip() for p in parts if p)
 
-        relaxed_steps = FallbackHandler.relax_constraints(step, already_dropped)
+        relaxed_steps = FallbackHandler.relax_constraints(step, already_dropped, state=state)
 
         if relaxed_steps:
             for relaxed_step in relaxed_steps:
@@ -365,7 +365,7 @@ class ExecutionOrchestrator:
 
         from fallback_handler import FallbackHandler
 
-        fallback_step = FallbackHandler.enrich_fallback_step(
+        fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
             original_step=step,
             extraction_result=state.extraction_result,
             resolved_entities=state.resolved_entities
@@ -373,10 +373,16 @@ class ExecutionOrchestrator:
 
         if fallback_step["step_id"] not in state.completed_steps:
             state.plan_steps.insert(0, fallback_step)
+
+            # 🔥 NEW: Log the actual fallback_step itself
             ExecutionTraceLogger.log_step(
-                step_id, path, "Fallback",
-                f"Injected semantic fallback: {fallback_step['endpoint']}", state=state
+                fallback_step["step_id"],  # <— now logging the fallback step itself
+                path=fallback_step["endpoint"],
+                status="Semantic Fallback Injected",
+                summary=f"Enriched fallback injected with parameters: {fallback_step.get('parameters', {})}",
+                state=state
             )
+
             print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
         else:
             print("⚠️ Fallback already completed — skipping reinjection.")
