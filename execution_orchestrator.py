@@ -319,7 +319,7 @@ class ExecutionOrchestrator:
             parts = step_id.split("_relaxed_")[1:]
             already_dropped.update(p.strip() for p in parts if p)
 
-        relaxed_steps = FallbackHandler.relax_constraints(step, already_dropped)        
+        relaxed_steps = FallbackHandler.relax_constraints(step, already_dropped)
 
         if relaxed_steps:
             for relaxed_step in relaxed_steps:
@@ -327,7 +327,7 @@ class ExecutionOrchestrator:
                     state.plan_steps.insert(0, relaxed_step)
                     print(f"♻️ Injected relaxed retry: {relaxed_step['step_id']}")
 
-            # ✅ 9.6 - pgpv: Track dropped params
+            # ✅ Track relaxed parameters
             state.relaxed_parameters.extend(list(already_dropped))
 
             ExecutionTraceLogger.log_step(
@@ -337,24 +337,26 @@ class ExecutionOrchestrator:
             print(f"✅ Marked original step completed after injecting relaxed retries.")
             return
 
-        # 🛑 No more relaxations possible → fallback to trending
-        print("🛑 All filter drop retries exhausted. Injecting fallback trending...")
+        # 🛑 No more relaxations possible → Inject semantic fallback
+        print("🛑 All filter drop retries exhausted. Injecting semantic fallback...")
 
-        fallback_step = {
-            "step_id": "fallback_trending",
-            "endpoint": "/trending/movie/day",
-            "parameters": {},
-        }
+        from fallback_handler import FallbackHandler
+
+        fallback_step = FallbackHandler.enrich_fallback_step(
+            original_step=step,
+            extraction_result=state.extraction_result,
+            resolved_entities=state.resolved_entities
+        )
 
         if fallback_step["step_id"] not in state.completed_steps:
             state.plan_steps.insert(0, fallback_step)
             ExecutionTraceLogger.log_step(
                 step_id, path, "Fallback",
-                "Injected trending fallback: /trending/movie/day", state=state
+                f"Injected semantic fallback: {fallback_step['endpoint']}", state=state
             )
-            print("🧭 Injected trending fallback step.")
+            print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
         else:
-            print("⚠️ Fallback already in completed steps — skipping reinjection.")
+            print("⚠️ Fallback already completed — skipping reinjection.")
 
         state.completed_steps.append(step_id)
         print(f"✅ Marked as completed: {step_id}")
