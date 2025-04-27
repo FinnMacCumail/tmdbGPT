@@ -166,9 +166,24 @@ class ExecutionOrchestrator:
                 req for req in step.get("requires", [])
                 if req not in state.resolved_entities
             ]
+
             if missing_requires:
-                print(f"⏭️ Skipping step {step_id}: missing required entities {missing_requires}")
-                continue  # Skip step safely
+                # 🧠 NEW: Soft Relaxation Phase 10
+                soft_filters = {"genre", "date", "runtime", "votes", "rating", "language", "country"}
+                soft_missing = []
+
+                for req in missing_requires:
+                    entity_type = SymbolicConstraintFilter._map_key_to_entity(req)
+                    if entity_type in soft_filters:
+                        soft_missing.append(req)
+
+                if soft_missing and len(soft_missing) == len(missing_requires):
+                    print(f"⚡ Soft relaxation: missing only soft filters {soft_missing}. Proceeding with relaxed step.")
+                    # ✅ Mark the step as relaxed so post-filtering can occur later
+                    step.setdefault("soft_relaxed", []).extend(soft_missing)
+                else:
+                    print(f"⏭️ Skipping step {step_id}: missing required core entities {missing_requires}")
+                    continue  # Skip hard requirements
 
             print(f"\n[DEBUG] Executing Step: {step_id}")
             print(f"[DEBUG] Current question_type: {state.question_type}")
@@ -415,6 +430,35 @@ class ExecutionOrchestrator:
                 movie["final_score"] = 0.3
                 movie["source"] = step["endpoint"] + "_relaxed"
 
+        # 🧩 POST-FILTER RESULTS (Phase 19)
+        if summaries:
+            filtered_summaries = ResultExtractor.post_filter_responses(
+                summaries,
+                query_entities=query_entities,
+                extraction_result=state.extraction_result
+            )
+            summaries = filtered_summaries  # overwrite with filtered
+
+        # 🎯 Phase 11.5: Dynamic Weighted Fallback
+        if summaries:
+            low_score_results = [r for r in summaries if r.get("final_score", 0) < 0.5]
+            if len(low_score_results) == len(summaries):
+                print("⚠️ All top results scored low after reranking. Injecting semantic fallback...")
+                from fallback_handler import FallbackSemanticBuilder
+
+                fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
+                    original_step=step,
+                    extraction_result=state.extraction_result,
+                    resolved_entities=state.resolved_entities
+                )
+
+                if fallback_step["step_id"] not in state.completed_steps:
+                    state.plan_steps.insert(0, fallback_step)
+                    print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
+                
+                state.completed_steps.append(step_id)
+                return  # 🛑 stop normal handling, fallback will now run
+
         if "credits" in path:
             if role_tagged:
                 print(f"🧪 Validating roles from credits for {step_id}")
@@ -535,7 +579,7 @@ class ExecutionOrchestrator:
         print(f"🛑 No intersection or valid steps — fallback needed.")
         return False
 
-     
+
 class ExecutionTraceLogger:
     @staticmethod
     def log_step(step_id, path, status, summary=None, state=None):
