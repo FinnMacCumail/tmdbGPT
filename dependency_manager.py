@@ -38,31 +38,42 @@ class DependencyManager:
         state.plan_steps = validation_steps + state.plan_steps
         return state        
 
-    def expand_plan_with_dependencies(state, resolved_entities):
-        """Plan symbolic joins from role-tagged person entities."""
-        query_entities = state.extraction_result.get("query_entities", [])
-        plan_steps = state.plan_steps
+    def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
         new_steps = []
+        query_entities = state.extraction_result.get("query_entities", [])
 
-        seen_ids = set()
-        for ent in query_entities:
-            if ent.get("type") != "person":
-                continue
-            person_id = ent.get("resolved_id")
-            role = ent.get("role") or "cast"
-            if person_id and person_id not in seen_ids:
-                seen_ids.add(person_id)
-                step_id = f"step_{role}_{person_id}"
-                new_steps.append({
-                    "step_id": step_id,
-                    "endpoint": f"/person/{person_id}/movie_credits",
-                    "produces": ["movie_id"],
-                    "requires": ["person_id"],
-                    "role": role,
-                    "from_person_id": person_id,
-                    "filters": [{"role": role}]
-                })
+        for key, ids in newly_resolved.items():
+            if not isinstance(ids, list):
+                ids = [ids]
 
-        # Insert new dependency steps at the start of the plan (or wherever appropriate)
-        state.plan_steps = new_steps + plan_steps
-        return state
+            for _id in ids:
+                if key == "tv_id":
+                    new_steps.append({
+                        "step_id": f"step_tv_{_id}",
+                        "endpoint": f"/tv/{_id}/credits",
+                        "produces": ["cast", "crew"],
+                        "requires": ["tv_id"]
+                    })
+                elif key == "collection_id":
+                    new_steps.append({
+                        "step_id": f"step_collection_{_id}",
+                        "endpoint": f"/collection/{_id}",
+                        "produces": ["movie_id"],
+                        "requires": ["collection_id"]
+                    })
+                elif key == "company_id":
+                    new_steps.append({
+                        "step_id": f"step_company_{_id}",
+                        "endpoint": f"/company/{_id}/movies",
+                        "produces": ["movie_id"],
+                        "requires": ["company_id"]
+                    })
+                elif key == "network_id":
+                    new_steps.append({
+                        "step_id": f"step_network_{_id}",
+                        "endpoint": f"/network/{_id}/tv",
+                        "produces": ["tv_id"],
+                        "requires": ["network_id"]
+                    })
+
+        return new_steps
