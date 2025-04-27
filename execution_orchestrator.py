@@ -10,6 +10,7 @@ from response_formatter import RESPONSE_RENDERERS, format_summary
 from fallback_handler import FallbackHandler, FallbackSemanticBuilder
 from post_validator import ResultScorer
 from response_formatter import QueryExplanationBuilder
+from plan_validator import SymbolicConstraintFilter
 
 class ExecutionOrchestrator:
     
@@ -151,9 +152,10 @@ class ExecutionOrchestrator:
         print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
 
         # ✅ phase 9.2 - pgpv - PLACE THIS RIGHT HERE before popping steps
-        intersected_ids = self._intersect_movie_ids_across_roles(state)
-        if intersected_ids:
-            self._inject_validation_steps(state, intersected_ids)
+        if not self._safe_to_execute(state):
+            print(f"🛑 Fallback triggered due to unsafe plan.")
+            # Insert fallback injection or graceful handling here
+            return state  # or inject a fallback step if you have one        
 
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
@@ -511,6 +513,27 @@ class ExecutionOrchestrator:
         # Insert validation steps at the beginning of plan queue
         print(f"✅ Injecting {len(validation_steps)} validation step(s) after intersection.")
         state.plan_steps = validation_steps + state.plan_steps
+
+    def _safe_to_execute(self, state) -> bool:
+        if not state.plan_steps:
+            print(f"🛑 No steps available to execute — fallback needed.")
+            return False
+
+        if len(state.plan_steps) == 1:
+            step = state.plan_steps[0]
+            produces = step.get("produces", [])
+            if SymbolicConstraintFilter.is_media_endpoint(produces):
+                print(f"⚡ Proceeding with single media-producing step: {step['step_id']} ({step['endpoint']})")
+                return True
+
+        # 🧠 Otherwise: check intersection if multiple entity-specific steps exist
+        intersected_ids = self._intersect_movie_ids_across_roles(state)
+        if intersected_ids:
+            self._inject_validation_steps(state, intersected_ids)
+            return True
+
+        print(f"🛑 No intersection or valid steps — fallback needed.")
+        return False
 
      
 class ExecutionTraceLogger:
