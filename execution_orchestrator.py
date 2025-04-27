@@ -388,8 +388,6 @@ class ExecutionOrchestrator:
         # 🛑 No more relaxations possible → Inject semantic fallback
         print("🛑 All filter drop retries exhausted. Injecting semantic fallback...")
 
-        from fallback_handler import FallbackHandler
-
         fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
             original_step=step,
             extraction_result=state.extraction_result,
