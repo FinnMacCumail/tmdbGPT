@@ -1,55 +1,60 @@
 {
-  "first_air_date_year": "general",
-  "region": "general",
-  "year": "general",
-  "primary_release_year": "general",
-  "certification_country": "general",
-  "certification": "general",
-  "certification.lte": "general",
-  "certification.gte": "general",
-  "primary_release_date.gte": "general",
-  "primary_release_date.lte": "general",
-  "release_date.gte": "general",
-  "release_date.lte": "general",
-  "with_release_type": "general",
-  "vote_count.gte": "general",
-  "vote_count.lte": "general",
-  "vote_average.gte": "general",
-  "vote_average.lte": "general",
-  "with_cast": "person",
-  "with_crew": "person",
-  "with_people": "person",
-  "with_companies": "company",
-  "with_genres": "genre",
-  "without_genres": "genre",
-  "with_keywords": "keyword",
-  "without_keywords": "keyword",
-  "with_runtime.gte": "general",
-  "with_runtime.lte": "general",
-  "with_original_language": "general",
-  "with_watch_providers": "general",
-  "watch_region": "general",
-  "with_watch_monetization_types": "general",
-  "without_companies": "company",
-  "air_date.gte": "general",
-  "air_date.lte": "general",
-  "first_air_date.gte": "general",
-  "first_air_date.lte": "general",
-  "with_networks": "network",
-  "include_null_first_air_dates": "general",
-  "screened_theatrically": "general",
-  "with_status": "general",
-  "with_type": "general",
+  
   "movie_id": "movie",
   "person_id": "person",
   "tv_id": "tv",
   "season_number": "season",
   "episode_number": "episode",
   "network_id": "network",
-  "credit_id": "credit",
   "company_id": "company",
   "review_id": "review",
-  "media_type": "general",
-  "time_window": "general",
-  "collection_id": "collection"
+  "collection_id": "collection",
+  "credit_id": "credit",
+
+
+  "primary_release_year": "date",
+  "first_air_date_year": "date",
+  "primary_release_date.gte": "date",
+  "primary_release_date.lte": "date",
+  "release_date.gte": "date",
+  "release_date.lte": "date",
+
+  "vote_average.gte": "rating",
+  "vote_average.lte": "rating",
+  "vote_count.gte": "votes",
+  "vote_count.lte": "votes",
+
+  "with_people": "person",
+  "with_cast": "person",
+  "with_crew": "person",
+
+  "with_genres": "genre",
+  "without_genres": "genre",
+  
+  "with_keywords": "keyword",
+  "without_keywords": "keyword",
+
+  "with_runtime.gte": "runtime",
+  "with_runtime.lte": "runtime",
+
+  "with_networks": "network",
+  "with_companies": "company",
+  "without_companies": "company",
+
+  "with_original_language": "language",
+  "region": "country",
+  "watch_region": "country",
+  
+  "with_watch_providers": "provider",
+  "with_watch_monetization_types": "monetization",
+  "screened_theatrically": "screening",
+
+  "with_status": "status",
+  "with_type": "type",
+
+
+  "time_window": "date",
+  
+
+  "media_type": "media"
 }
