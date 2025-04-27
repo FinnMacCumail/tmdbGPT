@@ -298,6 +298,43 @@ class PlanValidator:
             print(f"🧭 LLM endpoint focus pruning: {before} → {len(filtered_matches)}")
 
         return filtered_matches
+    
+    def enrich_plan_with_semantic_parameters(self, step: dict, query_text: str) -> dict:
+        """
+        After basic injection, perform semantic inference to suggest missing parameters 
+        based on the meaning of the query.
+        """
+        if "parameters" not in step:
+            step["parameters"] = {}
+
+        inferred_params = self.infer_semantic_parameters(query_text)
+        injected = []
+
+        for param in inferred_params:
+            # Only inject if not already present
+            if param not in step["parameters"]:
+                # Handle special cases for common semantic params
+                if param == "vote_average.gte":
+                    step["parameters"][param] = "7.0"  # Assume top-rated means 7+
+                    injected.append((param, "7.0"))
+                elif param == "primary_release_year":
+                    from datetime import datetime
+                    current_year = datetime.now().year
+                    step["parameters"][param] = str(current_year)
+                    injected.append((param, str(current_year)))
+                elif param == "with_genres":
+                    # Don't inject arbitrary genres here — only if genre mentioned
+                    continue
+                else:
+                    # Default fallback
+                    step["parameters"][param] = "true"
+                    injected.append((param, "true"))
+
+        if injected:
+            print(f"✨ Semantically inferred parameters injected: {injected}")
+
+        return step
+
 
 class SymbolicConstraintFilter:   
     INTENT_EQUIVALENTS = {
