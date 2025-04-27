@@ -146,6 +146,33 @@ class PostValidator:
 
         return valid
 
+    @staticmethod
+    def validate_genres(result: dict, expected_genre_ids: list) -> bool:
+        """
+        Validate that the result contains at least one of the expected genres.
+        """
+        if not expected_genre_ids:
+            return True  # No genre constraint to validate
+
+        genres = result.get("genre_ids", []) or []
+        return any(str(genre_id) in map(str, genres) for genre_id in expected_genre_ids)
+    
+    @staticmethod
+    def validate_year(result: dict, expected_year: str) -> bool:
+        """
+        Validate that the result was released in the expected year.
+        """
+        if not expected_year:
+            return True  # No year constraint
+
+        date_fields = ["release_date", "first_air_date"]
+
+        for field in date_fields:
+            date_value = result.get(field)
+            if date_value and date_value.startswith(expected_year):
+                return True
+
+        return False
 
 class ResultScorer:
     @staticmethod
