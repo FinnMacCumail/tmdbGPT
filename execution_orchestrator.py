@@ -74,23 +74,36 @@ class ExecutionOrchestrator:
                             continue
                         result_data = response.json()
 
-                        # pahase 5.1 - pgpv - 🧩 Dynamically accumulate scores
+                        # 🧩 Initialize scoring
                         score = 0.0
-                        points_per_role = 0.5  # You can tune this later if needed
+                        points_per_role = 0.5  # can be tuned
 
                         # 🧩 1. Validate Roles Dynamically
                         role_results = PostValidator.validate_roles(result_data, query_entities)
-
                         for role_key, passed in role_results.items():
                             if passed:
                                 score += points_per_role
 
-                        # 🧩 2. Validate Runtime, Year, Rating Filters
+                        # 🧩 2. Validate Genre and Year
+                        expected_genres = step["parameters"].get("with_genres")
+                        expected_year = step["parameters"].get("primary_release_year") or step["parameters"].get("first_air_date_year")
+
+                        if expected_genres:
+                            genre_ids = [int(g) for g in expected_genres.split(",")]
+                            if not PostValidator.validate_genres(movie, genre_ids):
+                                print(f"❌ Genre mismatch for {movie_id}")
+                                continue
+
+                        if expected_year:
+                            if not PostValidator.validate_year(movie, expected_year):
+                                print(f"❌ Year mismatch for {movie_id}")
+                                continue
+
+                        # 🧩 3. Validate Runtime and Rating
                         movie_runtime = movie.get("runtime")
                         release_date = movie.get("release_date") or movie.get("first_air_date")
                         vote_average = movie.get("vote_average", 0)
 
-                        # Check runtime
                         min_runtime = step["parameters"].get("with_runtime.gte")
                         max_runtime = step["parameters"].get("with_runtime.lte")
                         if min_runtime or max_runtime:
@@ -100,16 +113,6 @@ class ExecutionOrchestrator:
                             else:
                                 print(f"❌ Runtime check failed for {movie_id}")
 
-                        # Check release year
-                        target_year = step["parameters"].get("primary_release_year")
-                        if target_year and release_date:
-                            if str(target_year) in release_date:
-                                score += 0.3
-                                print(f"✅ Year OK for {movie_id}")
-                            else:
-                                print(f"❌ Year mismatch for {movie_id}")
-
-                        # Check rating
                         min_rating = step["parameters"].get("vote_average.gte")
                         if min_rating and vote_average >= float(min_rating):
                             score += 0.3
@@ -117,9 +120,9 @@ class ExecutionOrchestrator:
                         elif min_rating:
                             print(f"❌ Rating below threshold for {movie_id}")
 
-                        # 🧩 3. Final scoring decision
+                        # 🧩 4. Final scoring decision
                         if score > 0:
-                            score = min(score, 1.0)  # 🔥 Normalize: max out at 1.0
+                            score = min(score, 1.0)
                             movie["final_score"] = score
                             validated.append(movie)
                             print(f"✅ Movie {movie_id} accepted with final score {score}")
@@ -127,7 +130,7 @@ class ExecutionOrchestrator:
                             print(f"❌ Movie {movie_id} rejected (no validations passed)")
                     except Exception as e:
                         print(f"⚠️ Validation failed for movie_id={movie_id}: {e}")
-                break  # Only apply first matching rule
+                break  # Only apply the first matching rule
 
         return validated or movie_results
     
