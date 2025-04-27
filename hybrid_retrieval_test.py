@@ -6,6 +6,7 @@ import chromadb
 from llm_client import OpenAILLMClient
 from entity_reranker import EntityAwareReranker
 from param_utils import normalize_parameters
+from plan_validator import PlanValidator
 
 
 load_dotenv()
@@ -287,6 +288,11 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
             "method": method,
             "parameters": parameters
         }
+
+        # tmdb up -
+        plan_validator = PlanValidator()
+        step = plan_validator.inject_parameters_from_query_entities(step, extraction_result.get("query_entities", []))
+
 
         steps.append(step)
 
