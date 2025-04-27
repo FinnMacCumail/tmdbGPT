@@ -18,3 +18,6 @@ logs/
 unit_test.py
 unit_test2.py
 unit_tests/
+
+audit_summary.md
+
