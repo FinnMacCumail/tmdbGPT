@@ -43,13 +43,15 @@ def _detect_intents(path: str, description: str) -> list:
         intents.append("recommendation.similarity")
         if "/movie" in path_lower:
             intents.append("recommendation.suggested")
-    elif "/credits" in path_lower:
-        if "/movie" in path_lower:
+    elif "credits" in path_lower:
+        if "/person" in path_lower:
+            intents.append("credits.person")
+        elif "/movie" in path_lower:
             intents.append("credits.movie")
         elif "/tv" in path_lower:
             intents.append("credits.tv")
-        elif "/person" in path_lower:
-            intents.append("credits.person")
+        return intents
+
     elif "/images" in path_lower or "/videos" in path_lower:
         intents.append("media_assets.image")
     elif "/trending" in path_lower:
@@ -78,7 +80,6 @@ def _detect_intents(path: str, description: str) -> list:
         intents.append("miscellaneous")
 
     return intents
-
 
 def _detect_entities(endpoint: str, parameters: list) -> list:
     entities = set()
@@ -157,14 +158,17 @@ def _create_metadata(endpoint_path, obj):
     description = obj.get("description", "")
     parameters = obj.get("parameters", {})
 
+    intents_detected = _detect_intents(endpoint_path, description)
+
     return {
         "path": endpoint_path,
         "description": description,
-        "intents": json.dumps([{ "intent": i } for i in _detect_intents(endpoint_path, description)]),
+        "intents": json.dumps([{ "intent": i } for i in intents_detected]),  # <-- USE intents_detected
+        "supported_intents": json.dumps(intents_detected),
         "media_type": "tv" if "/tv" in endpoint_path else "movie" if "/movie" in endpoint_path else "any",
         "consumes_entities": json.dumps(_detect_entities(endpoint_path, parameters.keys())),
         "produces_entities": json.dumps(_detect_produced_entities(endpoint_path, parameters.keys())),
-        "supports_parameters": json.dumps(list(parameters))  # 🔥 Fix: serialize as JSON string
+        "supports_parameters": json.dumps(list(parameters))  # already fine
     }
 
 def process_endpoints():
