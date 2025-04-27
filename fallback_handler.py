@@ -2,6 +2,66 @@
 from typing import Dict, List
 from copy import deepcopy
 
+class FallbackSemanticBuilder:
+    @staticmethod
+    def enrich_fallback_step(original_step, extraction_result, resolved_entities):
+        """
+        Create a smarter fallback discovery step, injecting genres, year, companies/networks if possible.
+        """
+        intents = extraction_result.get("intents", [])
+        query_entities = extraction_result.get("query_entities", [])
+
+        if any("tv" in intent.lower() for intent in intents):
+            fallback_endpoint = "/discover/tv"
+            year_param = "first_air_date_year"
+        else:
+            fallback_endpoint = "/discover/movie"
+            year_param = "primary_release_year"
+
+        fallback_step = {
+            "step_id": f"fallback_{fallback_endpoint.strip('/').replace('/', '_')}",
+            "endpoint": fallback_endpoint,
+            "parameters": {},
+            "fallback_injected": True,
+        }
+
+        # Inject genres
+        genre_ids = [
+            str(e.get("resolved_id"))
+            for e in query_entities
+            if e.get("type") == "genre" and e.get("resolved_id")
+        ]
+        if genre_ids:
+            fallback_step["parameters"]["with_genres"] = ",".join(genre_ids)
+
+        # Inject year
+        date_entities = [
+            e for e in query_entities
+            if e.get("type") == "date" and e.get("name")
+        ]
+        if date_entities:
+            fallback_step["parameters"][year_param] = date_entities[0]["name"]
+        else:
+            # 🔥 Phase 19 improvement: default to last 5 years
+            from datetime import datetime
+            current_year = datetime.now().year
+            fallback_step["parameters"][year_param] = str(current_year - 5)
+
+        # Inject company or network
+        if resolved_entities.get("company_id"):
+            fallback_step["parameters"]["with_companies"] = ",".join(
+                str(cid) for cid in resolved_entities["company_id"]
+            )
+        elif resolved_entities.get("network_id"):
+            fallback_step["parameters"]["with_networks"] = ",".join(
+                str(nid) for nid in resolved_entities["network_id"]
+            )
+
+        # Final debug
+        print(f"✨ Smart fallback created: {fallback_step['endpoint']} with params {fallback_step['parameters']}")
+
+        return fallback_step
+
 class FallbackHandler:
     @staticmethod
     def generate_steps(entities: Dict, intents: Dict) -> List[Dict]:  # Remove query_type
@@ -35,10 +95,13 @@ class FallbackHandler:
         return steps
 
     @staticmethod
-    def relax_constraints(original_step, already_dropped=None):
+    def relax_constraints(original_step, already_dropped=None, state=None):
         """
         Given a step that failed validation, return a list of relaxed step(s).
+        Now tracks relaxed parameters properly into state.relaxed_parameters.
         """
+        from copy import deepcopy
+
         already_dropped = already_dropped or set()
 
         relaxation_priority = [
@@ -58,7 +121,24 @@ class FallbackHandler:
                 relaxed_step["step_id"] = f"{original_step['step_id']}_relaxed_{label}"
                 relaxed_steps.append(relaxed_step)
                 print(f"♻️ Relaxing {label}: dropped {param_key}")
-                already_dropped.add(label)
+
+                # ➡️ NEW: Track relaxation
+                if state is not None:
+                    if not hasattr(state, "relaxed_parameters"):
+                        state.relaxed_parameters = []
+                    state.relaxed_parameters.append(label)
+                    print(f"📝 Relaxation tracked: {label}")
+
+                    # ➡️ Log in execution trace
+                    from execution_orchestrator import ExecutionTraceLogger
+                    ExecutionTraceLogger.log_step(
+                        relaxed_step["step_id"],
+                        path=relaxed_step["endpoint"],
+                        status=f"Relaxation Injected (Dropped {param_key})",
+                        summary=f"Dropped {param_key} constraint",
+                        state=state
+                    )
+
                 break  # Only relax one constraint at a time per retry
 
         return relaxed_steps
