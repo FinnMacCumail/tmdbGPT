@@ -9,6 +9,7 @@ import json
 from response_formatter import RESPONSE_RENDERERS, format_summary
 from fallback_handler import FallbackHandler, FallbackSemanticBuilder
 from post_validator import ResultScorer
+from response_formatter import QueryExplanationBuilder
 
 class ExecutionOrchestrator:
     
@@ -284,6 +285,13 @@ class ExecutionOrchestrator:
 
         # 👇 You can optionally assign it to state if needed
         state.formatted_response = final_output
+
+        state.explanation = QueryExplanationBuilder.build_final_explanation(
+            extraction_result=state.extraction_result,
+            relaxed_parameters=state.relaxed_parameters,
+            fallback_used=any(step.get("fallback_injected") for step in state.plan_steps)
+        )
+
         print("[DEBUG] Orchestrator execution completed.")
         # phase 17.4 - logging
         if getattr(state, "relaxed_parameters", []):
