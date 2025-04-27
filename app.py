@@ -55,14 +55,21 @@ class AppState(BaseModel):
     response_format: Optional[str] = None
     execution_trace: Optional[List[dict]] = Field(default_factory=list)
     relaxed_parameters: Optional[List[str]] = Field(default_factory=list)
+    explanation: Optional[str] = None 
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
     return state.model_copy(update={"status": "parsed", "step": "parse", "__write_guard__": f"parse_{int(time.time()*1000)}"})
 
 def extract_entities(state: AppState) -> AppState:
-    print("→ running node: EXTRACT_ENTITIES")    
-    extraction = openai_client.extract_entities_and_intents(state.input)
+    print("→ running node: EXTRACT_ENTITIES")
+
+    if hasattr(state, "mock_extraction") and state.mock_extraction:
+        extraction = state.mock_extraction
+        print("🤖 Using mock extraction instead of real OpenAI extraction.")
+    else:
+        extraction = openai_client.extract_entities_and_intents(state.input)
+
     print("📤 Extracted entities:")
     
     if not extraction:
