@@ -563,6 +563,16 @@ class ExecutionOrchestrator:
             print(f"🛑 No steps available to execute — fallback needed.")
             return False
 
+        # ✅ NEW: allow if any /discover/ steps present
+        media_steps = [
+            step for step in state.plan_steps
+            if "/discover/" in (step.get("endpoint") or "")
+        ]
+
+        if media_steps:
+            print(f"⚡ Proceeding with {len(media_steps)} discovery step(s): {[s['endpoint'] for s in media_steps]}")
+            return True
+
         if len(state.plan_steps) == 1:
             step = state.plan_steps[0]
             produces = step.get("produces", [])
@@ -570,7 +580,7 @@ class ExecutionOrchestrator:
                 print(f"⚡ Proceeding with single media-producing step: {step['step_id']} ({step['endpoint']})")
                 return True
 
-        # 🧠 Otherwise: check intersection if multiple entity-specific steps exist
+        # 🧠 Otherwise: try intersection
         intersected_ids = self._intersect_movie_ids_across_roles(state)
         if intersected_ids:
             self._inject_validation_steps(state, intersected_ids)
