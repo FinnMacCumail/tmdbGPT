@@ -69,10 +69,11 @@ class FallbackHandler:
     @staticmethod
     def enrich_fallback_step(original_step, extraction_result, resolved_entities):
         """
-        Create a smarter fallback step with genre, year, and correct media type (tv/movie).
+        Create a smart fallback step with semantic enrichment: genres, years, companies/networks.
         """
         intents = extraction_result.get("intents", [])
 
+        # Decide if TV or Movie fallback
         if any("tv" in intent.lower() for intent in intents):
             fallback_endpoint = "/discover/tv"
             year_param = "first_air_date_year"
@@ -87,24 +88,30 @@ class FallbackHandler:
             "fallback_injected": True,
         }
 
-        # Inject genres if present
+        query_entities = extraction_result.get("query_entities", []) or []
+
+        # Inject genres if available
         genre_ids = [
-            str(e["resolved_id"])
-            for e in extraction_result.get("query_entities", [])
+            str(e.get("resolved_id"))
+            for e in query_entities
             if e.get("type") == "genre" and e.get("resolved_id")
         ]
         if genre_ids:
             fallback_step["parameters"]["with_genres"] = ",".join(genre_ids)
 
-        # Inject year if present
-        for entity in extraction_result.get("query_entities", []):
-            if entity.get("type") == "date" and entity.get("name"):
-                fallback_step["parameters"][year_param] = entity["name"]
+        # Inject year if available
+        date_entities = [e for e in query_entities if e.get("type") == "date" and e.get("name")]
+        if date_entities:
+            fallback_step["parameters"][year_param] = date_entities[0]["name"]
 
-        # Inject companies or networks if present
-        if "company_id" in resolved_entities:
-            fallback_step["parameters"]["with_companies"] = ",".join(map(str, resolved_entities["company_id"]))
-        elif "network_id" in resolved_entities:
-            fallback_step["parameters"]["with_networks"] = ",".join(map(str, resolved_entities["network_id"]))
+        # Inject company or network if available
+        if resolved_entities.get("company_id"):
+            fallback_step["parameters"]["with_companies"] = ",".join(str(cid) for cid in resolved_entities["company_id"])
+        elif resolved_entities.get("network_id"):
+            fallback_step["parameters"]["with_networks"] = ",".join(str(nid) for nid in resolved_entities["network_id"])
+
+        # Safety warning if no enrichment at all
+        if not fallback_step["parameters"]:
+            print(f"⚠️ Warning: Fallback step for {fallback_step['endpoint']} has no enrichment injected!")
 
         return fallback_step
