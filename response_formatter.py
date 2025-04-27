@@ -264,3 +264,53 @@ def generate_relaxation_explanation(dropped_constraints: List[str]) -> str:
 
     explanation = ", ".join(pieces)
     return f"⚠️ Note: Some filters were relaxed to find results ({explanation})."
+
+# --- Phase 19 Addition: QueryExplanationBuilder ---
+
+class QueryExplanationBuilder:
+    @staticmethod
+    def build_final_explanation(extraction_result, relaxed_parameters: list, fallback_used: bool) -> str:
+        """
+        Build a natural-language explanation based on planning and execution events.
+        """
+        query_entities = extraction_result.get("query_entities", []) or []
+        explanation_parts = []
+
+        # 1. What was applied
+        if query_entities:
+            entity_summaries = []
+            for ent in query_entities:
+                entity_desc = ent.get("name")
+                if ent.get("type") == "genre":
+                    entity_desc = f"{entity_desc} genre"
+                elif ent.get("type") == "company":
+                    entity_desc = f"produced by {entity_desc}"
+                elif ent.get("type") == "network":
+                    entity_desc = f"aired on {entity_desc}"
+                elif ent.get("type") == "person":
+                    role = ent.get("role", "actor")
+                    entity_desc = f"{role} {entity_desc}"
+
+                if entity_desc:
+                    entity_summaries.append(entity_desc)
+
+            if entity_summaries:
+                applied_summary = " and ".join(entity_summaries)
+                explanation_parts.append(f"Planned for {applied_summary}.")
+
+        # 2. What was relaxed
+        if relaxed_parameters:
+            relaxed_text = ", ".join(relaxed_parameters)
+            explanation_parts.append(f"Relaxed filters on {relaxed_text} to find matches.")
+
+        # 3. Fallback notice
+        if fallback_used:
+            explanation_parts.append("Fallback discovery was used to find broader results.")
+
+        # 4. Combine
+        if not explanation_parts:
+            return "Performed a general search based on available information."
+
+        final_explanation = " ".join(explanation_parts)
+        return final_explanation
+
