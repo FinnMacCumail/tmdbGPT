@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from app import build_app_graph
 import json
+from app import entity_resolver
 
 # 🔥 Config
 USE_MOCK_EXTRACTION = True
@@ -154,8 +155,22 @@ for idx, query in enumerate(SAMPLE_QUERIES, 1):
     try:
         if USE_MOCK_EXTRACTION:
             print(f"🤖 MOCK extraction for: {query}")
-            mock_extraction = better_mock_extraction(query)["extraction_result"]
+            mock_result = better_mock_extraction(query)
+            mock_extraction = mock_result["extraction_result"]
+
+            # ✨ REAL ENTITY RESOLUTION STEP BEFORE graph.invoke
+            resolved_entities, unresolved = entity_resolver.resolve_entities(mock_extraction.get("query_entities", []))
+            
+            for ent in mock_extraction.get("query_entities", []):
+                for resolved in resolved_entities:
+                    if ent["name"].lower() == resolved["name"].lower():
+                        ent["resolved_id"] = resolved["resolved_id"]
+                        ent["type"] = resolved.get("resolved_type", ent["type"])  # Correct network/company fallback if needed
+                        print(f"✅ Resolved {ent['name']} as {ent['type']} with ID {ent['resolved_id']}")
+
+            # ✅ Now run the full app graph with updated extraction
             result = graph.invoke({"input": query, "mock_extraction": mock_extraction})
+
         else:
             result = graph.invoke({"input": query})
 
