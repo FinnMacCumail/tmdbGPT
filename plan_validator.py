@@ -36,7 +36,7 @@ QUESTION_TYPE_ROUTING = {
         "description": "Returns a side-by-side comparison"
     },
     "list": {
-        "preferred_intents": ["discovery.filtered", "discovery.advanced", "search.movie", "search.person"],
+        "preferred_intents": ["discovery.filtered", "discovery.advanced", "search.movie", "search.person", "credits.person"],
         "fallback_intents": [],
         "response_format": "list",
         "description": "Returns a list of matching items"
@@ -337,47 +337,13 @@ class PlanValidator:
 
 
 class SymbolicConstraintFilter:   
-    INTENT_EQUIVALENTS = {
-        # Search-related intents
-        "search.multi": [
-            "discovery.filtered",
-            "credits.person",
-            "details.movie",
-            "details.tv",
-            "search.person",
-            "search.movie",
-            "search.tv"
-        ],
-        "search.movie": ["details.movie", "search.multi"],
-        "search.tv": ["details.tv", "search.multi"],
-        "search.person": ["credits.person", "search.multi"],
-        "search.collection": ["collection.details"],
 
-        # Recommendation equivalents
-        "recommendation.similarity": ["recommendation"],
-        "recommendation.suggested": ["recommendation"],
+    # filters you apply after fetching movies or shows
+    MEDIA_FILTER_ENTITIES = {"genre", "rating", "date", "runtime", "votes", "language", "country"}
 
-        # Discovery equivalents
-        "discovery.genre_based": ["discovery.filtered"],
-        "discovery.temporal": ["discovery.filtered"],
-        "discovery.advanced": ["discovery.filtered"],
-
-        # Reviews
-        "reviews.movie": ["review.lookup"],
-        "reviews.tv": ["review.lookup"],
-
-        # Company/network details
-        "companies.studio": ["company.details"],
-        "companies.network": ["network.details"],
-
-        # Collections
-        "collections.movie": ["collection.details"],
-
-        # Catch-all general fallback
-        "search": ["discovery.filtered", "credits.person", "details.movie"],
-        "recommendation.similarity": ["recommendation", "discovery.filtered"],
-        "recommendation.suggested": ["recommendation", "discovery.filtered"]
-    }
+    @staticmethod
+    def is_media_endpoint(produces_entities: list) -> bool:
+        return any(media in produces_entities for media in {"movie", "tv"})
 
     @staticmethod
     def apply(matches: list, extraction_result: dict, resolved_entities: dict) -> list:
@@ -389,48 +355,57 @@ class SymbolicConstraintFilter:
         allowed_intents = set(routing.get("preferred_intents", []) + routing.get("fallback_intents", []))
 
         filtered = []
+
         for match in matches:
             endpoint = match.get("endpoint") or match.get("path", "")
             metadata = match.get("metadata", match)
             supported_intents = SymbolicConstraintFilter._extract_supported_intents(metadata)
             consumes = SymbolicConstraintFilter._extract_consumed_entities(metadata)
+            produces = SymbolicConstraintFilter._extract_produced_entities(metadata)
 
-            # Check for allowed intents
-            intent_overlap = any(intent in allowed_intents for intent in supported_intents)
+            # --- Entity Penalty ---
+            missing_required_entities = []
+            for key in resolved_keys:
+                if key == "__query":
+                    continue  # ✅ Skip soft query
 
-            # --- NEW: Entity Consumption Penalty ---
-            missing_required_entities = [
-                key for key in resolved_keys
-                if SymbolicConstraintFilter._map_key_to_entity(key) not in consumes
-            ]
+                entity_type = SymbolicConstraintFilter._map_key_to_entity(key)
+                if entity_type not in consumes:
+                    if entity_type in SymbolicConstraintFilter.MEDIA_FILTER_ENTITIES:
+                        if SymbolicConstraintFilter.is_media_endpoint(produces):
+                            print(f"⚡ Skipping penalty for {entity_type} because endpoint produces media items.")
+                            continue
+                    missing_required_entities.append(key)
 
             entity_penalty = 0.0
             if missing_required_entities:
-                if "/discover/movie" in endpoint or "/discover/tv" in endpoint:
-                    # Be more lenient for discovery endpoints
-                    print(f"⚡ Allowing /discover/movie or /discover/tv even though missing: {missing_required_entities}")
-                    entity_penalty = 0.0  # No penalty applied!
+                if SymbolicConstraintFilter.is_media_endpoint(produces):
+                    print(f"⚡ Allowing media-producing endpoint {endpoint} even though missing: {missing_required_entities}")
+                    entity_penalty = 0.0
                 else:
                     entity_penalty = 0.2 * len(missing_required_entities)
                     print(f"⚠️ Entity penalty on '{endpoint}' for missing: {missing_required_entities}")
 
-            # --- NEW: Question Type Mismatch Penalty ---
+            # --- Question Type Penalty ---
             qt_penalty = 0.0
-
             if question_type:
                 expected_patterns = SymbolicConstraintFilter._expected_patterns_for_question_type(question_type)
-                if expected_patterns:
-                    if not any(pat in endpoint for pat in expected_patterns):
-                        qt_penalty = 0.3  # Heavy penalty if no expected pattern matches
+                endpoint_lower = endpoint.lower()  # 🔥 Normalize endpoint for safe matching
+                if expected_patterns and not any(pat in endpoint_lower for pat in expected_patterns):
+                    # instead of direct penalty
+                    if SymbolicConstraintFilter.is_media_endpoint(produces):
+                        print(f"⚡ Skipping question type penalty because endpoint produces media items.")
+                    else:
+                        qt_penalty = 0.3
                         print(f"⚠️ Question type mismatch on '{endpoint}' for question_type='{question_type}' (expected {expected_patterns})")
 
-            # Record penalties into match
+            # --- Apply Penalties ---
             existing_penalty = match.get("penalty", 0.0)
-            match["penalty"] = existing_penalty + entity_penalty + qt_penalty
+            total_penalty = entity_penalty + qt_penalty
+            match["penalty"] = existing_penalty + total_penalty
 
-            # Store penalty inside match for reranking phase
-            match["penalty"] = match.get("penalty", 0.0) + entity_penalty
-
+            # --- Intent Overlap ---
+            intent_overlap = any(intent in allowed_intents for intent in supported_intents)
             if intent_overlap:
                 print(f"✅ Allowed intent overlap: {supported_intents} matches allowed intents {allowed_intents}")
                 filtered.append(match)
@@ -455,6 +430,15 @@ class SymbolicConstraintFilter:
             return []
 
     @staticmethod
+    def _extract_produced_entities(metadata: dict) -> list:
+        raw = metadata.get("produces_entities", "[]")
+        try:
+            return json.loads(raw) if isinstance(raw, str) else raw
+        except:
+            return []
+
+    
+    @staticmethod
     def _extract_supported_intents(metadata: dict) -> list:
         # raw = metadata.get("intents", "[]")
         # try:
@@ -472,7 +456,7 @@ class SymbolicConstraintFilter:
             "summary": ["/details", "/person", "/movie", "/tv"],
             "timeline": ["/credits", "/discover"],
             "comparison": ["/details", "/credits"],
-            "list": ["/discover", "/search"],
+            "list": ["/discover", "/search", "/person", "/credits"],
             "fact": ["/details", "/movie", "/person"]
         }
         return mapping.get(question_type, [])
@@ -501,5 +485,5 @@ class SymbolicConstraintFilter:
             elif media_type:
                 match["score"] -= 0.2  # Penalize wrong media type
 
-        return matches
+        return matches        
 
