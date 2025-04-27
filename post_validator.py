@@ -41,39 +41,28 @@ class PostValidator:
 
     # 🧩 NEW: Flexible Role Validation Function
     @staticmethod
-    def validate_roles(credits: Dict, query_entities: List[Dict]) -> Dict[str, bool]:
+    def validate_roles(result, query_entities):
         """
-        Validate dynamically based on entity roles extracted from query.
-        Returns a dict like {"cast_ok": True, "director_ok": False, ...}
+        Validate if cast or director matches any person entity.
         """
-        results = {}
+        credits = result.get("credits", {})
+        cast_list = credits.get("cast", [])
+        crew_list = credits.get("crew", [])
 
-        for ent in query_entities:
-            if ent.get("type") != "person":
-                continue
+        for entity in query_entities:
+            if entity.get("type") == "person":
+                person_name = entity.get("name", "").lower()
+                role = entity.get("role", "actor")  # Default to actor
 
-            role = ent.get("role", "cast")  # default to cast if missing
-            name_or_id = ent.get("name") if role == "director" else ent.get("resolved_id")
+                if role == "actor":
+                    if any(person_name in (member.get("name", "").lower()) for member in cast_list):
+                        return True
+                elif role == "director":
+                    if any(person_name in (member.get("name", "").lower()) and member.get("job", "").lower() == "director" for member in crew_list):
+                        return True
 
-            validator = PostValidator.ROLE_VALIDATORS.get(role)
-            if not validator or not name_or_id:
-                continue
-
-            role_key = f"{role}_ok"
-            if role == "cast":
-                # Validate cast using resolved person_id
-                passed = validator(credits, [name_or_id])
-            elif role == "director":
-                # Validate director using person's name
-                passed = validator(credits, name_or_id)
-            else:
-                # Future roles can go here
-                passed = validator(credits, name_or_id)
-
-            results[role_key] = passed
-
-        return results
-
+        return False
+    
     @staticmethod
     def score_role_validation(role_results: Dict[str, bool]) -> float:
         """
@@ -88,7 +77,75 @@ class PostValidator:
         score = num_passed / total_roles
         return round(score, 2)
     
-# result_scorer.py
+    @staticmethod
+    def validate_company(result, query_entities):
+        """
+        Validate if production company matches.
+        """
+        companies = result.get("production_companies", [])
+
+        for entity in query_entities:
+            if entity.get("type") == "company":
+                company_name = entity.get("name", "").lower()
+                if any(company_name in (company.get("name", "").lower()) for company in companies):
+                    return True
+
+        return False
+
+    @staticmethod
+    def validate_network(result, query_entities):
+        """
+        Validate if network matches (for TV shows).
+        """
+        networks = result.get("networks", [])
+
+        for entity in query_entities:
+            if entity.get("type") == "network":
+                network_name = entity.get("name", "").lower()
+                if any(network_name in (network.get("name", "").lower()) for network in networks):
+                    return True
+
+        return False
+
+    @staticmethod
+    def validate_genre(result, query_entities):
+        """
+        Validate if genres match.
+        """
+        genre_ids = [genre.get("id") for genre in result.get("genres", [])]
+
+        for entity in query_entities:
+            if entity.get("type") == "genre" and entity.get("resolved_id") in genre_ids:
+                return True
+
+        return False
+
+    @staticmethod
+    def validate_result(result, query_entities):
+        """
+        High-level: Validate one result against all entity constraints.
+        Returns True if valid, False otherwise.
+        """
+        valid = True
+
+        # If query mentions cast/director → validate roles
+        if any(e.get("type") == "person" for e in query_entities):
+            valid = valid and PostValidator.validate_roles(result, query_entities)
+
+        # If query mentions production company
+        if any(e.get("type") == "company" for e in query_entities):
+            valid = valid and PostValidator.validate_company(result, query_entities)
+
+        # If query mentions network
+        if any(e.get("type") == "network" for e in query_entities):
+            valid = valid and PostValidator.validate_network(result, query_entities)
+
+        # If query mentions genre
+        if any(e.get("type") == "genre" for e in query_entities):
+            valid = valid and PostValidator.validate_genre(result, query_entities)
+
+        return valid
+
 
 class ResultScorer:
     @staticmethod
