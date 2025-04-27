@@ -336,9 +336,7 @@ class PlanValidator:
         return step
 
 
-class SymbolicConstraintFilter:   
-
-    # filters you apply after fetching movies or shows
+class SymbolicConstraintFilter:
     MEDIA_FILTER_ENTITIES = {"genre", "rating", "date", "runtime", "votes", "language", "country"}
 
     @staticmethod
@@ -367,7 +365,7 @@ class SymbolicConstraintFilter:
             missing_required_entities = []
             for key in resolved_keys:
                 if key == "__query":
-                    continue  # ✅ Skip soft query
+                    continue  # ✅ Ignore query text entity
 
                 entity_type = SymbolicConstraintFilter._map_key_to_entity(key)
                 if entity_type not in consumes:
@@ -376,6 +374,22 @@ class SymbolicConstraintFilter:
                             print(f"⚡ Skipping penalty for {entity_type} because endpoint produces media items.")
                             continue
                     missing_required_entities.append(key)
+
+            # --- Soft Relaxation ---
+            soft_relaxed_fields = []
+            if missing_required_entities:
+                for key in missing_required_entities:
+                    entity_type = SymbolicConstraintFilter._map_key_to_entity(key)
+                    if entity_type in SymbolicConstraintFilter.MEDIA_FILTER_ENTITIES:
+                        soft_relaxed_fields.append(key)
+
+                if soft_relaxed_fields and len(soft_relaxed_fields) == len(missing_required_entities):
+                    print(f"⚡ Soft relaxing missing filters: {soft_relaxed_fields}")
+                    match["soft_relaxed"] = soft_relaxed_fields
+                    match["force_allow"] = True  # ✅ NEW: force allow intent match
+                elif "credits" in endpoint and SymbolicConstraintFilter.is_media_endpoint(produces):
+                    print(f"⚡ Force-allowing {endpoint} because it produces media items via credits endpoint.")
+                    match["force_allow"] = True  # ✅ NEW: allow credits endpoints
 
             entity_penalty = 0.0
             if missing_required_entities:
@@ -390,9 +404,8 @@ class SymbolicConstraintFilter:
             qt_penalty = 0.0
             if question_type:
                 expected_patterns = SymbolicConstraintFilter._expected_patterns_for_question_type(question_type)
-                endpoint_lower = endpoint.lower()  # 🔥 Normalize endpoint for safe matching
+                endpoint_lower = endpoint.lower()
                 if expected_patterns and not any(pat in endpoint_lower for pat in expected_patterns):
-                    # instead of direct penalty
                     if SymbolicConstraintFilter.is_media_endpoint(produces):
                         print(f"⚡ Skipping question type penalty because endpoint produces media items.")
                     else:
@@ -404,16 +417,21 @@ class SymbolicConstraintFilter:
             total_penalty = entity_penalty + qt_penalty
             match["penalty"] = existing_penalty + total_penalty
 
-            # --- Intent Overlap ---
+            # --- Intent Overlap or Soft Relaxed Check ---
             intent_overlap = any(intent in allowed_intents for intent in supported_intents)
+
             if intent_overlap:
                 print(f"✅ Allowed intent overlap: {supported_intents} matches allowed intents {allowed_intents}")
                 filtered.append(match)
             else:
-                print(f"❌ Excluded endpoint '{endpoint}' due to intent mismatch (supported: {supported_intents}, allowed: {allowed_intents})")
+                if match.get("soft_relaxed") or match.get("force_allow"):
+                    print(f"⚡ Allowing endpoint {endpoint} because soft-relaxed or force-allowed")
+                    filtered.append(match)
+                else:
+                    print(f"❌ Excluded endpoint '{endpoint}' due to intent mismatch (supported: {supported_intents}, allowed: {allowed_intents})")
 
         return filtered
-
+    
     @staticmethod
     def _map_key_to_entity(key: str) -> str:
         if key.endswith("_id"):
