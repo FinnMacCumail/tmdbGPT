@@ -406,8 +406,13 @@ class SymbolicConstraintFilter:
 
             entity_penalty = 0.0
             if missing_required_entities:
-                entity_penalty = 0.2 * len(missing_required_entities)
-                print(f"⚠️ Entity penalty on '{endpoint}' for missing: {missing_required_entities}")
+                if "/discover/movie" in endpoint or "/discover/tv" in endpoint:
+                    # Be more lenient for discovery endpoints
+                    print(f"⚡ Allowing /discover/movie or /discover/tv even though missing: {missing_required_entities}")
+                    entity_penalty = 0.0  # No penalty applied!
+                else:
+                    entity_penalty = 0.2 * len(missing_required_entities)
+                    print(f"⚠️ Entity penalty on '{endpoint}' for missing: {missing_required_entities}")
 
             # --- NEW: Question Type Mismatch Penalty ---
             qt_penalty = 0.0
