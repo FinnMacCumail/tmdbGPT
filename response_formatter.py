@@ -272,48 +272,52 @@ def generate_relaxation_explanation(dropped_constraints: List[str]) -> str:
 
 class QueryExplanationBuilder:
     @staticmethod
-    def build_final_explanation(extraction_result, relaxed_parameters: list, fallback_used: bool) -> str:
+    def build_final_explanation(extraction_result, relaxed_parameters: list = None, fallback_used: bool = False) -> str:
         """
         Build a natural-language explanation based on planning and execution events.
         """
         query_entities = extraction_result.get("query_entities", []) or []
         explanation_parts = []
 
-        # 1. What was applied
+        def describe_entity(ent):
+            """Return a natural-language phrase for an entity."""
+            name = ent.get("name", "")
+            ent_type = ent.get("type", "")
+            role = ent.get("role", "actor").capitalize()
+
+            if ent_type == "genre":
+                return f"{name} genre"
+            elif ent_type == "company":
+                return f"produced by {name}"
+            elif ent_type == "network":
+                return f"aired on {name}"
+            elif ent_type == "person":
+                return f"{role} {name}"
+            return name  # fallback for unknown types
+
+        # 1. What was applied (entities involved)
         if query_entities:
-            entity_summaries = []
-            for ent in query_entities:
-                entity_desc = ent.get("name")
-                if ent.get("type") == "genre":
-                    entity_desc = f"{entity_desc} genre"
-                elif ent.get("type") == "company":
-                    entity_desc = f"produced by {entity_desc}"
-                elif ent.get("type") == "network":
-                    entity_desc = f"aired on {entity_desc}"
-                elif ent.get("type") == "person":
-                    role = ent.get("role", "actor")
-                    entity_desc = f"{role} {entity_desc}"
-
-                if entity_desc:
-                    entity_summaries.append(entity_desc)
-
-            if entity_summaries:
-                applied_summary = " and ".join(entity_summaries)
+            entity_descriptions = [describe_entity(ent) for ent in query_entities if describe_entity(ent)]
+            if entity_descriptions:
+                applied_summary = " and ".join(entity_descriptions)
                 explanation_parts.append(f"Planned for {applied_summary}.")
 
         # 2. What was relaxed
         if relaxed_parameters:
-            relaxed_text = ", ".join(relaxed_parameters)
-            explanation_parts.append(f"Relaxed filters on {relaxed_text} to find matches.")
+            relaxed_parameters = sorted(set(relaxed_parameters))  # de-duplicate and sort
+            if relaxed_parameters:
+                if len(relaxed_parameters) == 1:
+                    relaxed_text = relaxed_parameters[0]
+                else:
+                    relaxed_text = ", ".join(relaxed_parameters[:-1]) + f" and {relaxed_parameters[-1]}"
+                explanation_parts.append(f"Relaxed constraints on {relaxed_text} to find matches.")
 
         # 3. Fallback notice
         if fallback_used:
-            explanation_parts.append("Fallback discovery was used to find broader results.")
+            explanation_parts.append("Fallback discovery was used to broaden the search results.")
 
-        # 4. Combine
+        # 4. Combine all parts
         if not explanation_parts:
             return "Performed a general search based on available information."
 
-        final_explanation = " ".join(explanation_parts)
-        return final_explanation
-
+        return " ".join(explanation_parts)
