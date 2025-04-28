@@ -56,6 +56,7 @@ class AppState(BaseModel):
     execution_trace: Optional[List[dict]] = Field(default_factory=list)
     relaxed_parameters: Optional[List[str]] = Field(default_factory=list)
     explanation: Optional[str] = None 
+    intended_media_type: Optional[str] = None
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
@@ -74,7 +75,8 @@ def extract_entities(state: AppState) -> AppState:
     
     if not extraction:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
-    return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok"})
+    return state.model_copy(update={"extraction_result": extraction, "step": "extract_entities_ok",
+        "intended_media_type": extraction.get("media_type")})
 
 def resolve_entities(state: AppState) -> AppState:
     print("→ running node: RESOLVE_ENTITIES")
@@ -126,6 +128,14 @@ def plan(state: AppState) -> AppState:
     # ✅ Inject the query text into resolved_entities for semantic parameter inference - phase2.2 pgpv
     if "input" in state.__dict__:  # (in case state.input exists)
         state.resolved_entities["__query"] = state.input
+
+    intended_type = state.intended_media_type
+    if intended_type:
+        feasible = [
+            step for step in feasible
+            if intended_type == "both" or (step.get("endpoint", "").startswith(f"/discover/{intended_type}"))
+        ]
+        print(f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
     
     # Phase 1: Rerank semantic matches using resolved entities
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
