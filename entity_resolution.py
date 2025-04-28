@@ -1,64 +1,60 @@
-import requests
-from collections import defaultdict
-from param_utils import GenreNormalizer
+# entity_resolution.py
 
+import requests
+from datetime import datetime, timedelta
+import os
+from param_utils import GenreNormalizer
 
 class TMDBEntityResolver:
     def __init__(self, api_key, headers):
         self.api_key = api_key
-        self.base_url = "https://api.themoviedb.org/3"
         self.headers = headers
+        self.base_url = "https://api.themoviedb.org/3"
+        self.genre_cache = {"movie": {}, "tv": {}}
+        self.genre_cache_timestamp = None
 
-        self.genre_cache = {
-            "movie": self._load_genres("movie"),
-            "tv": self._load_genres("tv")
-        }
-
-        self.network_cache = {}
-        self.company_cache = {}
-
-    def _load_genres(self, media_type):
-        url = f"{self.base_url}/genre/{media_type}/list"
-        try:
+    def _refresh_genre_cache(self):
+        if self.genre_cache["movie"] and self.genre_cache["tv"] and self.genre_cache_timestamp:
+            if datetime.now() - self.genre_cache_timestamp < timedelta(hours=24):
+                return
+        print("🔄 Refreshing TMDB genre cache...")
+        for media_type in ["movie", "tv"]:
+            url = f"{self.base_url}/genre/{media_type}/list"
             response = requests.get(url, headers=self.headers)
-            response.raise_for_status()
-            genres = response.json().get("genres", [])
-            return {g["name"].lower(): g["id"] for g in genres}
-        except Exception as e:
-            print(f"❌ Failed to load {media_type} genres: {e}")
-            return {}
-
-    from param_utils import GenreNormalizer  # ✅ Make sure this import is at the top
-
-    def resolve_entity(self, name, entity_type):
-        """
-        Resolves a given name and entity type into a TMDB ID.
-
-        - For genres: normalizes alias (e.g. 'sci-fi' → 'science fiction') and looks up in genre cache.
-        - For people, movies, keywords, etc.: performs a /search/{type} lookup via TMDB API.
-        """
-        if not name or not entity_type:
-            return None
-
-        name = name.strip().lower()
-
-        if entity_type == "genre":
-            # ✅ Normalize first (e.g. "sci-fi" → "science fiction")
-            normalized_name = GenreNormalizer.normalize(name)
-
-            # Check movie genres first, then fallback to TV genres
-            genre_id = (
-                self.genre_cache["movie"].get(normalized_name) or
-                self.genre_cache["tv"].get(normalized_name)
-            )
-
-            if genre_id:
-                print(f"✅ Resolved genre '{name}' → '{normalized_name}' → {genre_id}")
-                return genre_id
+            if response.status_code == 200:
+                genres = response.json().get("genres", [])
+                self.genre_cache[media_type] = {g["name"]: g["id"] for g in genres}
+                print(f"✅ Loaded {len(genres)} {media_type} genres.")
             else:
-                print(f"❌ Genre '{name}' not found after normalization as '{normalized_name}'")
-                return None
+                print(f"⚠️ Failed to fetch {media_type} genres (status {response.status_code})")
+        self.genre_cache_timestamp = datetime.now()
 
+    def _resolve_genre_id(self, genre_name: str, intended_media_type: str = "movie") -> int:
+        self._refresh_genre_cache()
+
+        # ✅ Use correct media_type
+        canonical_name = GenreNormalizer.normalize(genre_name, intended_media_type)
+        print(f"🎯 After normalization: '{genre_name}' → '{canonical_name}' for media_type={intended_media_type}")
+        genre_map = self.genre_cache.get(intended_media_type, {})
+
+        for name, gid in genre_map.items():
+            if canonical_name.lower() in name.lower():
+                return gid
+
+        # fallback to movie genres if not found
+        if intended_media_type != "movie":
+            for name, gid in self.genre_cache.get("movie", {}).items():
+                if canonical_name.lower() in name.lower():
+                    print(f"⚠️ Fallback match in movie genres for '{canonical_name}'.")
+                    return gid
+
+        print(f"🔎 _resolve_genre_id got genre_name='{genre_name}', intended_media_type='{intended_media_type}'")
+
+        print(f"⚠️ No genre ID found for '{canonical_name}' with media_type={intended_media_type}")
+        return None
+
+
+    def resolve_entity(self, name: str, entity_type: str) -> int:
         if entity_type in {"person", "movie", "tv", "collection", "company", "keyword", "network"}:
             try:
                 response = requests.get(
@@ -71,7 +67,7 @@ class TMDBEntityResolver:
 
                 for item in results:
                     label = item.get("name") or item.get("title")
-                    if label and label.lower() == name:
+                    if label and label.lower() == name.lower():
                         print(f"✅ Resolved {entity_type} '{name}' → {item.get('id')}")
                         return item.get("id")
 
@@ -84,130 +80,39 @@ class TMDBEntityResolver:
             except Exception as e:
                 print(f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
 
-        return None    
+        return None
 
-    def resolve_entities(self, query_entities):
-        resolved, unresolved = [], []
-        by_type = defaultdict(list)
+    def resolve_entities(self, query_entities, intended_media_type="movie"):
+        resolved_entities = []
+        unresolved_entities = []
 
-        # Group entities by type
         for entity in query_entities:
-            by_type[entity["type"]].append(entity)
+            ent_type = entity.get("type")
+            name = entity.get("name")
 
-        # Generic TMDB search types
-        generic_types = ["person", "movie", "tv", "genre"]
-        for entity_type in generic_types:
-            for entity in by_type.get(entity_type, []):
-                _id = self.resolve_entity(entity["name"], entity_type)
-                if _id:
-                    entity["resolved_id"] = _id
-                    resolved.append(entity)
+            if ent_type == "genre":
+                # ✅ Always use the passed intended_media_type
+                resolved_id = self._resolve_genre_id(name, intended_media_type)
+                if resolved_id:
+                    entity["resolved_id"] = resolved_id
+                    entity["resolved_type"] = "genre"
+                    resolved_entities.append(entity)
+                    print(f"🎯 Resolved genre '{name}' → {resolved_id} for {intended_media_type}")
                 else:
-                    unresolved.append(entity)
+                    unresolved_entities.append(entity)
 
-        # Network resolution (with fallback to company)
-        unresolved_networks = []
-        net_resolved, net_unresolved = self.resolve_networks(by_type.get("network", []))
-        resolved.extend(net_resolved)
-        unresolved_networks.extend(net_unresolved)
-
-        # Attempt to reclassify failed networks as companies (e.g., Netflix, Amazon Prime)
-        for entity in unresolved_networks:
-            print(f"↪️ Retrying '{entity['name']}' as company...")
-            _id = self.resolve_entity(entity["name"], "company")
-            if _id:
-                entity["type"] = "company"
-                entity["resolved_id"] = _id
-                resolved.append(entity)
-            else:
-                unresolved.append(entity)
-
-        # Company resolution
-        comp_resolved, comp_unresolved = self.resolve_companies(by_type.get("company", []))
-        resolved.extend(comp_resolved)
-        unresolved.extend(comp_unresolved)
-
-        return resolved, unresolved
-
-
-    def resolve_networks(self, query_entities):
-        resolved, unresolved = self._resolve_with_cache(query_entities, "network", self.network_cache)
-
-        for entity in unresolved[:]:
-            fallback_resolved, fallback_unresolved = self._retry_entity_as_fallback_type(entity, "company", self.company_cache)
-            resolved.extend(fallback_resolved)
-            unresolved.remove(entity)
-            unresolved.extend(fallback_unresolved)
-
-        return resolved, unresolved
-
-    def resolve_companies(self, query_entities):
-        return self._resolve_with_cache(query_entities, "company", self.company_cache)
-
-    def _resolve_with_cache(self, query_entities, entity_type, cache):
-        resolved, unresolved = [], []
-        for entity in query_entities:
-            if entity.get("type") != entity_type or "resolved_id" in entity:
-                continue
-
-            name = entity["name"]
-            print(f"🌐 Resolving {entity_type}: {name}")
-
-            if name in cache:
-                entity["resolved_id"] = cache[name]
-                print(f"✅ Cached {entity_type} '{name}' → {cache[name]}")
-                resolved.append(entity)
-                continue
-
-            try:
-                resp = requests.get(
-                    f"{self.base_url}/search/{entity_type}",
-                    params={"query": name},
-                    headers=self.headers,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                if data.get("results"):
-                    top_match = data["results"][0]
-                    entity["resolved_id"] = top_match["id"]
-                    entity["resolved_type"] = entity_type
-                    entity["resolved_as"] = "fallback" if entity.get("type") != entity_type else "direct"
-                    cache[name] = top_match["id"]
-                    print(f"✅ Resolved '{name}' → {top_match['id']}")
-                    resolved.append(entity)
+            elif ent_type in {"person", "movie", "tv", "collection", "company", "keyword", "network"}:
+                resolved_id = self.resolve_entity(name, ent_type)
+                if resolved_id:
+                    entity["resolved_id"] = resolved_id
+                    entity["resolved_type"] = ent_type
+                    resolved_entities.append(entity)
                 else:
-                    print(f"❌ No results for {entity_type} '{name}'")
-                    unresolved.append(entity)
-            except Exception as e:
-                print(f"❌ Error resolving {entity_type} '{name}': {e}")
-                unresolved.append(entity)
+                    unresolved_entities.append(entity)
 
-        return resolved, unresolved
-    
-    def _retry_entity_as_fallback_type(self, entity, fallback_type, cache):
-        name = entity["name"]
-        print(f"↪️ Retrying '{name}' as {fallback_type}...")
-
-        if name in cache:
-            entity["resolved_id"] = cache[name]
-            print(f"✅ Cached fallback {fallback_type} '{name}' → {cache[name]}")
-            return [entity], []
-
-        try:
-            resp = requests.get(
-                f"{self.base_url}/search/{fallback_type}",
-                params={"query": name},
-                headers=self.headers
-            )
-            resp.raise_for_status()
-            results = resp.json().get("results", [])
-            if results:
-                entity["resolved_id"] = results[0]["id"]
-                cache[name] = results[0]["id"]
-                print(f"✅ Resolved fallback '{name}' as {fallback_type} → {results[0]['id']}")
-                return [entity], []
             else:
-                return [], [entity]
-        except Exception as e:
-            print(f"❌ Fallback failed for {fallback_type} '{name}': {e}")
-            return [], [entity]
+                print(f"⚠️ Unknown entity type '{ent_type}' for entity '{name}'.")
+                unresolved_entities.append(entity)
+
+        return resolved_entities, unresolved_entities
+
