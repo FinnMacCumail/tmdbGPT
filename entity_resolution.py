@@ -12,6 +12,8 @@ class TMDBEntityResolver:
         self.base_url = "https://api.themoviedb.org/3"
         self.genre_cache = {"movie": {}, "tv": {}}
         self.genre_cache_timestamp = None
+        self.network_cache = {}  # new
+        self.network_cache_timestamp = None
 
     def _refresh_genre_cache(self):
         if self.genre_cache["movie"] and self.genre_cache["tv"] and self.genre_cache_timestamp:
@@ -55,7 +57,7 @@ class TMDBEntityResolver:
 
 
     def resolve_entity(self, name: str, entity_type: str) -> int:
-        if entity_type in {"person", "movie", "tv", "collection", "company", "keyword", "network"}:
+        if entity_type in {"person", "movie", "tv", "collection", "company", "keyword"}:
             try:
                 response = requests.get(
                     f"{self.base_url}/search/{entity_type}",
@@ -80,9 +82,71 @@ class TMDBEntityResolver:
             except Exception as e:
                 print(f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
 
+        elif entity_type == "network":
+            self._refresh_network_cache()
+            lower_name = name.strip().lower()
+
+            # 1. Exact match first
+            if lower_name in self.network_cache:
+                network_id = self.network_cache[lower_name]
+                print(f"✅ Resolved network '{name}' → {network_id} (from cache)")
+                return network_id
+
+            # 2. Fuzzy match second
+            for cached_name, nid in self.network_cache.items():
+                if lower_name in cached_name or cached_name in lower_name:
+                    print(f"⚡ Fuzzy matched network '{name}' → '{cached_name}' → {nid}")
+                    return nid
+
+            # 3. Fallback to /search/network API
+            try:
+                response = requests.get(
+                    f"{self.base_url}/search/network",
+                    headers=self.headers,
+                    params={"query": name},
+                )
+                response.raise_for_status()
+                results = response.json().get("results", [])
+                for item in results:
+                    label = item.get("name")
+                    if label and lower_name in label.lower():
+                        print(f"⚡ Fuzzy matched via search: '{name}' → '{label}'")
+                        return item.get("id")
+                if results:
+                    fallback_id = results[0].get("id")
+                    print(f"⚠️ Fallback resolution for network '{name}' → {fallback_id}")
+                    return fallback_id
+                print(f"❌ No network results for '{name}'")
+            except Exception as e:
+                print(f"❌ Failed to resolve network '{name}': {e}")
+
         return None
 
+
     def resolve_entities(self, query_entities, intended_media_type="movie"):
+
+        dynamic_services = {"netflix", "amazon prime", "prime video", "hulu", "disney+", "apple tv", "peacock", "paramount+"}
+        always_network_services = {"hbo", "starz"}
+
+        for entity in query_entities:
+            ent_type = entity.get("type")
+            name = entity.get("name", "")
+
+            name_lower = name.lower().strip()
+
+            # --- 📦 Dynamic correction ---
+            if name_lower in dynamic_services:
+                if intended_media_type == "tv":
+                    print(f"🔁 Correcting '{name}' type dynamically during resolution: TV detected → network")
+                    entity["type"] = "network"
+                else:
+                    print(f"🔁 Correcting '{name}' type dynamically during resolution: Movie detected → company")
+                    entity["type"] = "company"
+                entity["resolved_as"] = "dynamic"
+            elif name_lower in always_network_services:
+                entity["type"] = "network"
+                entity["resolved_as"] = "static"
+
         resolved_entities = []
         unresolved_entities = []
 
@@ -115,4 +179,44 @@ class TMDBEntityResolver:
                 unresolved_entities.append(entity)
 
         return resolved_entities, unresolved_entities
+    
+    def _refresh_network_cache(self):
+        if self.network_cache and self.network_cache_timestamp:
+            if datetime.now() - self.network_cache_timestamp < timedelta(hours=24):
+                return
+
+        print("🔄 Refreshing TMDB network cache...")
+
+        self.network_cache = {}
+
+        # Manual list of well-known network IDs (Netflix, Hulu, Disney+ etc.)
+        known_network_ids = [
+            213,    # Netflix
+            1024,   # Amazon Prime Video
+            2739,   # Disney+
+            453,    # Hulu
+            3353,   # Apple TV+
+            3350,   # Peacock
+            2076,   # Paramount+
+            49,     # HBO
+            3186,   # Starz
+        ]
+
+        for nid in known_network_ids:
+            url = f"{self.base_url}/network/{nid}"
+            try:
+                response = requests.get(url, headers=self.headers)
+                if response.status_code == 200:
+                    network = response.json()
+                    name = network.get("name", "").strip().lower()
+                    if name:
+                        self.network_cache[name] = nid
+                        print(f"✅ Cached network '{name}' → {nid}")
+                else:
+                    print(f"⚠️ Failed to fetch network {nid} (status {response.status_code})")
+            except Exception as e:
+                print(f"⚠️ Error fetching network {nid}: {e}")
+
+        self.network_cache_timestamp = datetime.now()
+
 
