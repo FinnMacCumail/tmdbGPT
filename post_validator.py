@@ -13,7 +13,41 @@ class PostValidator:
             member["job"] == "Director" and member["name"].lower() == director_name.lower()
             for member in crew
         )
+    
+    # Phase 20 Role-Aware Multi-Entity Planning and Execution
+    @staticmethod
+    def has_writer(credits: Dict, writer_name: str) -> bool:
+        crew = credits.get("crew", [])
+        return any(
+            member["job"].lower() in {"writer", "screenplay"} and member["name"].lower() == writer_name.lower()
+            for member in crew
+        )
 
+    @staticmethod
+    def has_producer(credits: Dict, producer_name: str) -> bool:
+        crew = credits.get("crew", [])
+        return any(
+            "producer" in member["job"].lower() and member["name"].lower() == producer_name.lower()
+            for member in crew
+        )
+
+    @staticmethod
+    def has_composer(credits: Dict, composer_name: str) -> bool:
+        crew = credits.get("crew", [])
+        return any(
+            member["job"].lower() in {"composer", "music", "score"} and member["name"].lower() == composer_name.lower()
+            for member in crew
+        )
+    
+    # 🧩 NEW: Dynamic Role Validator Mapping - # Phase 20 Role-Aware Multi-Entity Planning and Execution
+    ROLE_VALIDATORS = {
+        "cast": has_all_cast.__func__,
+        "director": has_director.__func__,
+        "writer": has_writer.__func__,
+        "producer": has_producer.__func__,
+        "composer": has_composer.__func__,
+    }
+   
     @staticmethod
     def meets_runtime(movie_data: Dict, min_minutes: int = None, max_minutes: int = None) -> bool:
         runtime = movie_data.get("runtime")
@@ -32,37 +66,58 @@ class PostValidator:
         found_ids = [g["id"] for g in movie_data.get("genres", [])]
         return any(gid in found_ids for gid in genre_ids)
 
-    # 🧩 NEW: Dynamic Role Validator Mapping
-    ROLE_VALIDATORS = {
-        "cast": has_all_cast.__func__,
-        "director": has_director.__func__,
-        # Placeholder: if you add more validators (writer, composer, producer), map them here
-    }
-
     # 🧩 NEW: Flexible Role Validation Function
     @staticmethod
-    def validate_roles(result, query_entities):
-        """
-        Validate if cast or director matches any person entity.
-        """
-        credits = result.get("credits", {})
+    def validate_roles(credits: Dict, query_entities: List[Dict]) -> Dict[str, bool]:
+        role_results = {}
         cast_list = credits.get("cast", [])
         crew_list = credits.get("crew", [])
 
         for entity in query_entities:
-            if entity.get("type") == "person":
-                person_name = entity.get("name", "").lower()
-                role = entity.get("role", "actor")  # Default to actor
+            if entity.get("type") != "person":
+                continue
 
-                if role == "actor":
-                    if any(person_name in (member.get("name", "").lower()) for member in cast_list):
-                        return True
-                elif role == "director":
-                    if any(person_name in (member.get("name", "").lower()) and member.get("job", "").lower() == "director" for member in crew_list):
-                        return True
+            person_name = entity.get("name", "").lower()
+            person_id = entity.get("resolved_id")
+            role = entity.get("role", "actor")  # default to cast
 
-        return False
-    
+            if role == "cast" or role == "actor":
+                passed = any(
+                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    for member in cast_list
+                )
+            elif role == "director":
+                passed = any(
+                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    and member.get("job", "").lower() == "director"
+                    for member in crew_list
+                )
+            elif role == "writer":
+                passed = any(
+                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    and member.get("job", "").lower() in {"writer", "screenplay"}
+                    for member in crew_list
+                )
+            elif role == "producer":
+                passed = any(
+                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    and "producer" in member.get("job", "").lower()
+                    for member in crew_list
+                )
+            elif role == "composer":
+                passed = any(
+                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    and ("composer" in member.get("job", "").lower() or "music" in member.get("job", "").lower())
+                    for member in crew_list
+                )
+            else:
+                passed = False
+
+            key = f"{role}_{person_id}"
+            role_results[key] = passed
+
+        return role_results
+
     @staticmethod
     def score_role_validation(role_results: Dict[str, bool]) -> float:
         """
@@ -234,3 +289,6 @@ class ResultScorer:
         passed = sum(1 for v in validations.values() if v)
         total = len(validations)
         return round(passed / total, 2)
+    
+    
+
