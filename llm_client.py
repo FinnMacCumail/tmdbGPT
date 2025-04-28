@@ -4,6 +4,7 @@ from openai import OpenAI
 import os
 import json
 
+# candidate for redundancy
 # 🔹 NEW: Simple inlined Role Lexicon
 ROLE_ALIASES = {
     "directed by": "director",
@@ -17,6 +18,7 @@ ROLE_ALIASES = {
     "performance by": "cast",
 }
 
+# candidate for redundancy
 def infer_role_from_query(query: str) -> str:
     query_lower = query.lower()
     for phrase, role in ROLE_ALIASES.items():
@@ -24,15 +26,14 @@ def infer_role_from_query(query: str) -> str:
             return role
     return "cast"  # Safe fallback
 
-# For unit testing of phase 1 to be deleted
-REQUIRED_EXTRACTION_KEYS = {"query_entities", "intents", "entities", "question_type", "response_format"}
-
-def validate_extraction_schema(extraction: dict) -> bool:
-    missing = REQUIRED_EXTRACTION_KEYS - extraction.keys()
-    if missing:
-        raise ValueError(f"Extraction missing keys: {missing}")
-    return True
-
+def infer_media_type_from_query(query: str) -> str:
+    query_lower = query.lower()
+    if "tv show" in query_lower or "series" in query_lower:
+        return "tv"
+    elif "movie" in query_lower or "film" in query_lower:
+        return "movie"
+    else:
+        return "both"
 
 class OpenAILLMClient:
     def __init__(self):
@@ -132,6 +133,9 @@ class OpenAILLMClient:
                     entity["role"] = inferred_role
                     print(f"🔎 Inferred missing role for '{entity['name']}': {inferred_role}")
 
+            # phase 19.9 - Media Type Enforcement Baseline
+            result["media_type"] = infer_media_type_from_query(query)
+            print(f"🎥 Inferred media type: {result['media_type']}")
             return result
 
         except Exception as e:
