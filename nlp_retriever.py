@@ -279,46 +279,132 @@ class RerankPlanning:
 class ResultExtractor:
     @staticmethod
     def extract(endpoint: str, json_data: dict, resolved_entities: dict = None) -> list:
-        if "movie_credits" in endpoint:
-            movie_credits = json_data.get("cast", [])
-            return [
-                {"type": "movie_summary", "title": movie.get("title"), "source": endpoint}
-                for movie in movie_credits
-            ]
-        summaries = []
         resolved_entities = resolved_entities or {}
+
+        if not json_data:
+            return []
+
+        if "movie_credits" in endpoint or "tv_credits" in endpoint:
+            return ResultExtractor._extract_credits(json_data, endpoint)
+
+        if "/discover/" in endpoint:
+            return ResultExtractor._extract_discovery(json_data, endpoint)
+
+        if "/search/person" in endpoint:
+            return ResultExtractor._extract_search_person(json_data)
+
+        if "/person/" in endpoint and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"]):
+            return ResultExtractor._extract_person_profile(json_data)
+
+        if "/company/" in endpoint or "/network/" in endpoint:
+            return ResultExtractor._extract_company_or_network(json_data)
+
+        return ResultExtractor._extract_generic(json_data, endpoint)
+
+    @staticmethod
+    def _extract_discovery(json_data, endpoint):
+        summaries = []
+        results = json_data.get("results", [])
+
+        for item in results:
+            title = item.get("title") or item.get("name", "Untitled")
+            overview = item.get("overview") or "No synopsis available."
+            score = item.get("vote_average", 0) / 10.0
+            release_date = item.get("release_date") or item.get("first_air_date")
+
+            summaries.append({
+                "type": "movie_summary",
+                "title": title,
+                "overview": overview.strip(),
+                "source": endpoint,
+                "final_score": round(score, 2),
+                "release_date": release_date
+            })
+
+        return summaries
+
+    @staticmethod
+    def _extract_search_person(json_data):
+        summaries = []
+        seen = set()
+        results = json_data.get("results", [])
+
+        for result in results:
+            name = result.get("name", "").strip()
+            if name.lower() in seen:
+                continue
+            seen.add(name.lower())
+
+            known_for = result.get("known_for", [])
+            known_titles = [
+                k.get("title") or k.get("name")
+                for k in known_for if isinstance(k, dict) and (k.get("title") or k.get("name"))
+            ]
+
+            overview = f"Known for: {', '.join(known_titles)}" if known_titles else "No major known works."
+
+            summaries.append({
+                "type": "person_profile",
+                "title": name,
+                "overview": overview,
+                "source": "/search/person"
+            })
+
+        return summaries
+
+    @staticmethod
+    def _extract_credits(json_data, endpoint):
+        summaries = []
+        cast_and_crew = json_data.get("cast", []) + json_data.get("crew", [])
+
+        for entry in cast_and_crew:
+            title = entry.get("title") or entry.get("name", "Untitled")
+            overview = entry.get("character") or entry.get("job") or "No description"
+            release_date = entry.get("release_date") or entry.get("first_air_date")
+
+            summaries.append({
+                "type": "movie_summary",
+                "title": title,
+                "overview": overview.strip(),
+                "source": endpoint,
+                "release_date": release_date,
+                "final_score": 1.0
+            })
+
+        return summaries
+
+    @staticmethod
+    def _extract_person_profile(json_data):
+        name = json_data.get("name", "Unknown")
+        bio = json_data.get("biography", "No biography available.")
+
+        return [{
+            "type": "person_profile",
+            "title": name,
+            "overview": bio.strip(),
+            "source": "/person/profile",
+            "final_score": 1.0
+        }]
+
+    @staticmethod
+    def _extract_company_or_network(json_data):
+        name = json_data.get("name", "Unknown")
+        description = json_data.get("description", "No description available.")
+
+        return [{
+            "type": "company_profile",
+            "title": name,
+            "overview": description.strip(),
+            "source": "/company_or_network/profile",
+            "final_score": 1.0
+        }]
+
+    @staticmethod
+    def _extract_generic(json_data, endpoint):
+        summaries = []
         seen = set()
 
-        print(f"📊 Top-level keys in response: {list(json_data.keys())}")
-        for k, v in json_data.items():
-            print(f"  → {k}: {type(v)}")
-
-        # --- Special Case: /search/person
-        if "/search/person" in endpoint:
-            for result in json_data.get("results", []):
-                name = result.get("name", "").strip()
-                if name.lower() in seen:
-                    continue
-                seen.add(name.lower())
-
-                known_for = result.get("known_for", [])
-                known_titles = [
-                    k.get("title") or k.get("name")
-                    for k in known_for if isinstance(k, dict)
-                    and (k.get("title") or k.get("name"))
-                ]
-                if not known_titles:
-                    continue
-
-                summaries.append({
-                    "type": "movie_summary",
-                    "title": name,
-                    "overview": f"Known for: {', '.join(known_titles)}",
-                    "source": endpoint
-                })
-            return summaries
-
-        # --- General Case: Extract from list-based responses
+        # --- General List-based fallback ---
         candidate_lists = [
             v for v in json_data.values() if isinstance(v, list)
         ]
@@ -331,38 +417,20 @@ class ResultExtractor:
                     continue
 
                 title = item.get("title") or item.get("name", "Untitled")
-                overview = (
-                    item.get("overview")
-                    or item.get("job")
-                    or item.get("character")
-                    or item.get("description")
-                    or "No synopsis available."
-                )
-
-                if not title and not overview:
-                    continue
-
-                # ✅ Set result_type dynamically
-                if "/keywords" in endpoint:
-                    result_type = "keyword_summary"
-                elif "/person/" in endpoint and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"]):
-                    result_type = "person_profile"
-                else:
-                    result_type = "movie_summary"
-
-                score = float(item.get("vote_average", 0)) / 10.0  # Normalize to 0.0–1.0 scale
+                overview = item.get("overview") or item.get("job") or item.get("character") or item.get("description") or "No synopsis available."
+                score = item.get("vote_average", 0) / 10.0
                 release_date = item.get("release_date") or item.get("first_air_date")
 
                 summaries.append({
-                    "type": result_type,
-                    "title": title or "Untitled",
-                    "overview": str(overview).strip() or "No synopsis available.",
+                    "type": "movie_summary",
+                    "title": title,
+                    "overview": overview.strip(),
                     "source": endpoint,
                     "final_score": round(score, 2),
                     "release_date": release_date
                 })
 
-        # --- Flat dict fallback (for /person/{person_id} and others)
+        # --- Flat object fallback (for /person/{id} etc.) ---
         flat_title = json_data.get("title") or json_data.get("name")
         flat_overview = json_data.get("overview") or json_data.get("biography") or ""
 
@@ -373,11 +441,6 @@ class ResultExtractor:
             )
             profile_type = "person_profile" if is_person_profile else "movie_summary"
 
-            if is_person_profile:
-                print(f"👤 Adding person_profile for {flat_title}")
-            else:
-                print(f"🎬 Adding movie_summary for {flat_title}")
-
             summaries.append({
                 "type": profile_type,
                 "title": flat_title or "Untitled",
@@ -385,16 +448,34 @@ class ResultExtractor:
                 "source": endpoint,
                 "final_score": 1.0
             })
-        print(f"🎯 Endpoint for profile detection: {endpoint}")
-        return summaries    
+
+        return summaries
+   
 
     @staticmethod
+
     def post_filter_responses(responses, query_entities, extraction_result):
-        # Example: filter out entries without matching genres, people, etc
+        """
+        Post-filter responses only if necessary.
+        If the API step already filtered by genre/person/company, skip aggressive filtering.
+        """
         if not responses:
             return []
 
-        # Basic rule: if query has genre/person and response does not mention, downrank or skip
+        # ⚡ Check if original planning already injected strong filters (e.g., with_genres, with_people)
+        strong_filter_applied = False
+        applied_params = extraction_result.get("applied_parameters", {})
+        if applied_params:
+            strong_filter_applied = any(
+                key in applied_params
+                for key in ("with_genres", "with_people", "with_companies", "with_networks")
+            )
+
+        if strong_filter_applied:
+            print("⚡ Strong filters already applied in plan — skipping aggressive post-filtering.")
+            return responses  # ✅ Skip aggressive filtering if strong param filtering was applied.
+
+        # ✅ Otherwise fallback to textual entity matching
         genre_names = [e["name"].lower() for e in query_entities if e.get("type") == "genre"]
         person_names = [e["name"].lower() for e in query_entities if e.get("type") == "person"]
 
@@ -415,4 +496,5 @@ class ResultExtractor:
                 filtered.append(r)
 
         return filtered
+
      
