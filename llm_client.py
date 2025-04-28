@@ -103,6 +103,10 @@ class OpenAILLMClient:
             result.setdefault("question_type", "summary")
             result.setdefault("response_format", "summary")
 
+            # phase 19.9 - Media Type Enforcement Baseline
+            result["media_type"] = infer_media_type_from_query(query)
+            print(f"🎥 Inferred media type: {result['media_type']}")
+
             # ✅ Fallback correction for known streaming services
             streaming_services = {
                 "netflix": "company",
@@ -117,14 +121,31 @@ class OpenAILLMClient:
                 "starz": "network"
             }
 
+            # Dynamic streaming service correction
+            dynamic_services = {"netflix", "amazon prime", "prime video", "hulu", "disney+", "apple tv", "peacock", "paramount+"}
+            always_network_services = {"hbo", "starz"}
+
             for ent in result.get("query_entities", []):
                 name_lower = ent.get("name", "").strip().lower()
-                for keyword, corrected_type in streaming_services.items():
-                    if keyword in name_lower and ent.get("type") != corrected_type:
-                        print(f"🔁 Correcting '{ent['name']}' type: {ent['type']} → {corrected_type}")
-                        ent["type"] = corrected_type
-                        if corrected_type not in result.get("entities", []):
-                            result["entities"].append(corrected_type)
+
+                for keyword in streaming_services:
+                    if keyword in name_lower:
+                        if keyword in dynamic_services:
+                            # ✅ Correct logic:
+                            if result.get("media_type") == "tv":
+                                corrected_type = "network"
+                            else:
+                                corrected_type = "company"
+                        elif keyword in always_network_services:
+                            corrected_type = "network"
+                        else:
+                            corrected_type = streaming_services[keyword]
+
+                        if ent.get("type") != corrected_type:
+                            print(f"🔁 Correcting '{ent['name']}' type dynamically: {ent.get('type')} → {corrected_type}")
+                            ent["type"] = corrected_type
+                            if corrected_type not in result["entities"]:
+                                result["entities"].append(corrected_type)
 
             # ✅ Fallback: Ensure every person has a role, even if LLM missed it
             for entity in result.get("query_entities", []):
@@ -133,9 +154,7 @@ class OpenAILLMClient:
                     entity["role"] = inferred_role
                     print(f"🔎 Inferred missing role for '{entity['name']}': {inferred_role}")
 
-            # phase 19.9 - Media Type Enforcement Baseline
-            result["media_type"] = infer_media_type_from_query(query)
-            print(f"🎥 Inferred media type: {result['media_type']}")
+            
             return result
 
         except Exception as e:
