@@ -427,27 +427,32 @@ class ExecutionOrchestrator:
 
     
     def _handle_generic_response(self, step, step_id, path, json_data, state):
+        print(f"📥 Handling generic response for {path}...")
+
         summaries = ResultExtractor.extract(path, json_data, state.resolved_entities)
+        print(f"🔎 ResultExtractor.extract returned {len(summaries)} summaries for endpoint: {path}")
+
         query_entities = state.extraction_result.get("query_entities", [])
         role_tagged = any(e.get("role") for e in query_entities)
 
-        # Always apply fallback tagging first
+        # ✅ Always apply fallback tagging first
         if step.get("fallback_injected") and isinstance(json_data, dict) and "results" in json_data:
             print(f"♻️ Tagging fallback-injected results from {step['endpoint']}")
             for movie in json_data["results"]:
                 movie["final_score"] = 0.3
                 movie["source"] = step["endpoint"] + "_relaxed"
 
-        # 🧩 POST-FILTER RESULTS (Phase 19)
+        # ✅ Post-filter extracted summaries
         if summaries:
             filtered_summaries = ResultExtractor.post_filter_responses(
                 summaries,
                 query_entities=query_entities,
                 extraction_result=state.extraction_result
             )
-            summaries = filtered_summaries  # overwrite with filtered
+            print(f"🔎 Post-filtered to {len(filtered_summaries)} summaries after entity matching")
+            summaries = filtered_summaries
 
-        # 🎯 Phase 11.5: Dynamic Weighted Fallback
+        # 🎯 Phase 11.5: Dynamic Weighted Fallback check
         if summaries:
             low_score_results = [r for r in summaries if r.get("final_score", 0) < 0.5]
             if len(low_score_results) == len(summaries):
@@ -463,10 +468,11 @@ class ExecutionOrchestrator:
                 if fallback_step["step_id"] not in state.completed_steps:
                     state.plan_steps.insert(0, fallback_step)
                     print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
-                
-                state.completed_steps.append(step_id)
-                return  # 🛑 stop normal handling, fallback will now run
 
+                state.completed_steps.append(step_id)
+                return  # 🛑 Stop handling, fallback will now run
+
+        # ✅ Credit-specific validation for /credits endpoints
         if "credits" in path:
             if role_tagged:
                 print(f"🧪 Validating roles from credits for {step_id}")
@@ -479,37 +485,38 @@ class ExecutionOrchestrator:
                     state.responses.append({
                         "type": "movie_summary",
                         "title": "PLACEHOLDER",
-                        "overview": "Directed by ...",  # optional
+                        "overview": "Directed by ...",  # You could enhance this later
                         "source": path
                     })
                 else:
-                    print("❌ Role validation failed — but appending fallback summaries")
+                    print("❌ Role validation failed — appending fallback summaries")
                     if summaries:
                         state.responses.extend(summaries)
             else:
-                print("⚠️ No role specified — appending all extracted summaries")
+                print("⚠️ No role specified — appending extracted summaries")
                 if summaries:
-                    query_entities = state.extraction_result.get("query_entities", [])
-                    
                     for summary in summaries:
                         validations = ResultScorer.validate_entity_matches(summary, query_entities)
                         score = ResultScorer.score_matches(validations)
                         summary["final_score"] = max(summary.get("final_score", 0), score)
                         print(f"🎯 Validated {summary['title']} → Score: {summary['final_score']}")
 
-                    # ✅ After scoring all summaries
+                    # ✅ Append and sort
                     state.responses.extend(summaries)
-
                     if state.responses:
                         state.responses.sort(key=lambda r: r.get("final_score", 0), reverse=True)
                         print(f"✅ Responses sorted by final_score descending.")
         else:
+            # ✅ Default behavior for non-credits endpoints
             if summaries:
+                print(f"✅ Appending {len(summaries)} summaries to state.responses")
                 state.responses.extend(summaries)
 
+        # ✅ Log completion
         ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [], state=state)
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
+
 
     def _intersect_movie_ids_across_roles(self, state) -> set:
         """
