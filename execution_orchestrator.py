@@ -11,6 +11,7 @@ from fallback_handler import FallbackHandler, FallbackSemanticBuilder
 from post_validator import ResultScorer
 from response_formatter import QueryExplanationBuilder
 from plan_validator import SymbolicConstraintFilter
+from dependency_manager import DependencyManager
 
 class ExecutionOrchestrator:
     
@@ -163,8 +164,11 @@ class ExecutionOrchestrator:
             print(f"▶️ Popped step: {step_id}")
             print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
             if not state.plan_steps:
-                from dependency_manager import DependencyManager
+                
                 state = DependencyManager.analyze_dependencies(state)
+                # 🚀 NEW: inject lookup steps after role-based intersection
+                state = self._inject_lookup_steps_from_role_intersection(state)
+                
             if step_id in state.completed_steps:
                 print(f"✅ Skipping already completed step: {step_id}")
                 continue
@@ -535,38 +539,37 @@ class ExecutionOrchestrator:
 
 
     def _intersect_movie_ids_across_roles(self, state) -> set:
-        """
-        After executing dependency steps, find movies that appear across multiple entities' steps.
-        Loops through dependency steps, Collects movie IDs, Performs set intersection, Returns the movies that satisfy all entity constraints.
-        """
-        print("\n🔍 Intersecting movie IDs across resolved dependency steps...")
         movie_sets = []
-        step_sources = []
+        role_map = {}  # step_id → expected role
 
         for step_id in state.completed_steps:
-            if not step_id.startswith("step_cast_") and not step_id.startswith("step_director_") and not step_id.startswith("step_network_") and not step_id.startswith("step_company_"):
+            step = ...  # retrieve step definition if needed
+            if not step_id.startswith(("step_cast_", "step_director_", "step_writer_", "step_producer_", "step_composer_")):
                 continue
-            
-            step_data = state.data_registry.get(step_id, {})
+
+            role = step.get("role", "cast")  # fallback to cast
+
+            result = state.data_registry.get(step_id, {})
             ids = set()
 
-            for movie in step_data.get("cast", []) + step_data.get("crew", []):
-                movie_id = movie.get("id")
-                if movie_id:
-                    ids.add(movie_id)
+            if role in {"cast", "actor"}:
+                ids.update(m.get("id") for m in result.get("cast", []) if m.get("id"))
+            else:
+                ids.update(
+                    m.get("id") for m in result.get("crew", [])
+                    if m.get("id") and m.get("job", "").lower() == role
+                )
 
             if ids:
                 movie_sets.append(ids)
-                step_sources.append(step_id)
-                print(f"📦 {step_id} produced {len(ids)} movie IDs.")
+                role_map[step_id] = role
 
         if len(movie_sets) < 2:
-            print("⚠️ Not enough entity sources to perform intersection.")
             return set()
 
         intersection = set.intersection(*movie_sets)
-        print(f"✅ Found {len(intersection)} common movies across {len(step_sources)} steps.")
 
+        print(f"🎯 Intersected movie IDs across roles: {intersection}")
         return intersection
     
     def _inject_validation_steps(self, state, intersected_ids: set) -> None:
@@ -619,7 +622,102 @@ class ExecutionOrchestrator:
 
         print(f"🛑 No intersection or valid steps — fallback needed.")
         return False
+    
+    def _inject_lookup_steps_from_role_intersection(self, state):
+        """
+        After dependency steps (credits) are completed,
+        intersect movies/tv across roles,
+        inject lookup steps accordingly,
+        or fallback gracefully if intersection is empty.
+        """
+        intersection = self._intersect_movie_ids_across_roles(state)
+        intended_type = getattr(state, "intended_media_type", "both") or "both"
 
+        found_movies = intersection["movie_ids"]
+        found_tv = intersection["tv_ids"]
+
+        if not found_movies and not found_tv:
+            # 🚨 No intersection found — trigger fallback
+            print("⚠️ No common movies or TV shows found across roles. Triggering fallback...")
+
+            from fallback_handler import FallbackHandler
+
+            fallback_step = FallbackHandler.generate_steps(
+                state.resolved_entities,
+                intents=state.extraction_result
+            )
+
+            # fallback_step is a list (wrap if necessary)
+            if isinstance(fallback_step, dict):
+                fallback_step = [fallback_step]
+
+            # Insert fallback step(s) at the front
+            for fs in reversed(fallback_step):
+                print(f"♻️ Injected fallback step: {fs.get('endpoint')}")
+                state.plan_steps.insert(0, fs)
+
+            # ✅ Optional: log this fallback in execution trace
+            from execution_orchestrator import ExecutionTraceLogger
+            ExecutionTraceLogger.log_step(
+                step_id="fallback_injected_after_empty_intersection",
+                path="(internal)",
+                status="Fallback Injected",
+                summary="No common movies/TV shows found; fallback discovery triggered.",
+                state=state
+            )
+
+            return state  # ✅ Done fallback, return early
+
+        # 🚀 Otherwise: inject lookups normally
+        if intended_type == "movie":
+            for movie_id in sorted(found_movies):
+                lookup_step = {
+                    "step_id": f"step_lookup_movie_{movie_id}",
+                    "endpoint": f"/movie/{movie_id}",
+                    "method": "GET",
+                    "produces": [],
+                    "requires": ["movie_id"]
+                }
+                print(f"🔎 Injected movie lookup step: {lookup_step}")
+                state.plan_steps.insert(0, lookup_step)
+
+        elif intended_type == "tv":
+            for tv_id in sorted(found_tv):
+                lookup_step = {
+                    "step_id": f"step_lookup_tv_{tv_id}",
+                    "endpoint": f"/tv/{tv_id}",
+                    "method": "GET",
+                    "produces": [],
+                    "requires": ["tv_id"]
+                }
+                print(f"🔎 Injected tv lookup step: {lookup_step}")
+                state.plan_steps.insert(0, lookup_step)
+
+        elif intended_type == "both":
+            if found_movies:
+                for movie_id in sorted(found_movies):
+                    lookup_step = {
+                        "step_id": f"step_lookup_movie_{movie_id}",
+                        "endpoint": f"/movie/{movie_id}",
+                        "method": "GET",
+                        "produces": [],
+                        "requires": ["movie_id"]
+                    }
+                    print(f"🔎 Injected movie lookup step: {lookup_step}")
+                    state.plan_steps.insert(0, lookup_step)
+            elif found_tv:
+                for tv_id in sorted(found_tv):
+                    lookup_step = {
+                        "step_id": f"step_lookup_tv_{tv_id}",
+                        "endpoint": f"/tv/{tv_id}",
+                        "method": "GET",
+                        "produces": [],
+                        "requires": ["tv_id"]
+                    }
+                    print(f"🔎 Injected tv lookup step: {lookup_step}")
+                    state.plan_steps.insert(0, lookup_step)
+
+        return state
 
 class ExecutionTraceLogger:
     @staticmethod
