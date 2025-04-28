@@ -1,6 +1,7 @@
 # fallback_handler.py
 from typing import Dict, List
 from copy import deepcopy
+from datetime import datetime
 
 class FallbackSemanticBuilder:
     @staticmethod
@@ -10,8 +11,9 @@ class FallbackSemanticBuilder:
         """
         intents = extraction_result.get("intents", [])
         query_entities = extraction_result.get("query_entities", [])
-
-        if any("tv" in intent.lower() for intent in intents):
+        # phase 19.9 - Media Type Enforcement Baseline
+        intended_type = extraction_result.get("media_type", "movie")
+        if intended_type == "tv":
             fallback_endpoint = "/discover/tv"
             year_param = "first_air_date_year"
         else:
@@ -42,8 +44,7 @@ class FallbackSemanticBuilder:
         if date_entities:
             fallback_step["parameters"][year_param] = date_entities[0]["name"]
         else:
-            # 🔥 Phase 19 improvement: default to last 5 years
-            from datetime import datetime
+            # 🔥 Phase 19 improvement: default to 5 years ago if no year extracted
             current_year = datetime.now().year
             fallback_step["parameters"][year_param] = str(current_year - 5)
 
