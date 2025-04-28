@@ -159,6 +159,16 @@ class ExecutionOrchestrator:
 
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
+            
+            # phase 19.9 - Media Type Enforcement Baseline
+            if state.intended_media_type and step.get("endpoint"):
+                if state.intended_media_type != "both":
+                    if "/tv" in step["endpoint"] and state.intended_media_type != "tv":
+                        print(f"⏭️ Skipping TV step {step['step_id']} for movie query.")
+                        continue
+                    if "/movie" in step["endpoint"] and state.intended_media_type != "movie":
+                        print(f"⏭️ Skipping Movie step {step['step_id']} for TV query.")
+                        continue
             step_id = step.get("step_id")
 
             # 🧩 pase 4 pgpv - NEW: Check if required entities are missing
