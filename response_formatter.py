@@ -26,17 +26,12 @@ class ResponseFormatter:
 
         enriched = []
         for r in responses:
-            
-            # phase 19.9 - Media Type Enforcement Baseline
-            badge = ""
-            if "tv" in r.get("source", "").lower():
-                badge += " 📺"
-            elif "movie" in r.get("source", "").lower():
-                badge += " 🎬"
-
             if isinstance(r, str):
+                # 🎯 NEW: Defensive handling for plain strings
                 enriched.append({"line": r, "score": 0.3})
-            elif isinstance(r, dict) and r.get("type") == "movie_summary":
+                continue
+
+            if isinstance(r, dict) and r.get("type") == "movie_summary":
                 title = r.get("title", "Untitled")
                 overview = r.get("overview", "")
                 score = r.get("final_score", 1.0)
