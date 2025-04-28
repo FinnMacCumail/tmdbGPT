@@ -30,18 +30,37 @@ class GenreNormalizer:
         "doc": "documentary",
         "biopic": "history",
         "kids": "family",
-        "animation": "animated",
+        "animation": "animation",
         "suspense": "thriller",
         "feel good": "comedy",
-        "fantasy epic": "fantasy"
+        "fantasy epic": "fantasy",
+    }
+
+    TV_GENRE_ALIASES = {
+        "sci-fi": "sci-fi & fantasy",
+        "scifi": "sci-fi & fantasy",
+        "science fiction": "sci-fi & fantasy",
+        "romcom": "comedy",
+        "dramedy": "comedy",
+        "action adventure": "action & adventure",
+        "doc": "documentary",
+        "biopic": "history",
+        "kids": "family",
+        "animation": "animation",
+        "suspense": "mystery",
+        "feel good": "comedy",
+        "fantasy epic": "sci-fi & fantasy",
     }
 
     @staticmethod
-    def normalize(name: str) -> str:
+    def normalize(name: str, media_type: str = "movie") -> str:
         name = name.strip().lower()
-        normalized = GenreNormalizer.GENRE_ALIASES.get(name, name)
+        if media_type == "tv":
+            normalized = GenreNormalizer.TV_GENRE_ALIASES.get(name, name)
+        else:
+            normalized = GenreNormalizer.GENRE_ALIASES.get(name, name)
         if name != normalized:
-            print(f"🎭 Normalized genre alias: '{name}' → '{normalized}'")
+            print(f"🎭 Normalized genre alias for {media_type}: '{name}' → '{normalized}'")
         return normalized
     
 class ParameterMapper:
