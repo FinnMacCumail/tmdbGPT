@@ -80,7 +80,8 @@ class OpenAILLMClient:
         "query_entities": [
             {{
             "name": "Full name or title of a specific person, movie, keyword, etc.",
-            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'rating', or 'date'"
+            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'rating', or 'date'",
+            "role": "Optional — Only for 'person' type. Role such as 'cast', 'director', 'writer', 'producer', or 'composer'. Default to 'cast' if uncertain."
             }}
         ],
             "question_type": "count | summary | timeline | comparison | fact | list",
@@ -91,6 +92,8 @@ class OpenAILLMClient:
         - Always include `query_entities` for specific names, actors, studios, genres, keywords, or titles mentioned.
         - Always assign a `type` to each `query_entity`. Use your best judgment based on the query.
         - Include all applicable `intents` and `entities`, even if no named `query_entity` is present.
+        - For 'person' entities, if you can infer the role from context (e.g., starring, directed by, written by), include a 'role' field.
+        - If the role is unclear, default role to 'cast'.
         - Use lowercase values for all types and intents.
         - If a query is vague or exploratory, fall back to general types (e.g., 'movie', 'genre').
         - Include rating values like 'above 7.5' as {{ "name": "7.5", "type": "rating" }}
@@ -152,10 +155,11 @@ class OpenAILLMClient:
 
             # phase 20 - Role-Aware Multi-Entity Planning and Execution
             for ent in result.get("query_entities", []):
-                if entity.get("type") == "person" and "role" not in entity:
-                    inferred_role = infer_role_for_entity(entity["name"], query)
-                    entity["role"] = inferred_role
-                    print(f"🔎 Smarter role inferred for '{entity['name']}': {inferred_role}")
+                if ent.get("type") == "person" and "role" not in ent:
+                    inferred_role = infer_role_for_entity(ent["name"], query)
+                    ent["role"] = inferred_role
+                    print(f"🔎 Smarter role inferred for '{ent['name']}': {inferred_role}")
+
                 name_lower = ent.get("name", "").strip().lower()
 
                 for keyword in streaming_services:
@@ -192,7 +196,10 @@ class OpenAILLMClient:
             return {
                 "intents": [],
                 "entities": [],
-                "query_entities": []
+                "query_entities": [],
+                "question_type": "summary",
+                "response_format": "summary",
+                "media_type": "both"
             }
         
     def get_focused_endpoints(self, query, symbolic_matches, question_type=None):
