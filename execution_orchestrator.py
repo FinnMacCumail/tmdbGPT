@@ -538,16 +538,30 @@ class ExecutionOrchestrator:
         print(f"✅ Step marked completed: {step_id}")
 
 
-    def _intersect_movie_ids_across_roles(self, state) -> set:
+    def _intersect_movie_ids_across_roles(self, state) -> dict:
+        """
+        Intersect movie IDs across completed steps per role.
+
+        Returns:
+            dict with "movie_ids" and "tv_ids" separately.
+        """
         movie_sets = []
-        role_map = {}  # step_id → expected role
+        tv_sets = []
 
         for step_id in state.completed_steps:
-            step = ...  # retrieve step definition if needed
-            if not step_id.startswith(("step_cast_", "step_director_", "step_writer_", "step_producer_", "step_composer_")):
-                continue
-
-            role = step.get("role", "cast")  # fallback to cast
+            # ✨ Infer role from step_id prefix
+            if step_id.startswith("step_cast_"):
+                role = "cast"
+            elif step_id.startswith("step_director_"):
+                role = "director"
+            elif step_id.startswith("step_writer_"):
+                role = "writer"
+            elif step_id.startswith("step_producer_"):
+                role = "producer"
+            elif step_id.startswith("step_composer_"):
+                role = "composer"
+            else:
+                continue  # Skip unrelated steps
 
             result = state.data_registry.get(step_id, {})
             ids = set()
@@ -562,15 +576,15 @@ class ExecutionOrchestrator:
 
             if ids:
                 movie_sets.append(ids)
-                role_map[step_id] = role
 
         if len(movie_sets) < 2:
-            return set()
+            return {"movie_ids": set(), "tv_ids": set()}
 
         intersection = set.intersection(*movie_sets)
 
         print(f"🎯 Intersected movie IDs across roles: {intersection}")
-        return intersection
+        return {"movie_ids": intersection, "tv_ids": set()}
+
     
     def _inject_validation_steps(self, state, intersected_ids: set) -> None:
         """
