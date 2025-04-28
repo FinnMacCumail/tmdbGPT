@@ -642,7 +642,8 @@ class ExecutionOrchestrator:
         After dependency steps (credits) are completed,
         intersect movies/tv across roles,
         inject lookup steps accordingly,
-        or fallback gracefully if intersection is empty.
+        or relax roles if needed,
+        or fallback gracefully if still empty.
         """
         intersection = self._intersect_movie_ids_across_roles(state)
         intended_type = getattr(state, "intended_media_type", "both") or "both"
@@ -651,38 +652,47 @@ class ExecutionOrchestrator:
         found_tv = intersection["tv_ids"]
 
         if not found_movies and not found_tv:
-            # 🚨 No intersection found — trigger fallback
-            print("⚠️ No common movies or TV shows found across roles. Triggering fallback...")
+            # 🚨 No intersection — try relaxing role constraints first
+            print("⚠️ No intersection found. Attempting to relax roles...")
+            relaxed_state = self._relax_roles_and_retry_intersection(state)
 
-            from fallback_handler import FallbackHandler
+            # After relaxing, retry intersection
+            relaxed_intersection = self._intersect_movie_ids_across_roles(relaxed_state)
+            found_movies = relaxed_intersection["movie_ids"]
+            found_tv = relaxed_intersection["tv_ids"]
 
-            fallback_step = FallbackHandler.generate_steps(
-                state.resolved_entities,
-                intents=state.extraction_result
-            )
+            if not found_movies and not found_tv:
+                # 🚨 Still nothing — trigger fallback
+                print("🛑 No matches after relaxing roles. Triggering fallback...")
 
-            # fallback_step is a list (wrap if necessary)
-            if isinstance(fallback_step, dict):
-                fallback_step = [fallback_step]
+                fallback_step = FallbackHandler.generate_steps(
+                    state.resolved_entities,
+                    intents=state.extraction_result
+                )
 
-            # Insert fallback step(s) at the front
-            for fs in reversed(fallback_step):
-                print(f"♻️ Injected fallback step: {fs.get('endpoint')}")
-                state.plan_steps.insert(0, fs)
+                if isinstance(fallback_step, dict):
+                    fallback_step = [fallback_step]
 
-            # ✅ Optional: log this fallback in execution trace
-            from execution_orchestrator import ExecutionTraceLogger
-            ExecutionTraceLogger.log_step(
-                step_id="fallback_injected_after_empty_intersection",
-                path="(internal)",
-                status="Fallback Injected",
-                summary="No common movies/TV shows found; fallback discovery triggered.",
-                state=state
-            )
+                for fs in reversed(fallback_step):
+                    print(f"♻️ Injected fallback step: {fs.get('endpoint')}")
+                    state.plan_steps.insert(0, fs)
 
-            return state  # ✅ Done fallback, return early
+                from execution_orchestrator import ExecutionTraceLogger
+                ExecutionTraceLogger.log_step(
+                    step_id="fallback_injected_after_role_relaxation",
+                    path="(internal)",
+                    status="Fallback Injected",
+                    summary="No matches after relaxing roles. Fallback discovery triggered.",
+                    state=state
+                )
 
-        # 🚀 Otherwise: inject lookups normally
+                return state
+
+            else:
+                # ✅ Intersection successful after relaxing
+                print(f"✅ Found intersection after relaxing roles: {found_movies or found_tv}")
+
+        # 🚀 Inject lookup steps
         if intended_type == "movie":
             for movie_id in sorted(found_movies):
                 lookup_step = {
@@ -730,6 +740,29 @@ class ExecutionOrchestrator:
                     }
                     print(f"🔎 Injected tv lookup step: {lookup_step}")
                     state.plan_steps.insert(0, lookup_step)
+
+        return state
+    
+    def _relax_roles_and_retry_intersection(self, state):
+        """
+        Relax stricter roles (e.g., director, writer) and retry intersection.
+        Prefer to keep 'cast' roles.
+        """
+        relaxed_steps = []
+        for step_id in list(state.completed_steps):
+            if step_id.startswith("step_director_") or step_id.startswith("step_writer_") or step_id.startswith("step_producer_"):
+                print(f"♻️ Dropping step {step_id} to relax strict role constraint.")
+                state.completed_steps.remove(step_id)
+                state.data_registry.pop(step_id, None)
+
+                from execution_orchestrator import ExecutionTraceLogger
+                ExecutionTraceLogger.log_step(
+                    step_id=step_id,
+                    path="(internal)",
+                    status="Role Relaxed",
+                    summary=f"Dropped role step: {step_id}",
+                    state=state
+                )
 
         return state
 
