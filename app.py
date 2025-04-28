@@ -84,7 +84,10 @@ def resolve_entities(state: AppState) -> AppState:
     query_entities = extraction.get("query_entities", [])    
 
     # ✅ Use multi-entity resolver
-    resolved_entities, unresolved_entities = entity_resolver.resolve_entities(query_entities)
+    resolved_entities, unresolved_entities = entity_resolver.resolve_entities(
+        query_entities,
+        intended_media_type=state.intended_media_type
+    )
 
     # TMDB-style format: {type_id: [ids]}
     resolved_by_type = {}
