@@ -164,10 +164,12 @@ class ExecutionOrchestrator:
             print(f"▶️ Popped step: {step_id}")
             print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
             if not state.plan_steps:
-                
-                state = DependencyManager.analyze_dependencies(state)
-                # 🚀 NEW: inject lookup steps after role-based intersection
-                state = self._inject_lookup_steps_from_role_intersection(state)
+                if not step.get("fallback_injected"):  # ✅ NEW: avoid fallback looping
+                    state = DependencyManager.analyze_dependencies(state)
+                    # 🚀 NEW: inject lookup steps after role-based intersection
+                    state = self._inject_lookup_steps_from_role_intersection(state)
+                else:
+                    print(f"🛑 Step {step.get('step_id')} is fallback-injected. Skipping dependency expansion and lookup injection.")
                 
             if step_id in state.completed_steps:
                 print(f"✅ Skipping already completed step: {step_id}")
@@ -472,68 +474,41 @@ class ExecutionOrchestrator:
             print(f"🔎 Post-filtered to {len(filtered_summaries)} summaries after entity matching")
             summaries = filtered_summaries
 
-        # 🎯 Phase 11.5: Dynamic Weighted Fallback check
-        if summaries:
-            low_score_results = [r for r in summaries if r.get("final_score", 0) < 0.5]
-            if len(low_score_results) == len(summaries):
-                print("⚠️ All top results scored low after reranking. Injecting semantic fallback...")
-                from fallback_handler import FallbackSemanticBuilder
+        # 🎯 NEW: Phase 20.4 — Role Validation for each summary
+        validated_summaries = []
+        for summary in summaries:
+            validations = ResultScorer.validate_entity_matches(summary, query_entities)
+            score = ResultScorer.score_matches(validations)
+            summary["final_score"] = max(summary.get("final_score", 0), score)
 
-                fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
-                    original_step=step,
-                    extraction_result=state.extraction_result,
-                    resolved_entities=state.resolved_entities
-                )
-
-                if fallback_step["step_id"] not in state.completed_steps:
-                    state.plan_steps.insert(0, fallback_step)
-                    print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
-
-                state.completed_steps.append(step_id)
-                return  # 🛑 Stop handling, fallback will now run
-
-        # ✅ Credit-specific validation for /credits endpoints
-        if "credits" in path:
-            if role_tagged:
-                print(f"🧪 Validating roles from credits for {step_id}")
-                results = PostValidator.validate_person_roles(json_data, query_entities)
-                cast_ok = results.get("cast_ok", False)
-                director_ok = results.get("director_ok", False)
-
-                if cast_ok or director_ok:
-                    print("✅ Role validation passed — generating movie_summary")
-                    state.responses.append({
-                        "type": "movie_summary",
-                        "title": "PLACEHOLDER",
-                        "overview": "Directed by ...",  # You could enhance this later
-                        "source": path
-                    })
-                else:
-                    print("❌ Role validation failed — appending fallback summaries")
-                    if summaries:
-                        state.responses.extend(summaries)
+            if summary["final_score"] >= 0.5:  # Only accept reasonable matches
+                validated_summaries.append(summary)
+                print(f"🎯 Validated {summary.get('title', 'Unknown')} → Score: {summary['final_score']}")
             else:
-                print("⚠️ No role specified — appending extracted summaries")
-                if summaries:
-                    for summary in summaries:
-                        validations = ResultScorer.validate_entity_matches(summary, query_entities)
-                        score = ResultScorer.score_matches(validations)
-                        summary["final_score"] = max(summary.get("final_score", 0), score)
-                        print(f"🎯 Validated {summary['title']} → Score: {summary['final_score']}")
+                print(f"⚠️ Low score ({summary['final_score']}) for {summary.get('title', 'Unknown')} — skipping.")
 
-                    # ✅ Append and sort
-                    state.responses.extend(summaries)
-                    if state.responses:
-                        state.responses.sort(key=lambda r: r.get("final_score", 0), reverse=True)
-                        print(f"✅ Responses sorted by final_score descending.")
-        else:
-            # ✅ Default behavior for non-credits endpoints
-            if summaries:
-                print(f"✅ Appending {len(summaries)} summaries to state.responses")
-                state.responses.extend(summaries)
+        # 🛡 Optional: if no validated results, fallback
+        if not validated_summaries:
+            print(f"🛑 No high-quality results after validation for {step_id}. Injecting fallback...")
+
+            fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
+                original_step=step,
+                extraction_result=state.extraction_result,
+                resolved_entities=state.resolved_entities
+            )
+
+            if fallback_step["step_id"] not in state.completed_steps:
+                state.plan_steps.insert(0, fallback_step)
+                print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
+
+            state.completed_steps.append(step_id)
+            return  # Stop handling this batch
+
+        # ✅ Append validated summaries
+        state.responses.extend(validated_summaries)
 
         # ✅ Log completion
-        ExecutionTraceLogger.log_step(step_id, path, "Handled", summaries[:1] if summaries else [], state=state)
+        ExecutionTraceLogger.log_step(step_id, path, "Handled", validated_summaries[:1] if validated_summaries else [], state=state)
         state.completed_steps.append(step_id)
         print(f"✅ Step marked completed: {step_id}")
 
@@ -745,22 +720,55 @@ class ExecutionOrchestrator:
     
     def _relax_roles_and_retry_intersection(self, state):
         """
-        Relax stricter roles (e.g., director, writer) and retry intersection.
-        Prefer to keep 'cast' roles.
+        Relax stricter roles (director, writer, etc.) first.
+        After dropping strict roles, retry intersection.
+        Only if still no matches, reluctantly drop cast (actor) roles.
         """
-        relaxed_steps = []
+        relaxed_roles = []
+        if not hasattr(state, "relaxed_parameters"):
+            state.relaxed_parameters = []
+
+        # 1️⃣ Drop stricter crew roles first
+        for role_prefix in ["step_director_", "step_writer_", "step_producer_", "step_composer_"]:
+            for step_id in list(state.completed_steps):
+                if step_id.startswith(role_prefix):
+                    print(f"♻️ Dropping step {step_id} to relax strict crew role constraint.")
+                    state.completed_steps.remove(step_id)
+                    state.data_registry.pop(step_id, None)
+                    role_name = role_prefix.replace("step_", "").replace("_", "")
+                    
+                    if not hasattr(state, "relaxed_parameters"):
+                        state.relaxed_parameters = []
+                    state.relaxed_parameters.append(role_name)
+                    
+                    from execution_orchestrator import ExecutionTraceLogger
+                    ExecutionTraceLogger.log_step(
+                        step_id=step_id,
+                        path="(internal)",
+                        status="Role Relaxed",
+                        summary=f"Dropped strict crew role step: {step_id}",
+                        state=state
+                    )
+
+        # 2️⃣ Retry intersection after dropping strict crew roles
+        intersection = self._intersect_movie_ids_across_roles(state)
+        if intersection["movie_ids"] or intersection["tv_ids"]:
+            print(f"✅ Successful intersection after relaxing strict roles: {intersection}")
+            return state
+
+        # 3️⃣ If still no matches, reluctantly drop cast (actor) roles
         for step_id in list(state.completed_steps):
-            if step_id.startswith("step_director_") or step_id.startswith("step_writer_") or step_id.startswith("step_producer_"):
-                print(f"♻️ Dropping step {step_id} to relax strict role constraint.")
+            if step_id.startswith("step_cast_"):
+                print(f"⚠️ Dropping step {step_id} (cast) to relax actor constraint.")
                 state.completed_steps.remove(step_id)
                 state.data_registry.pop(step_id, None)
-
+                relaxed_roles.append("cast")
                 from execution_orchestrator import ExecutionTraceLogger
                 ExecutionTraceLogger.log_step(
                     step_id=step_id,
                     path="(internal)",
-                    status="Role Relaxed",
-                    summary=f"Dropped role step: {step_id}",
+                    status="Role Relaxed (Cast)",
+                    summary=f"Dropped actor step: {step_id}",
                     state=state
                 )
 
