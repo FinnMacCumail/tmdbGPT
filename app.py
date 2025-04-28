@@ -125,10 +125,24 @@ def retrieve_context(state: AppState) -> AppState:
 def plan(state: AppState) -> AppState:
     print("→ running node: PLAN")
 
-    # ✅ Inject the query text into resolved_entities for semantic parameter inference - phase2.2 pgpv
+    # Phase 1: Inject the query text into resolved_entities - phase2.2 pgpv
     if "input" in state.__dict__:  # (in case state.input exists)
         state.resolved_entities["__query"] = state.input
+    
+    # Phase 2: Rerank semantic matches using resolved entities
+    ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
+    
+    # Phase 3: Apply Symbolic Constraints
+    ranked_matches = SymbolicConstraintFilter.apply(
+        ranked_matches,
+        extraction_result=state.extraction_result,
+        resolved_entities=state.resolved_entities
+    )
 
+    # Phase 4: Filter to executable steps
+    feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
+
+    # phase 19.9 - Media Type Enforcement Baseline
     intended_type = state.intended_media_type
     if intended_type:
         feasible = [
@@ -136,27 +150,15 @@ def plan(state: AppState) -> AppState:
             if intended_type == "both" or (step.get("endpoint", "").startswith(f"/discover/{intended_type}"))
         ]
         print(f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
-    
-    # Phase 1: Rerank semantic matches using resolved entities
-    ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
-    
-    ranked_matches = SymbolicConstraintFilter.apply(
-        ranked_matches,
-        extraction_result=state.extraction_result,
-        resolved_entities=state.resolved_entities
-    )
 
-    # Phase 2: Filter to executable steps
-    feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
-
-    # Phase 3: Convert to execution-ready step format
+    # Phase 5: Convert to execution-ready step format
     execution_steps = convert_matches_to_execution_steps(
         feasible, 
         state.extraction_result, 
         state.resolved_entities
     )
 
-    # phase 2.2 of pggv--- Optional Enrichment: Suggest semantic parameters if query is vague ---
+    # Phase 6 - phase 2.2 of pggv--- Optional Enrichment: Suggest semantic parameters if query is vague ---
     plan_validator = PlanValidator()
     optional_params = plan_validator.infer_semantic_parameters(state.input)
 
@@ -172,7 +174,7 @@ def plan(state: AppState) -> AppState:
     print(f"💡 Smart enrichment added: {[p for p in optional_params if p in SAFE_OPTIONAL_PARAMS]}")
 
 
-    # Phase 4: Deduplicate steps based on endpoint + parameter signature
+    # Phase 7: Deduplicate steps based on endpoint + parameter signature
     seen = set()
     deduped_steps = []
 
@@ -184,7 +186,7 @@ def plan(state: AppState) -> AppState:
         else:
             print(f"🔁 Skipping duplicate step: {step['endpoint']} with same parameters")
 
-    # Phase 5: Filter out low-signal noisy loops
+    # Phase 8: Filter out low-signal noisy loops
     signal_steps = []
     for step in deduped_steps:
         endpoint = step["endpoint"]
@@ -200,7 +202,7 @@ def plan(state: AppState) -> AppState:
 
     combined_steps = signal_steps
 
-    # Phase 6: Show final execution plan or fallback
+    # Phase 9: Show final execution plan or fallback
     print("\n🧭 Final Execution Plan:")
     for s in combined_steps:
         print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
