@@ -161,6 +161,14 @@ def plan(state: AppState) -> AppState:
         state.resolved_entities
     )
 
+    applied_parameters = {}
+    for step in execution_steps:
+        params = step.get("parameters", {})
+        for key in params:
+            applied_parameters[key] = True  # just record existence
+
+    state.extraction_result["applied_parameters"] = applied_parameters
+
     # Phase 6 - phase 2.2 of pggv--- Optional Enrichment: Suggest semantic parameters if query is vague ---
     plan_validator = PlanValidator()
     optional_params = plan_validator.infer_semantic_parameters(state.input)
