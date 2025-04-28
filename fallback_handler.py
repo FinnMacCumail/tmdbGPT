@@ -65,34 +65,62 @@ class FallbackSemanticBuilder:
 
 class FallbackHandler:
     @staticmethod
-    def generate_steps(entities: Dict, intents: Dict) -> List[Dict]:  # Remove query_type
-        """Create fallback steps based on available entities"""
+    def generate_steps(entities: Dict, intents: Dict) -> List[Dict]:
+        """Create fallback steps based on available entities."""
         steps = []
-        
-        # Entity priority: person > movie > tv > genre
+
+        # Entity priority: person > movie > genre > general discover
         if 'person_id' in entities:
-            steps.append({
-                "step_id": "fallback_person",
-                "endpoint": f"/person/{entities['person_id']}",
-                "method": "GET"
-            })
+            person_ids = entities['person_id']
+            if isinstance(person_ids, list) and person_ids:
+                fallback_person_id = str(person_ids[0])  # Use only the first person
+            elif isinstance(person_ids, int):
+                fallback_person_id = str(person_ids)
+            else:
+                fallback_person_id = None
+
+            if fallback_person_id:
+                steps.append({
+                    "step_id": f"fallback_discover_movie_{fallback_person_id}",
+                    "endpoint": "/discover/movie",
+                    "method": "GET",
+                    "parameters": {
+                        "with_people": fallback_person_id
+                    },
+                    "fallback_injected": True
+                })
+                return steps
+
         elif 'movie_id' in entities:
-            steps.append({
-                "step_id": "fallback_movie",
-                "endpoint": f"/movie/{entities['movie_id']}",
-                "method": "GET"
-            })
-        else:
-            steps.append({
-                "step_id": "fallback_discover",
-                "endpoint": "/discover/movie",
-                "method": "GET",
-                "parameters": {
-                    "sort_by": "popularity.desc",
-                    "page": 1
-                },
-                "fallback_injected": True  # ✅ Add this flag
-            })
+            movie_ids = entities['movie_id']
+            if isinstance(movie_ids, list) and movie_ids:
+                fallback_movie_id = str(movie_ids[0])
+            elif isinstance(movie_ids, int):
+                fallback_movie_id = str(movie_ids)
+            else:
+                fallback_movie_id = None
+
+            if fallback_movie_id:
+                steps.append({
+                    "step_id": f"fallback_movie_{fallback_movie_id}",
+                    "endpoint": f"/movie/{fallback_movie_id}",
+                    "method": "GET",
+                    "fallback_injected": True
+                })
+                return steps
+
+        # Default fallback
+        steps.append({
+            "step_id": "fallback_discover_general",
+            "endpoint": "/discover/movie",
+            "method": "GET",
+            "parameters": {
+                "sort_by": "popularity.desc",
+                "page": 1
+            },
+            "fallback_injected": True
+        })
+
         return steps
 
     @staticmethod
