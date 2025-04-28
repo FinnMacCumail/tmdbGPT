@@ -33,22 +33,50 @@ def infer_role_for_entity(name: str, query: str) -> str:
     query_lower = query.lower()
     name_lower = name.lower()
 
-    # Find where the name appears
     idx = query_lower.find(name_lower)
     if idx == -1:
         return "cast"  # fallback
 
-    # Look around the name ±20 characters
-    window = 20
-    start = max(0, idx - window)
-    end = min(len(query_lower), idx + len(name_lower) + window)
-    surrounding_text = query_lower[start:end]
+    # Expand window size for more flexibility
+    window_before = 50
+    window_after = 50
 
-    for phrase, role in ROLE_ALIASES.items():
-        if phrase in surrounding_text:
+    start_before = max(0, idx - window_before)
+    end_before = idx
+
+    start_after = idx + len(name_lower)
+    end_after = min(len(query_lower), start_after + window_after)
+
+    context_before = query_lower[start_before:end_before]
+    context_after = query_lower[start_after:end_after]
+
+    # 🔵 Strong preference order: context BEFORE name → context AFTER name
+    role_priority = [
+        ("starring", "cast"),
+        ("acted in", "cast"),
+        ("performance by", "cast"),
+        ("featuring", "cast"),
+        ("directed by", "director"),
+        ("produced by", "producer"),
+        ("written by", "writer"),
+        ("screenplay by", "writer"),
+        ("script by", "writer"),
+        ("music by", "composer"),
+        ("scored by", "composer"),
+    ]
+
+    # 1️⃣ Search BEFORE the name first (prefer this)
+    for phrase, role in role_priority:
+        if phrase in context_before:
             return role
 
-    return "cast"  # fallback if no phrase found
+    # 2️⃣ If no match, search AFTER the name second
+    for phrase, role in role_priority:
+        if phrase in context_after:
+            return role
+
+    # 3️⃣ Fallback: assume actor
+    return "cast"
 
 
 def infer_media_type_from_query(query: str) -> str:
