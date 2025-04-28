@@ -47,6 +47,23 @@ class DependencyManager:
                 ids = [ids]
 
             for _id in ids:
+                # phase 20 - Role-Aware Multi-Entity Planning and Execution
+                if key == "person_id":
+                    for _id in ids:
+                        role = "actor"  # default, can be "director", "writer", etc.
+                        for entity in query_entities:
+                            if entity.get("resolved_id") == _id and entity.get("type") == "person":
+                                role = entity.get("role", "actor")
+
+                        role_tag = role.lower()
+
+                        new_steps.append({
+                            "step_id": f"step_{role_tag}_{_id}",
+                            "endpoint": f"/person/{_id}/movie_credits",
+                            "produces": ["movie_id"],
+                            "requires": ["person_id"],
+                            "role": role_tag,
+                        })
                 if key == "tv_id":
                     new_steps.append({
                         "step_id": f"step_tv_{_id}",
