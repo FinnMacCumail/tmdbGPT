@@ -10,10 +10,12 @@ ROLE_ALIASES = {
     "directed by": "director",
     "produced by": "producer",
     "written by": "writer",
+    "screenplay by": "writer",
+    "script by": "writer",
+    "music by": "composer",
     "scored by": "composer",
     "starring": "cast",
     "acted in": "cast",
-    "music by": "composer",
     "featuring": "cast",
     "performance by": "cast",
 }
@@ -25,6 +27,29 @@ def infer_role_from_query(query: str) -> str:
         if phrase in query_lower:
             return role
     return "cast"  # Safe fallback
+
+# phase 20 - Role-Aware Multi-Entity Planning and Execution
+def infer_role_for_entity(name: str, query: str) -> str:
+    query_lower = query.lower()
+    name_lower = name.lower()
+
+    # Find where the name appears
+    idx = query_lower.find(name_lower)
+    if idx == -1:
+        return "cast"  # fallback
+
+    # Look around the name ±20 characters
+    window = 20
+    start = max(0, idx - window)
+    end = min(len(query_lower), idx + len(name_lower) + window)
+    surrounding_text = query_lower[start:end]
+
+    for phrase, role in ROLE_ALIASES.items():
+        if phrase in surrounding_text:
+            return role
+
+    return "cast"  # fallback if no phrase found
+
 
 def infer_media_type_from_query(query: str) -> str:
     query_lower = query.lower()
@@ -125,7 +150,12 @@ class OpenAILLMClient:
             dynamic_services = {"netflix", "amazon prime", "prime video", "hulu", "disney+", "apple tv", "peacock", "paramount+"}
             always_network_services = {"hbo", "starz"}
 
+            # phase 20 - Role-Aware Multi-Entity Planning and Execution
             for ent in result.get("query_entities", []):
+                if entity.get("type") == "person" and "role" not in entity:
+                    inferred_role = infer_role_for_entity(entity["name"], query)
+                    entity["role"] = inferred_role
+                    print(f"🔎 Smarter role inferred for '{entity['name']}': {inferred_role}")
                 name_lower = ent.get("name", "").strip().lower()
 
                 for keyword in streaming_services:
