@@ -39,6 +39,7 @@
   
         <div v-else>
           <ResultCard v-for="entry in entries" :key="entry" :entry="{ title: entry }" />
+          <DebugDetails v-if="response?.execution_trace" :trace="response.execution_trace" />
         </div>
       </div>
   
