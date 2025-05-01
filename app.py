@@ -143,14 +143,18 @@ def plan(state: AppState) -> AppState:
     )
 
     # Phase 4: Filter to executable steps
-    feasible, deferred = RerankPlanning.filter_feasible_steps(ranked_matches, state.resolved_entities)
+    feasible, deferred = RerankPlanning.filter_feasible_steps(
+        ranked_matches, state.resolved_entities, extraction_result=state.extraction_result
+    )
 
     # phase 19.9 - Media Type Enforcement Baseline
     intended_type = state.intended_media_type
     if intended_type:
         feasible = [
             step for step in feasible
-            if intended_type == "both" or (step.get("endpoint", "").startswith(f"/discover/{intended_type}"))
+            if intended_type == "both"
+            or step.get("endpoint", "").startswith(f"/discover/{intended_type}")
+            or step.get("endpoint", "").startswith("/person/")  # ✅ allow credits endpoints!
         ]
         print(f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
 
