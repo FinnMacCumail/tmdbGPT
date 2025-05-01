@@ -68,16 +68,32 @@ class ResponseFormatter:
 def format_count_summary(state) -> dict:
     movie_count = 0
     tv_count = 0
-    for r in state.responses:
-        if r.get("type") == "movie_summary":
-            src = r.get("source", "")
-            if "movie_credits" in src:
-                movie_count += 1
-            elif "tv_credits" in src:
-                tv_count += 1
 
-    name = state.extraction_result.get("query_entities", [{}])[0].get("name", "This person")
-    text = f"🎬 {name} has appeared in {movie_count} movie(s) and {tv_count} TV show(s)."
+    entity = state.extraction_result.get("query_entities", [{}])[0]
+    name = entity.get("name", "This person")
+    role = entity.get("role", "director").lower()
+    role_label = {
+        "cast": "actor", "actor": "actor",
+        "director": "director",
+        "writer": "screenwriter",
+        "producer": "producer",
+        "composer": "composer"
+    }.get(role, role)
+
+    for r in state.responses:
+        if not isinstance(r, dict):
+            continue
+        if r.get("type") != "movie_summary":
+            continue
+
+        src = r.get("source", "")
+        job = r.get("job", "").lower()
+        if "movie_credits" in src and job == "director":
+            movie_count += 1
+        elif "tv_credits" in src and job == "director":
+            tv_count += 1
+
+    text = f"🎬 {name} worked as a {role_label} in {movie_count} movie(s) and {tv_count} TV show(s)."
     return {
         "response_format": "count_summary",
         "question_type": "count",
@@ -139,7 +155,7 @@ def format_timeline(state) -> dict:
     import re
     entries = []
     for item in state.responses:
-        if item.get("type") != "movie_summary":
+        if not isinstance(item, dict) or item.get("type") != "movie_summary":
             continue
         title = item.get("title", "Untitled")
         overview = item.get("overview", "No synopsis available.")
@@ -185,7 +201,7 @@ def format_comparison(state) -> dict:
         return format_fallback(state)
 
     for r in state.responses:
-        if r.get("type") != "movie_summary":
+        if not isinstance(r, dict) or r.get("type") != "movie_summary":
             continue
         src = r.get("source", "")
         entry = {
