@@ -8,6 +8,15 @@ def register_renderer(name):
         return func
     return decorator
 
+def format_fallback(state) -> dict:
+    explanation = generate_explanation(state.extraction_result) or "No relevant information found."
+    return {
+        "response_format": "summary",
+        "question_type": state.question_type or "summary",
+        "text": f"⚠️ {explanation}",
+        "entries": [f"⚠️ {explanation}"]
+    }
+
 class ResponseFormatter:
     @staticmethod
     def format_responses(responses: List[dict]) -> List[str]:
@@ -114,7 +123,6 @@ def format_summary(state) -> dict:
         }
 
     # Fallback if no supported response found
-    from response_formatter import generate_explanation
     explanation = generate_explanation(state.extraction_result)
     return {
         "response_format": "summary",
