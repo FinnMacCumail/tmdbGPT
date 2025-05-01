@@ -6,7 +6,7 @@ from post_validator import PostValidator
 from entity_reranker import EntityAwareReranker 
 from plan_validator import PlanValidator
 import json
-from response_formatter import RESPONSE_RENDERERS, format_summary
+from response_formatter import RESPONSE_RENDERERS, format_fallback
 from fallback_handler import FallbackHandler, FallbackSemanticBuilder
 from post_validator import ResultScorer
 from response_formatter import QueryExplanationBuilder
@@ -269,7 +269,7 @@ class ExecutionOrchestrator:
         # 👇 Safely determine the format type from state
         #format_type = getattr(state, "response_format", "summary")
         format_type = state.response_format or "summary"
-        renderer = RESPONSE_RENDERERS.get(format_type, format_summary)
+        renderer = RESPONSE_RENDERERS.get(format_type, format_fallback)
 
         # 👇 Generate final formatted output
         final_output = renderer(state)
