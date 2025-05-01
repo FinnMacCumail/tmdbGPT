@@ -352,6 +352,22 @@ class ExecutionOrchestrator:
             else:
                 print(f"❌ Rating below threshold for {movie.get('id')}")
 
+        # 🎯 6. Validate Production Company
+        if any(e.get("type") == "company" for e in query_entities):
+            if PostValidator.validate_company(movie, query_entities):
+                score += 0.3
+                print(f"✅ Company match OK for {movie.get('id')}")
+            else:
+                print(f"❌ Company mismatch for {movie.get('id')}")
+
+        # 🎯 7. Validate Network (for TV only)
+        if any(e.get("type") == "network" for e in query_entities):
+            if PostValidator.validate_network(movie, query_entities):
+                score += 0.3
+                print(f"✅ Network match OK for {movie.get('id')}")
+            else:
+                print(f"❌ Network mismatch for {movie.get('id')}")
+
         return score
 
     
@@ -515,50 +531,65 @@ class ExecutionOrchestrator:
 
     def _intersect_movie_ids_across_roles(self, state) -> dict:
         """
-        Intersect movie IDs across completed steps per role.
-
+        Intersect movie IDs and additional constraints (company/network) across completed steps.
         Returns:
-            dict with "movie_ids" and "tv_ids" separately.
+            dict with "movie_ids" and "tv_ids"
         """
         movie_sets = []
         tv_sets = []
+        company_sets = []
+        network_sets = []
 
         for step_id in state.completed_steps:
-            # ✨ Infer role from step_id prefix
-            if step_id.startswith("step_cast_"):
-                role = "cast"
-            elif step_id.startswith("step_director_"):
-                role = "director"
-            elif step_id.startswith("step_writer_"):
-                role = "writer"
-            elif step_id.startswith("step_producer_"):
-                role = "producer"
-            elif step_id.startswith("step_composer_"):
-                role = "composer"
-            else:
-                continue  # Skip unrelated steps
-
             result = state.data_registry.get(step_id, {})
-            ids = set()
+            if not isinstance(result, dict):
+                continue
 
-            if role in {"cast", "actor"}:
-                ids.update(m.get("id") for m in result.get("cast", []) if m.get("id"))
-            else:
-                ids.update(
-                    m.get("id") for m in result.get("crew", [])
-                    if m.get("id") and m.get("job", "").lower() == role
-                )
+            if step_id.startswith("step_cast_") or step_id.startswith("step_director_") or step_id.startswith("step_writer_") or step_id.startswith("step_producer_") or step_id.startswith("step_composer_"):
+                ids = {m.get("id") for m in result.get("cast", []) + result.get("crew", []) if m.get("id")}
+                if ids:
+                    movie_sets.append(ids)
 
-            if ids:
-                movie_sets.append(ids)
+            elif step_id.startswith("step_company_"):
+                ids = {m.get("id") for m in result.get("results", []) if m.get("id")}
+                if ids:
+                    movie_sets.append(ids)
+                    company_ids = {
+                        company.get("id") for m in result.get("results", [])
+                        for company in m.get("production_companies", [])
+                        if company.get("id")
+                    }
+                    if company_ids:
+                        company_sets.append(company_ids)
 
-        if len(movie_sets) < 2:
-            return {"movie_ids": set(), "tv_ids": set()}
+            elif step_id.startswith("step_network_"):
+                ids = {m.get("id") for m in result.get("results", []) if m.get("id")}
+                if ids:
+                    tv_sets.append(ids)
+                    network_ids = {
+                        network.get("id") for m in result.get("results", [])
+                        for network in m.get("networks", [])
+                        if network.get("id")
+                    }
+                    if network_ids:
+                        network_sets.append(network_ids)
 
-        intersection = set.intersection(*movie_sets)
+        # 🔁 Intersect movies by all role + company constraints
+        intersected_movie_ids = set.intersection(*movie_sets) if movie_sets else set()
+        if company_sets:
+            intersected_movie_ids &= set.intersection(*company_sets)
 
-        print(f"🎯 Intersected movie IDs across roles: {intersection}")
-        return {"movie_ids": intersection, "tv_ids": set()}
+        # 🔁 Intersect TV shows by all role + network constraints
+        intersected_tv_ids = set.intersection(*tv_sets) if tv_sets else set()
+        if network_sets:
+            intersected_tv_ids &= set.intersection(*network_sets)
+
+        print(f"🎯 Intersected movie IDs: {intersected_movie_ids}")
+        print(f"🎯 Intersected TV IDs: {intersected_tv_ids}")
+        return {
+            "movie_ids": intersected_movie_ids,
+            "tv_ids": intersected_tv_ids
+        }
 
     
     def _inject_validation_steps(self, state, intersected_ids: set) -> None:
