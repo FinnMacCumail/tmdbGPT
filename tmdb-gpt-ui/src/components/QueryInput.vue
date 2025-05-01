@@ -32,7 +32,7 @@
     },
     methods: {
       handleSubmit() {
-        this.$emit('submit', this.input.trim())
+        this.$emit('query-submitted', this.input.trim())
       }
     }
   }

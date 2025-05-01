@@ -3,7 +3,7 @@
         <h1 class="text-2xl font-bold text-center">🎬 TMDB GPT</h1>
 
         <!-- Query input -->
-        <QueryInput @submit="askQuery" :loading="loading" />
+        <QueryInput @query-submitted="askQuery" :loading="loading" />
 
         <!-- Fallback warning -->
         <FallbackBanner v-if="response?.explanation?.includes('Relaxed')" :explanation="response.explanation" />
@@ -90,7 +90,7 @@ export default {
         }
     },
     methods: {
-        async askQuery(query) {
+        async askQuery(query) {            
             this.loading = true
             this.error = null
             this.response = null
