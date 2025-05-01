@@ -357,6 +357,17 @@ class SymbolicConstraintFilter:
 
         for match in matches:
             endpoint = match.get("endpoint") or match.get("path", "")
+            # Manual override for role-aware count queries
+            #phase 17.9 format count problem
+            if endpoint in {"/person/{person_id}/movie_credits", "/person/{person_id}/tv_credits"}:
+                if question_type == "count":
+                    if any(
+                        ent.get("type") == "person" and ent.get("role") in {"director", "cast", "writer", "producer", "composer"}
+                        for ent in extraction_result.get("query_entities", [])
+                    ):
+                        print(f"✅ [Symbolic] Forcing inclusion of {endpoint} for role-aware count query")
+                        filtered.append(match)
+                        continue
             metadata = match.get("metadata", match)
             supported_intents = SymbolicConstraintFilter._extract_supported_intents(metadata)
             consumes = SymbolicConstraintFilter._extract_consumed_entities(metadata)
