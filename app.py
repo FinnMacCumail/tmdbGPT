@@ -128,13 +128,13 @@ def retrieve_context(state: AppState) -> AppState:
 def plan(state: AppState) -> AppState:
     print("→ running node: PLAN")
 
-    # Phase 1: Inject the query text into resolved_entities - phase2.2 pgpv
-    if "input" in state.__dict__:  # (in case state.input exists)
+    # Phase 1: Inject the query text into resolved_entities
+    if "input" in state.__dict__:
         state.resolved_entities["__query"] = state.input
-    
+
     # Phase 2: Rerank semantic matches using resolved entities
     ranked_matches = RerankPlanning.rerank_matches(state.retrieved_matches, state.resolved_entities)
-    
+
     # Phase 3: Apply Symbolic Constraints
     ranked_matches = SymbolicConstraintFilter.apply(
         ranked_matches,
@@ -147,89 +147,74 @@ def plan(state: AppState) -> AppState:
         ranked_matches, state.resolved_entities, extraction_result=state.extraction_result
     )
 
-    # phase 19.9 - Media Type Enforcement Baseline
+    # Phase 5: Media Type Enforcement
     intended_type = state.intended_media_type
     if intended_type:
         feasible = [
             step for step in feasible
             if intended_type == "both"
             or step.get("endpoint", "").startswith(f"/discover/{intended_type}")
-            or step.get("endpoint", "").startswith("/person/")  # ✅ allow credits endpoints!
+            or step.get("endpoint", "").startswith("/person/")
         ]
         print(f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
 
-    # Phase 5: Convert to execution-ready step format
+    # Phase 6: Convert to execution-ready steps
     execution_steps = convert_matches_to_execution_steps(
-        feasible, 
-        state.extraction_result, 
+        feasible,
+        state.extraction_result,
         state.resolved_entities
     )
 
-    applied_parameters = {}
-    for step in execution_steps:
-        params = step.get("parameters", {})
-        for key in params:
-            applied_parameters[key] = True  # just record existence
-
-    state.extraction_result["applied_parameters"] = applied_parameters
-
-    # Phase 6 - phase 2.2 of pggv--- Optional Enrichment: Suggest semantic parameters if query is vague ---
+    # Phase 6.5: Inject optional semantic parameters
     plan_validator = PlanValidator()
     optional_params = plan_validator.infer_semantic_parameters(state.input)
 
     for step in execution_steps:
-        if not step.get("parameters"):
-            step["parameters"] = {}
-
+        step.setdefault("parameters", {})
         for param_name in optional_params:
-            if param_name in SAFE_OPTIONAL_PARAMS:
-                if param_name not in step["parameters"]:
-                    step["parameters"][param_name] = "<dynamic_value_or_prompt>"
+            if param_name in SAFE_OPTIONAL_PARAMS and param_name not in step["parameters"]:
+                step["parameters"][param_name] = "<dynamic_value_or_prompt>"
 
     print(f"💡 Smart enrichment added: {[p for p in optional_params if p in SAFE_OPTIONAL_PARAMS]}")
 
+    # Phase 7: Inject multi-role dependency steps
+    #from dependency_manager import expand_plan_with_dependencies
+    dependency_steps = DependencyManager.expand_plan_with_dependencies(state, state.resolved_entities)
+    if dependency_steps:
+        print(f"🔁 Injected {len(dependency_steps)} role-aware dependency steps.")
+        execution_steps.extend(dependency_steps)
 
-    # Phase 7: Deduplicate steps based on endpoint + parameter signature
+    # Phase 8: Deduplicate
     seen = set()
     deduped_steps = []
-
     for step in execution_steps:
         sig = (step["endpoint"], frozenset(step.get("parameters", {}).items()))
         if sig not in seen:
             seen.add(sig)
             deduped_steps.append(step)
-        else:
-            print(f"🔁 Skipping duplicate step: {step['endpoint']} with same parameters")
 
-    # Phase 8: Filter out low-signal noisy loops
+    # Phase 9: Final Filtering
     signal_steps = []
     for step in deduped_steps:
         endpoint = step["endpoint"]
         params = step.get("parameters", {})
-
-        if "with_people" in params and not (
-            "/discover/" in endpoint or "/search/" in endpoint or "/person/" in endpoint
-        ):
-            print(f"🧹 Removed low-signal step: {endpoint} with with_people")
+        if "with_people" in params and not any(k in endpoint for k in ["/discover/", "/search/", "/person/"]):
             continue
-
         signal_steps.append(step)
 
-    combined_steps = signal_steps
-
-    # Phase 9: Show final execution plan or fallback
     print("\n🧭 Final Execution Plan:")
-    for s in combined_steps:
+    for s in signal_steps:
         print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
 
-    if not combined_steps:
+    if not signal_steps:
         print("⚠️ No executable steps found. Using fallback...")
-        combined_steps = FallbackHandler.generate_steps(state.resolved_entities, state.extraction_result)
+        signal_steps = FallbackHandler.generate_steps(state.resolved_entities, state.extraction_result)
 
     return state.model_copy(update={
-        "plan_steps": combined_steps,
+        "plan_steps": signal_steps,
         "step": "plan"
     })
+
 
 def execute(state: AppState) -> AppState:
     print("→ running node: EXECUTE")
