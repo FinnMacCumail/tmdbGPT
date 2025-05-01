@@ -134,12 +134,11 @@ class FallbackHandler:
         already_dropped = already_dropped or set()
 
         relaxation_priority = [
-            ("with_directors", "director"),
-            ("with_writers", "writer"),
-            ("with_producers", "producer"),
-            ("with_people", "person"),  # cast fallback
+            ("with_companies", "company"),
+            ("with_networks", "network"),
             ("with_genres", "genre"),
             ("primary_release_year", "year"),
+            ("with_people", "person"),  # LAST TO DROP
         ]
 
         relaxed_steps = []
