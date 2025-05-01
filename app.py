@@ -12,7 +12,7 @@ from typing import Optional, Dict, List, Any
 import time
 from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
-from response_formatter import ResponseFormatter, generate_explanation
+from response_formatter import ResponseFormatter, format_fallback
 from plan_validator import PlanValidator
 
 load_dotenv()
@@ -250,8 +250,8 @@ def respond(state: AppState):
     lines = ResponseFormatter.format_responses(state.responses)
 
     if not lines:
-        explanation = generate_explanation(state.extraction_result)
-        lines = [f"ℹ️ {explanation}"]
+        fallback = format_fallback(state)
+        lines = fallback.get("entries", ["⚠️ No explanation available."])
 
     # ✅ NEW: Inject relaxation explanation at the top if any
     if state.relaxed_parameters:
