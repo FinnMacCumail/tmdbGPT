@@ -80,7 +80,9 @@ def format_count_summary(state) -> dict:
         "composer": "composer"
     }.get(role, role)
 
+    
     for r in state.responses:
+        
         if not isinstance(r, dict):
             continue
         if r.get("type") != "movie_summary":
