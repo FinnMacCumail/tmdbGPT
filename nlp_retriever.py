@@ -260,14 +260,36 @@ class RerankPlanning:
         return True
 
     @staticmethod
-    def filter_feasible_steps(ranked_matches, resolved_entities):
+    def filter_feasible_steps(ranked_matches, resolved_entities, extraction_result=None):
         """
-        Return only steps that can be executed now, plus entrypoints.
+        Return only steps that can be executed now, plus role-aware entrypoints if applicable.
         """
         feasible = []
         deferred = []
+
+        # Extract question type and roles from extraction result
+        question_type = extraction_result.get("question_type", "summary") if extraction_result else "summary"
+        query_entities = extraction_result.get("query_entities", []) if extraction_result else []
+
         for match in ranked_matches:
-            if RerankPlanning.validate_parameters(match["endpoint"], resolved_entities):
+            endpoint_path = match.get("endpoint") or match.get("path", "")
+            print(f"🔍 Evaluating: {endpoint_path}")
+            # 🔐 Standard validation: do we have required parameters?
+            is_valid = RerankPlanning.validate_parameters(endpoint_path, resolved_entities)
+            print(f"🔎 validate_parameters = {is_valid} for {endpoint_path}")
+            # phase 19.7 ✅ Strategic override: allow /person/{id}/movie_credits or tv_credits if role + count query
+            if not is_valid:
+                print(f"⚠️ Rejected in feasibility: {endpoint_path} due to missing resolved params")
+                if endpoint_path in {"/person/{person_id}/movie_credits", "/person/{person_id}/tv_credits"}:
+                    if question_type == "count":
+                        if any(
+                            ent.get("type") == "person" and ent.get("role") in {"director", "cast", "writer", "producer", "composer"}
+                            for ent in query_entities
+                        ):
+                            print(f"✅ Allowing role-aware count query: {endpoint_path}")
+                            is_valid = True
+
+            if is_valid:
                 feasible.append(match)
             elif match.get("is_entrypoint"):
                 feasible.append(match)
