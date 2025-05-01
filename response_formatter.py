@@ -89,6 +89,8 @@ def format_count_summary(state) -> dict:
 @register_renderer("ranked_list")
 def format_ranked_list(state) -> dict:
     lines = ResponseFormatter.format_responses(state.responses)
+    if not lines:
+        return format_fallback(state)
     return {
         "response_format": "ranked_list",
         "question_type": "list",
@@ -154,6 +156,8 @@ def format_timeline(state) -> dict:
             "source": source,
             "score": score
         })
+        if not entries:
+            return format_fallback(state)
     entries.sort(key=lambda x: x.get("release_year") or 3000)
     name = state.extraction_result.get("query_entities", [{}])[0].get("name", "")
     return {
@@ -167,7 +171,7 @@ def format_timeline(state) -> dict:
 def format_comparison(state) -> dict:
     query_entities = state.extraction_result.get("query_entities", [])
     if len(query_entities) != 2:
-        return {"response_format": "comparison", "question_type": "comparison", "error": "Comparison requires exactly two entities."}
+        return format_fallback(state)
 
     left_id = str(query_entities[0].get("resolved_id"))
     right_id = str(query_entities[1].get("resolved_id"))
@@ -176,6 +180,9 @@ def format_comparison(state) -> dict:
 
     left_entries = []
     right_entries = []
+
+    if not left_entries and not right_entries:
+        return format_fallback(state)
 
     for r in state.responses:
         if r.get("type") != "movie_summary":
