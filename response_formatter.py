@@ -88,24 +88,41 @@ def format_ranked_list(state) -> dict:
 
 @register_renderer("summary")
 def format_summary(state) -> dict:
-    profiles = [r for r in state.responses if isinstance(r, dict) and r.get("type") == "person_profile"]
-    if profiles:
-        name = profiles[0].get("title", "Unknown")
-        overview = profiles[0].get("overview", "")
-        text = f"👤 {name}: {overview}"
+    responses = state.responses
+    SUMMARY_TYPES = {
+        "movie_summary": "🎬",
+        "tv_summary": "📺",
+        "person_profile": "👤",
+        "company_profile": "🏢",
+        "network_profile": "📡",
+        "collection_profile": "🎞️",
+    }
+
+    for r in responses:
+        r_type = r.get("type")
+        emoji = SUMMARY_TYPES.get(r_type, "📄")
+        title = r.get("title", "Untitled")
+        overview = r.get("overview", "No summary available.")
+        text = f"{emoji} {title}: {overview}"
+
         return {
             "response_format": "summary",
             "question_type": "summary",
-            "entity": name,
+            "entity": title,
             "text": text,
             "entries": [text]
         }
+
+    # Fallback if no supported response found
+    from response_formatter import generate_explanation
+    explanation = generate_explanation(state.extraction_result)
     return {
         "response_format": "summary",
         "question_type": "summary",
-        "text": "⚠️ No summary available.",
-        "entries": ["⚠️ No summary available."]
+        "text": f"⚠️ {explanation or 'No summary available.'}",
+        "entries": [f"⚠️ {explanation or 'No summary available.'}"]
     }
+
 
 @register_renderer("timeline")
 def format_timeline(state) -> dict:
