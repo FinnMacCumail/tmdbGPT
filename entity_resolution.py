@@ -4,6 +4,7 @@ import requests
 from datetime import datetime, timedelta
 import os
 from param_utils import GenreNormalizer
+import json
 
 class TMDBEntityResolver:
     def __init__(self, api_key, headers):
@@ -14,6 +15,8 @@ class TMDBEntityResolver:
         self.genre_cache_timestamp = None
         self.network_cache = {}  # new
         self.network_cache_timestamp = None
+
+        self._load_offline_network_cache() 
 
     def _refresh_genre_cache(self):
         if self.genre_cache["movie"] and self.genre_cache["tv"] and self.genre_cache_timestamp:
@@ -83,44 +86,19 @@ class TMDBEntityResolver:
                 print(f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
 
         elif entity_type == "network":
-            self._refresh_network_cache()
             lower_name = name.strip().lower()
 
-            # 1. Exact match first
+            # ✅ 1. Exact match from local cache
             if lower_name in self.network_cache:
                 network_id = self.network_cache[lower_name]
-                print(f"✅ Resolved network '{name}' → {network_id} (from cache)")
+                print(f"✅ Resolved network '{name}' → {network_id} (from local file)")
                 return network_id
 
-            # 2. Fuzzy match second
+            # ✅ 2. Fuzzy match fallback
             for cached_name, nid in self.network_cache.items():
                 if lower_name in cached_name or cached_name in lower_name:
                     print(f"⚡ Fuzzy matched network '{name}' → '{cached_name}' → {nid}")
                     return nid
-
-            # 3. Fallback to /search/network API
-            try:
-                response = requests.get(
-                    f"{self.base_url}/search/network",
-                    headers=self.headers,
-                    params={"query": name},
-                )
-                response.raise_for_status()
-                results = response.json().get("results", [])
-                for item in results:
-                    label = item.get("name")
-                    if label and lower_name in label.lower():
-                        print(f"⚡ Fuzzy matched via search: '{name}' → '{label}'")
-                        return item.get("id")
-                if results:
-                    fallback_id = results[0].get("id")
-                    print(f"⚠️ Fallback resolution for network '{name}' → {fallback_id}")
-                    return fallback_id
-                print(f"❌ No network results for '{name}'")
-            except Exception as e:
-                print(f"❌ Failed to resolve network '{name}': {e}")
-
-        return None
 
 
     def resolve_entities(self, query_entities, intended_media_type="movie"):
@@ -178,45 +156,25 @@ class TMDBEntityResolver:
                 print(f"⚠️ Unknown entity type '{ent_type}' for entity '{name}'.")
                 unresolved_entities.append(entity)
 
-        return resolved_entities, unresolved_entities
-    
-    def _refresh_network_cache(self):
-        if self.network_cache and self.network_cache_timestamp:
-            if datetime.now() - self.network_cache_timestamp < timedelta(hours=24):
-                return
+        return resolved_entities, unresolved_entities        
 
-        print("🔄 Refreshing TMDB network cache...")
+    def _load_offline_network_cache(self):
+        path = "data/tv_network_ids_05_01_2025.json"
+        if not os.path.exists(path):
+            print("⚠️ Network cache file not found.")
+            return
 
-        self.network_cache = {}
-
-        # Manual list of well-known network IDs (Netflix, Hulu, Disney+ etc.)
-        known_network_ids = [
-            213,    # Netflix
-            1024,   # Amazon Prime Video
-            2739,   # Disney+
-            453,    # Hulu
-            3353,   # Apple TV+
-            3350,   # Peacock
-            2076,   # Paramount+
-            49,     # HBO
-            3186,   # Starz
-        ]
-
-        for nid in known_network_ids:
-            url = f"{self.base_url}/network/{nid}"
-            try:
-                response = requests.get(url, headers=self.headers)
-                if response.status_code == 200:
-                    network = response.json()
-                    name = network.get("name", "").strip().lower()
-                    if name:
+        print(f"📥 Loading TMDB networks from {path}...")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    entry = json.loads(line)
+                    name = entry.get("name", "").strip().lower()
+                    nid = entry.get("id")
+                    if name and nid:
                         self.network_cache[name] = nid
-                        print(f"✅ Cached network '{name}' → {nid}")
-                else:
-                    print(f"⚠️ Failed to fetch network {nid} (status {response.status_code})")
-            except Exception as e:
-                print(f"⚠️ Error fetching network {nid}: {e}")
-
-        self.network_cache_timestamp = datetime.now()
+            print(f"✅ Loaded {len(self.network_cache)} networks into cache.")
+        except Exception as e:
+            print(f"❌ Failed to load network cache: {e}")
 
 
