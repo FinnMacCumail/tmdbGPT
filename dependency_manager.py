@@ -50,16 +50,18 @@ class DependencyManager:
                 # phase 20 - Role-Aware Multi-Entity Planning and Execution
                 if key == "person_id":
                     for _id in ids:
-                        role = "actor"  # default, can be "director", "writer", etc.
+                        role = "actor"  # default
                         for entity in query_entities:
                             if entity.get("resolved_id") == _id and entity.get("type") == "person":
                                 role = entity.get("role", "actor")
 
                         role_tag = role.lower()
+                        endpoint = f"/person/{_id}/movie_credits"  # 🔁 can be enhanced for TV later
+                        step_id = f"step_{role_tag}_{_id}"
 
                         new_steps.append({
-                            "step_id": f"step_{role_tag}_{_id}",
-                            "endpoint": f"/person/{_id}/movie_credits",
+                            "step_id": step_id,
+                            "endpoint": endpoint,
                             "produces": ["movie_id"],
                             "requires": ["person_id"],
                             "role": role_tag,
@@ -92,5 +94,32 @@ class DependencyManager:
                         "produces": ["tv_id"],
                         "requires": ["network_id"]
                     })
+                elif key in {"company_id", "network_id"}:
+                    # 🔁 Inject enriched discovery step instead of raw lookup
+                    media_type = getattr(state, "intended_media_type", "movie")
+
+                    step_id = f"step_discover_{media_type}_joined"
+                    endpoint = f"/discover/{media_type}"
+                    parameters = {}
+
+                    if "company_id" in newly_resolved:
+                        company_ids = newly_resolved["company_id"]
+                        parameters["with_companies"] = ",".join(map(str, company_ids)) if isinstance(company_ids, list) else str(company_ids)
+
+                    if "network_id" in newly_resolved:
+                        network_ids = newly_resolved["network_id"]
+                        parameters["with_networks"] = ",".join(map(str, network_ids)) if isinstance(network_ids, list) else str(network_ids)
+
+                    discover_step = {
+                        "step_id": step_id,
+                        "endpoint": endpoint,
+                        "method": "GET",
+                        "parameters": parameters,
+                        "requires": list(parameters.keys()),  # ["with_companies"] or ["with_networks"]
+                        "produces": ["movie_id"] if media_type == "movie" else ["tv_id"]
+                    }
+
+                    print(f"🎯 Phase 21.1: Injecting discovery step with company/network → {discover_step}")
+                    new_steps.append(discover_step)
 
         return new_steps
