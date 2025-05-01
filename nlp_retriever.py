@@ -377,23 +377,40 @@ class ResultExtractor:
     @staticmethod
     def _extract_credits(json_data, endpoint):
         summaries = []
-        cast_and_crew = json_data.get("cast", []) + json_data.get("crew", [])
 
-        for entry in cast_and_crew:
-            title = entry.get("title") or entry.get("name", "Untitled")
-            overview = entry.get("character") or entry.get("job") or "No description"
-            release_date = entry.get("release_date") or entry.get("first_air_date")
+        # ✅ Crew roles: director, writer, producer, composer
+        for crew in json_data.get("crew", []):
+            job = crew.get("job", "").lower()
+            if job in {"director", "writer", "producer", "composer"}:
+                title = crew.get("title") or crew.get("name") or "Untitled"
+                
+                summaries.append({
+                    "type": "movie_summary",
+                    "title": crew.get("title") or crew.get("original_title") or crew.get("name", "Untitled"),
+                    "overview": job.capitalize(),
+                    "source": endpoint,
+                    "release_date": crew.get("release_date") or crew.get("first_air_date"),
+                    "final_score": 1.0,
+                    "job": job  # ✅ Needed for count_summary formatter
+                })
 
+        # ✅ Cast
+        for cast in json_data.get("cast", []):
+            title = cast.get("title") or cast.get("name") or "Untitled"
+            character = cast.get("character", "")
+            
             summaries.append({
                 "type": "movie_summary",
-                "title": title,
-                "overview": overview.strip(),
+                "title": cast.get("title") or cast.get("original_title") or cast.get("name", "Untitled"),
+                "overview": cast.get("character") or "Cast",
                 "source": endpoint,
-                "release_date": release_date,
-                "final_score": 1.0
+                "release_date": cast.get("release_date") or cast.get("first_air_date"),
+                "final_score": 1.0,
+                "job": "cast"  # ✅ Also helps count actor roles
             })
-
+        
         return summaries
+
 
     @staticmethod
     def _extract_person_profile(json_data):
