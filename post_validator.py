@@ -133,32 +133,25 @@ class PostValidator:
         return round(score, 2)
     
     @staticmethod
-    def validate_company(result, query_entities):
-        """
-        Validate if production company matches.
-        """
+    def validate_company(result, query_entities) -> bool:
         companies = result.get("production_companies", [])
+        company_ids = [c.get("id") for c in companies if c.get("id")]
 
         for entity in query_entities:
-            if entity.get("type") == "company":
-                company_name = entity.get("name", "").lower()
-                if any(company_name in (company.get("name", "").lower()) for company in companies):
-                    return True
+            if entity.get("type") == "company" and entity.get("resolved_id") in company_ids:
+                return True
 
         return False
 
+
     @staticmethod
-    def validate_network(result, query_entities):
-        """
-        Validate if network matches (for TV shows).
-        """
+    def validate_network(result, query_entities) -> bool:
         networks = result.get("networks", [])
+        network_ids = [n.get("id") for n in networks if n.get("id")]
 
         for entity in query_entities:
-            if entity.get("type") == "network":
-                network_name = entity.get("name", "").lower()
-                if any(network_name in (network.get("name", "").lower()) for network in networks):
-                    return True
+            if entity.get("type") == "network" and entity.get("resolved_id") in network_ids:
+                return True
 
         return False
 
