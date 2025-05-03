@@ -2,6 +2,7 @@
 from param_utils import get_param_key_for_type
 from typing import List, Union, Dict, Set, Tuple, Optional
 from collections import defaultdict
+from copy import deepcopy
 
 
 class Constraint:
@@ -55,6 +56,14 @@ class ConstraintGroup:
     def __repr__(self):
         return f"ConstraintGroup(logic={self.logic}, constraints={self.constraints})"
 
+    def flatten(self):
+        """Recursively yields all constraints in a nested group."""
+        for item in self.constraints:
+            if isinstance(item, ConstraintGroup):
+                yield from item.flatten()
+            else:
+                yield item
+
 
 class ConstraintBuilder:
     def build_from_query_entities(self, query_entities):
@@ -78,96 +87,123 @@ class ConstraintBuilder:
         return ConstraintGroup(constraints, logic="AND")
 
 
-def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dict[str, Set[int]]:
-
+def evaluate_constraint_tree(group, data_registry: dict) -> Dict[str, Set[int]]:
+    """
+    Evaluate a ConstraintGroup recursively and return matched entity IDs
+    grouped by constraint.key. AND groups return only intersecting IDs.
+    """
     print(
         f"🌲 Evaluating ConstraintGroup ({group.logic}) with members: {group.constraints}")
     results: List[Dict[str, Set[int]]] = []
-
-    print(
-        f"🧪 Evaluating constraint tree against data_registry keys: {list(data_registry.keys())}")
-    for k, v in data_registry.items():
-        print(f"   - {k}: {list(v.keys()) if isinstance(v, dict) else v}")
 
     for node in group:
         if isinstance(node, ConstraintGroup):
             result = evaluate_constraint_tree(node, data_registry)
         else:
-            id_set = data_registry.get(
-                node.key, {}).get(str(node.value), set())
-            print(f"🔍 Node {node} matched IDs: {id_set}")
-            result = {node.type: id_set} if id_set else {}
-
+            value_str = str(node.value)
+            id_set = data_registry.get(node.key, {}).get(value_str, set())
+            print(f"🔍 Node {node.key}={node.value} matched IDs: {id_set}")
+            result = {node.key: id_set} if id_set else {}
         results.append(result)
 
     merged: Dict[str, Set[int]] = defaultdict(set)
-    print(f"🎯 Final merged constraint results: {merged}")
+
+    if not results:
+        return {}
 
     if group.logic == "AND":
-        filtered = [set(r.keys()) for r in results if r]
-        if filtered:
-            all_types = set.intersection(*filtered)
-            for t in all_types:
-                intersected = set.intersection(
-                    *(r.get(t, set()) for r in results if t in r))
-                if intersected:
-                    merged[t] = intersected
-        else:
-            # Nothing to intersect — fallback to empty
-            merged = {}
+        # Step 1: Find global intersection of all ID sets
+        all_sets = [id_set for r in results for id_set in r.values() if id_set]
+        if not all_sets:
+            return {}
+        global_intersection = set.intersection(*all_sets)
 
+        # Step 2: Retain only keys whose ID sets intersect with global intersection
+        for r in results:
+            for k, v in r.items():
+                filtered = v & global_intersection
+                if filtered:
+                    merged[k].update(filtered)
+
+    elif group.logic == "OR":
+        for r in results:
+            for k, v in r.items():
+                merged[k].update(v)
+
+    print(f"🎯 Final merged constraint results: {dict(merged)}")
     return dict(merged)
 
 
 # phase 21.6 - Step 6: Logging and Trace
+
+
 def relax_constraint_tree(
-    group: ConstraintGroup, max_drops: int = 1
-) -> Tuple[Optional[ConstraintGroup], List[Constraint], List[str]]:
-    # Flatten all constraints with metadata
-    all_constraints = []
+    tree: ConstraintGroup,
+    max_drops: int = 1
+) -> Tuple[ConstraintGroup, List[object], List[str]]:
+    """
+    Attempt to relax a constraint tree by dropping the lowest priority/confidence constraints.
+    Returns:
+        (relaxed_tree, dropped_constraints, relaxation_log)
+    """
+    print("♻️ Starting constraint relaxation...")
+    relaxed = deepcopy(tree)
+    flat_constraints = []
 
-    def collect_constraints(node):
-        if isinstance(node, ConstraintGroup):
-            for sub in node:
-                collect_constraints(sub)
-        else:
-            all_constraints.append(node)
+    def collect_constraints(group):
+        for c in group.constraints:
+            if isinstance(c, ConstraintGroup):
+                yield from collect_constraints(c)
+            else:
+                yield c
 
-    collect_constraints(group)
+    flat_constraints = list(collect_constraints(relaxed))
 
-    # Sort by (priority, confidence ascending) — lowest first
+    if not flat_constraints:
+        print("⚠️ No constraints available to relax.")
+        return None, [], ["No constraints found in tree"]
+
+    # Sort by (priority, confidence)
     sorted_constraints = sorted(
-        all_constraints, key=lambda c: (c.priority, c.confidence)
+        flat_constraints,
+        key=lambda c: (c.priority, -c.confidence)
     )
 
+    dropped = []
+    reasons = []
+
+    for constraint in sorted_constraints:
+        if len(dropped) >= max_drops:
+            break
+        print(
+            f"💥 Dropping constraint: {constraint.key}={constraint.value} (priority={constraint.priority}, confidence={constraint.confidence})")
+        removed = False
+
+        def remove_constraint(group):
+            nonlocal removed
+            group.constraints = [
+                c for c in group.constraints
+                if not (not isinstance(c, ConstraintGroup) and
+                        c.key == constraint.key and
+                        c.value == constraint.value)
+            ]
+            for c in group.constraints:
+                if isinstance(c, ConstraintGroup):
+                    remove_constraint(c)
+
+        remove_constraint(relaxed)
+        dropped.append(constraint)
+        reasons.append(
+            f"Dropped '{constraint.key}={constraint.value}' (priority={constraint.priority}, confidence={constraint.confidence})"
+        )
+
+    if not dropped:
+        print("🛑 No constraints were dropped during relaxation.")
+        return None, [], ["No constraints could be dropped"]
+
     print(
-        f"🔄 Candidate constraints for drop: {sorted_constraints[:max_drops]}")
-
-    # Drop up to N
-    to_drop = set(sorted_constraints[:max_drops])
-    drop_reasons = [
-        f"dropped {c.key}={c.value} (type={c.type}, priority={c.priority}, confidence={c.confidence})"
-        for c in to_drop
-    ]
-
-    def rebuild_group(group):
-        new_members = []
-        for node in group:
-            if isinstance(node, ConstraintGroup):
-                rebuilt = rebuild_group(node)
-                if rebuilt:
-                    new_members.append(rebuilt)
-            elif node not in to_drop:
-                new_members.append(node)
-        return ConstraintGroup(new_members, logic=group.logic) if new_members else None
-
-    relaxed_tree = rebuild_group(group)
-
-    # ✅ Debug output after rebuild
-    print(f"♻️ Relaxed tree: {relaxed_tree}")
-    print(f"❌ Dropped constraints: {drop_reasons}")
-
-    return relaxed_tree, list(to_drop), drop_reasons
+        f"♻️ Relaxed tree after dropping: {[(c.key, c.value) for c in dropped]}")
+    return relaxed, dropped, reasons
 
 
 def normalize_constraint_tree(group: ConstraintGroup) -> ConstraintGroup:
