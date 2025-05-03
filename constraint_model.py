@@ -106,3 +106,37 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
                 merged[t].update(ids)
 
     return dict(merged)
+
+
+def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> ConstraintGroup:
+    # Flatten all constraints with metadata
+    all_constraints = []
+
+    def collect_constraints(node):
+        if isinstance(node, ConstraintGroup):
+            for sub in node:
+                collect_constraints(sub)
+        else:
+            all_constraints.append(node)
+
+    collect_constraints(group)
+
+    # Sort by (priority, confidence ascending) — lowest first
+    sorted_constraints = sorted(
+        all_constraints, key=lambda c: (c.priority, c.confidence))
+
+    # Drop up to N
+    to_drop = set(sorted_constraints[:max_drops])
+
+    def rebuild_group(group):
+        new_members = []
+        for node in group:
+            if isinstance(node, ConstraintGroup):
+                rebuilt = rebuild_group(node)
+                if rebuilt:
+                    new_members.append(rebuilt)
+            elif node not in to_drop:
+                new_members.append(node)
+        return ConstraintGroup(new_members, logic=group.logic) if new_members else None
+
+    return rebuild_group(group)
