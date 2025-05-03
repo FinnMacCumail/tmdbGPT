@@ -84,6 +84,11 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
         f"🌲 Evaluating ConstraintGroup ({group.logic}) with members: {group.constraints}")
     results: List[Dict[str, Set[int]]] = []
 
+    print(
+        f"🧪 Evaluating constraint tree against data_registry keys: {list(data_registry.keys())}")
+    for k, v in data_registry.items():
+        print(f"   - {k}: {list(v.keys()) if isinstance(v, dict) else v}")
+
     for node in group:
         if isinstance(node, ConstraintGroup):
             result = evaluate_constraint_tree(node, data_registry)

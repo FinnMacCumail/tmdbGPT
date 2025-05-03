@@ -271,6 +271,9 @@ class ExecutionOrchestrator:
                         json_data = response.json()
                         state.data_registry[step_id] = json_data
 
+                        print(
+                            f"📦 Registry contents after {step_id}: {state.data_registry.get(step_id)}")
+
                         previous_entities = set(state.resolved_entities.keys())
                         state = PostStepUpdater.update(state, step, json_data)
                         new_entities = {
@@ -439,6 +442,11 @@ class ExecutionOrchestrator:
         print("🔍 Evaluating constraint tree...")
         print(f"🌲 Tree structure: {state.constraint_tree}")
 
+        print(
+            f"🔎 Current data_registry keys: {list(state.data_registry.keys())}")
+        print(
+            f"🔎 Registry[with_genres]: {state.data_registry.get('with_genres')}")
+
         ids = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
 
@@ -512,6 +520,9 @@ class ExecutionOrchestrator:
             ranked = EntityAwareReranker.boost_by_entity_mentions(
                 filtered_movies, query_entities)
             state.data_registry[step_id]["validated"] = ranked
+
+            print(
+                f"📦 Registry contents after {step_id}: {state.data_registry.get(step_id)}")
 
             matched = [c.to_string()
                        for c in state.constraint_tree if hasattr(c, "to_string")]
