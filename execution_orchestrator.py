@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING, Dict, Set, List
+from collections import defaultdict
 from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
 import requests
 from copy import deepcopy
@@ -107,20 +109,38 @@ class ExecutionOrchestrator:
         return validated or movie_results
 
     if TYPE_CHECKING:
-        from constraint_model import ConstraintGroup
+        from constraint_model import ConstraintGroup, Constraint
 
-    def evaluate_constraint_tree(group: "ConstraintGroup", data_registry: dict) -> set[int]:
-        results = []
 
-        for node in group:
-            if isinstance(node, ConstraintGroup):
-                result = evaluate_constraint_tree(node, data_registry)
-            else:
-                result = data_registry.get(
-                    node.key, {}).get(str(node.value), set())
-            results.append(result)
+def evaluate_constraint_tree(group: "ConstraintGroup", data_registry: dict) -> Dict[str, Set[int]]:
+    results: List[Dict[str, Set[int]]] = []
 
-        return set.intersection(*results) if group.logic == "AND" else set.union(*results)
+    for node in group:
+        if isinstance(node, group.__class__):  # supports recursive ConstraintGroup
+            result = evaluate_constraint_tree(node, data_registry)
+        else:  # node is a Constraint
+            id_set = data_registry.get(
+                node.key, {}).get(str(node.value), set())
+            result = {node.type: id_set} if id_set else {}
+
+        results.append(result)
+
+        merged: Dict[str, Set[int]] = defaultdict(set)
+
+        if group.logic == "AND":
+            all_types = set.intersection(
+                *(set(r.keys()) for r in results if r))
+            for t in all_types:
+                intersected = set.intersection(
+                    *(r.get(t, set()) for r in results if t in r))
+                if intersected:
+                    merged[t] = intersected
+        else:  # OR logic
+            for r in results:
+                for t, ids in r.items():
+                    merged[t].update(ids)
+
+        return dict(merged)
 
     def execute(self, state):
         print(f"\n[DEBUG] Entering Orchestrator Execution")
@@ -154,15 +174,17 @@ class ExecutionOrchestrator:
             print(
                 f"🔍 Phase 21.5 - Intersected IDs from constraint tree: {ids}")
 
-            if ids:
-                validation_steps = [{
-                    "step_id": f"step_validate_{media_type}_{id_}",
-                    "endpoint": f"/{media_type}/{id_}",
-                    "method": "GET",
-                    "requires": [f"{media_type}_id"],
-                    "produces": [],
-                    "from_constraint_tree": True
-                } for id_ in sorted(ids)]
+            validation_steps = []
+            for media_type, id_set in ids.items():
+                for id_ in sorted(id_set):
+                    validation_steps.append({
+                        "step_id": f"step_validate_{media_type}_{id_}",
+                        "endpoint": f"/{media_type}/{id_}",
+                        "method": "GET",
+                        "requires": [f"{media_type}_id"],
+                        "produces": [],
+                        "from_constraint_tree": True
+                    })
 
                 state.plan_steps = validation_steps + state.plan_steps
             else:
