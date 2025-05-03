@@ -65,7 +65,7 @@ class ConstraintBuilder:
         for ent in query_entities:
             c = Constraint(
                 key=get_param_key_for_type(ent["type"], prefer="with_"),
-                value=ent["id"],
+                value=ent.get("id") or ent.get("resolved_id"),
                 type_=ent["type"],
                 subtype=ent.get("role"),
                 priority=ent.get("priority", 2),
@@ -94,16 +94,17 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
     merged: Dict[str, Set[int]] = defaultdict(set)
 
     if group.logic == "AND":
-        all_types = set.intersection(*(set(r.keys()) for r in results if r))
-        for t in all_types:
-            intersected = set.intersection(
-                *(r.get(t, set()) for r in results if t in r))
-            if intersected:
-                merged[t] = intersected
-    else:
-        for r in results:
-            for t, ids in r.items():
-                merged[t].update(ids)
+        filtered = [set(r.keys()) for r in results if r]
+        if filtered:
+            all_types = set.intersection(*filtered)
+            for t in all_types:
+                intersected = set.intersection(
+                    *(r.get(t, set()) for r in results if t in r))
+                if intersected:
+                    merged[t] = intersected
+        else:
+            # Nothing to intersect — fallback to empty
+            merged = {}
 
     return dict(merged)
 
