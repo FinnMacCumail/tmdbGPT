@@ -79,6 +79,9 @@ class ConstraintBuilder:
 
 
 def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dict[str, Set[int]]:
+
+    print(
+        f"🌲 Evaluating ConstraintGroup ({group.logic}) with members: {group.constraints}")
     results: List[Dict[str, Set[int]]] = []
 
     for node in group:
@@ -87,11 +90,13 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
         else:
             id_set = data_registry.get(
                 node.key, {}).get(str(node.value), set())
+            print(f"🔍 Node {node} matched IDs: {id_set}")
             result = {node.type: id_set} if id_set else {}
 
         results.append(result)
 
     merged: Dict[str, Set[int]] = defaultdict(set)
+    print(f"🎯 Final merged constraint results: {merged}")
 
     if group.logic == "AND":
         filtered = [set(r.keys()) for r in results if r]
@@ -127,7 +132,11 @@ def relax_constraint_tree(
 
     # Sort by (priority, confidence ascending) — lowest first
     sorted_constraints = sorted(
-        all_constraints, key=lambda c: (c.priority, c.confidence))
+        all_constraints, key=lambda c: (c.priority, c.confidence)
+    )
+
+    print(
+        f"🔄 Candidate constraints for drop: {sorted_constraints[:max_drops]}")
 
     # Drop up to N
     to_drop = set(sorted_constraints[:max_drops])
@@ -147,7 +156,13 @@ def relax_constraint_tree(
                 new_members.append(node)
         return ConstraintGroup(new_members, logic=group.logic) if new_members else None
 
-    return rebuild_group(group), list(to_drop), drop_reasons
+    relaxed_tree = rebuild_group(group)
+
+    # ✅ Debug output after rebuild
+    print(f"♻️ Relaxed tree: {relaxed_tree}")
+    print(f"❌ Dropped constraints: {drop_reasons}")
+
+    return relaxed_tree, list(to_drop), drop_reasons
 
 
 def normalize_constraint_tree(group: ConstraintGroup) -> ConstraintGroup:

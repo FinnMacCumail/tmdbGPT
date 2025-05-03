@@ -400,6 +400,7 @@ class ExecutionOrchestrator:
                 })
         print(
             f"✅ Injecting {len(validation_steps)} validation steps from constraint tree.")
+        print(f"📦 Validation steps injected: {validation_steps}")
         state.plan_steps = validation_steps + state.plan_steps
 
     # phase 21.5 - Constraint-aware fallback / relaxation
@@ -411,10 +412,13 @@ class ExecutionOrchestrator:
 
         Returns True if any steps were injected, else False.
         """
-        # ✅ Phase 21.5.8: Smart Step Pruning via constraint fingerprinting
         fingerprint = self._make_constraint_fingerprint(state.constraint_tree)
 
         if fingerprint in state.visited_fingerprints:
+            print(
+                f"🔁 [PRUNE] Skipping already visited fingerprint: {fingerprint}")
+            print(f"🧾 [Visited Fingerprints]: {state.visited_fingerprints}")
+
             ExecutionTraceLogger.log_step(
                 step_id="step_pruning",
                 path="(internal)",
@@ -422,51 +426,64 @@ class ExecutionOrchestrator:
                 summary={"fingerprint": fingerprint},
                 state=state
             )
-            return False  # ✅ Skip redundant evaluation
+            return False
 
-        # Mark this fingerprint as visited
+        # ✅ First-time fingerprint
         state.visited_fingerprints.add(fingerprint)
+        print(f"🧪 [NEW Fingerprint Recorded]: {fingerprint}")
 
         if not hasattr(state, "constraint_tree") or not state.constraint_tree:
+            print("⛔ No constraint tree available on state.")
             return False
 
         print("🔍 Evaluating constraint tree...")
+        print(f"🌲 Tree structure: {state.constraint_tree}")
+
         ids = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
+
+        print(f"🎯 Constraint evaluation returned: {ids}")
         if ids:
+            print("✅ Injecting validation steps from constraint matches...")
             self._inject_validation_steps_from_ids(ids, state)
             return True
 
         print("⚠️ Phase 21.5 - No matches. Attempting constraint-based relaxation...")
 
         relaxed_tree, dropped, reasons = relax_constraint_tree(
-            state.constraint_tree, max_drops=1)
+            state.constraint_tree, max_drops=1
+        )
+
         if reasons:
+            print(f"🧾 Relaxation reasons: {reasons}")
             state.relaxation_log.extend(reasons)
+
         if dropped:
             for constraint in dropped:
                 reason = f"Dropped '{constraint.key}={constraint.value}' (priority={constraint.priority}, confidence={constraint.confidence})"
                 print(f"📝 {reason}")
-                if not hasattr(state, "relaxation_log"):
-                    state.relaxation_log = []
                 state.relaxation_log.append(reason)
 
         if relaxed_tree:
+            print(f"♻️ Relaxed constraint tree: {relaxed_tree}")
             relaxed_ids = evaluate_constraint_tree(
                 relaxed_tree, state.data_registry)
+            print(f"🎯 Relaxed constraint evaluation returned: {relaxed_ids}")
             if relaxed_ids:
-                print(f"♻️ Relaxed constraint tree matched: {relaxed_ids}")
+                print("✅ Injecting validation steps from relaxed constraint matches...")
                 self._inject_validation_steps_from_ids(relaxed_ids, state)
-                state.constraint_tree = relaxed_tree  # ✅ Replace with relaxed version
+                state.constraint_tree = relaxed_tree
                 return True
             else:
                 print("🛑 Still no matches after relaxing constraints.")
         else:
             print("🛑 Cannot relax further — no constraints left.")
 
+        print("🛑 No validation steps injected from constraint tree.")
         return False
 
     # phase Phase 21.5.8: Smart Step Pruning
+
     def _make_constraint_fingerprint(self, tree: ConstraintGroup) -> str:
 
         class _Serializable(BaseModel):
@@ -775,6 +792,8 @@ class ExecutionOrchestrator:
             self._inject_validation_steps(state, intersected_ids)
             return True
 
+        print(
+            f"🛑 [Fallback Trigger] No executable steps in plan. Current steps: {state.plan_steps}")
         print(f"🛑 No intersection or valid steps — fallback needed.")
         return False
 
@@ -954,6 +973,9 @@ class ExecutionTraceLogger:
         print(f"├─ Step: {step_id}")
         print(f"├─ Endpoint: {path}")
         print(f"├─ Status: {status}")
+
+        print(
+            f"🧾 Trace Entry Added → Step: {step_id}, Status: {status}, Notes: {summary}")
 
         # Format the result for print
         if summary is not None:
