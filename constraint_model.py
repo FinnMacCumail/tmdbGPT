@@ -1,6 +1,6 @@
 
 from param_utils import get_param_key_for_type
-from typing import List, Union, Dict, Set
+from typing import List, Union, Dict, Set, Tuple, Optional
 from collections import defaultdict
 
 
@@ -108,7 +108,8 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
     return dict(merged)
 
 
-def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> ConstraintGroup:
+# phase 21.6 - Step 6: Logging and Trace
+def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> Tuple[Optional[ConstraintGroup], List[Constraint]]:
     # Flatten all constraints with metadata
     all_constraints = []
 
@@ -139,4 +140,4 @@ def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> Constra
                 new_members.append(node)
         return ConstraintGroup(new_members, logic=group.logic) if new_members else None
 
-    return rebuild_group(group)
+    return rebuild_group(group), list(to_drop)
