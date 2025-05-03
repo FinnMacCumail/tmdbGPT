@@ -62,9 +62,10 @@ class AppState(BaseModel):
     explanation: Optional[str] = None
     intended_media_type: Optional[str] = None
     constraint_tree: Optional[ConstraintGroup] = None
-    relaxation_log: List[str] = []
+    relaxation_log: List[str] = Field(default_factory=list)
     debug: Optional[bool] = True
-    visited_fingerprints: Set[str] = set()
+    visited_fingerprints: Set[str] = Field(default_factory=set)
+    post_validation_log: Optional[List[str]] = Field(default_factory=list)
 
     class Config:
         arbitrary_types_allowed = True
@@ -266,8 +267,10 @@ def respond(state: AppState):
         return {"responses": state.formatted_response}
 
     print("⚠️ No formatted response found. Using default formatter.")
-    lines = ResponseFormatter.format_responses(
-        state.responses, include_debug=state.debug if hasattr(state, "debug") else True)
+    if state.response_format == "ranked_list":
+        lines = format_ranked_list(state.responses, include_debug=True)
+    else:
+        lines = ResponseFormatter.format_responses(state.responses)
 
     if not lines:
         fallback = format_fallback(state)
