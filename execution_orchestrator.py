@@ -19,6 +19,7 @@ from dependency_manager import DependencyManager
 from constraint_model import Constraint, ConstraintGroup
 import hashlib
 from pydantic import BaseModel
+from param_utils import update_symbolic_registry
 
 
 class ExecutionOrchestrator:
@@ -498,6 +499,8 @@ class ExecutionOrchestrator:
             logic=tree.logic, constraints=constraints).json()
         return hashlib.md5(tree_repr.encode()).hexdigest()
 
+    from param_utils import update_symbolic_registry  # top of file
+
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
         seen_step_keys = seen_step_keys or set()
         print(f"🔎 BEGIN _handle_discover_movie_step for {step_id}")
@@ -509,8 +512,11 @@ class ExecutionOrchestrator:
             query_entities = state.extraction_result.get("query_entities", [])
             ranked = EntityAwareReranker.boost_by_entity_mentions(
                 filtered_movies, query_entities)
+
+            # ✅ Registry: store validated list under the step_id
             state.data_registry[step_id]["validated"] = ranked
 
+            # 🧠 Extract constraint metadata for provenance
             matched = [c.to_string()
                        for c in state.constraint_tree if hasattr(c, "to_string")]
             relaxed = list(state.relaxation_log)
@@ -524,6 +530,16 @@ class ExecutionOrchestrator:
                     "relaxed_constraints": relaxed,
                     "post_validations": validated
                 }
+
+                # ✅ Update symbolic registry
+                update_symbolic_registry(
+                    entity=movie, registry=state.data_registry)
+
+                # 🔍 Optional: Log symbolic fields added
+                print(
+                    f"📦 [Registry Updated] ID {movie.get('id')} → genres {movie.get('genre_ids', [])}")
+
+                # Add to response
                 state.responses.append(movie)
 
             ExecutionTraceLogger.log_step(
