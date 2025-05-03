@@ -212,8 +212,6 @@ class ExecutionOrchestrator:
             step_id = step.get("step_id")
             depth = step_origin_depth.get(step_id, 0)
             if depth > MAX_CHAIN_DEPTH:
-                print(
-                    f"🔁 Loop suppression: skipping step {step_id} (depth={depth})")
                 continue
 
             # 🛡 Sanity check on parameters
@@ -270,9 +268,6 @@ class ExecutionOrchestrator:
                     try:
                         json_data = response.json()
                         state.data_registry[step_id] = json_data
-
-                        print(
-                            f"📦 Registry contents after {step_id}: {state.data_registry.get(step_id)}")
 
                         previous_entities = set(state.resolved_entities.keys())
                         state = PostStepUpdater.update(state, step, json_data)
@@ -439,13 +434,8 @@ class ExecutionOrchestrator:
             print("⛔ No constraint tree available on state.")
             return False
 
-        print("🔍 Evaluating constraint tree...")
-        print(f"🌲 Tree structure: {state.constraint_tree}")
-
-        print(
-            f"🔎 Current data_registry keys: {list(state.data_registry.keys())}")
-        print(
-            f"🔎 Registry[with_genres]: {state.data_registry.get('with_genres')}")
+        print("📍 Preparing to evaluate constraint tree...")
+        print_registry_snapshot(state.data_registry)
 
         ids = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
@@ -520,9 +510,6 @@ class ExecutionOrchestrator:
             ranked = EntityAwareReranker.boost_by_entity_mentions(
                 filtered_movies, query_entities)
             state.data_registry[step_id]["validated"] = ranked
-
-            print(
-                f"📦 Registry contents after {step_id}: {state.data_registry.get(step_id)}")
 
             matched = [c.to_string()
                        for c in state.constraint_tree if hasattr(c, "to_string")]
@@ -1018,3 +1005,20 @@ class ExecutionTraceLogger:
 
 # On failure:
 # will be moved inside exception block where 'response' is defined
+
+
+def print_registry_snapshot(data_registry, max_keys=10, max_values=5):
+    print("📦 [Registry Snapshot]")
+    keys = list(data_registry.keys())
+    for k in keys[:max_keys]:
+        v = data_registry[k]
+        if isinstance(v, dict):
+            print(f"  🔑 {k}: {len(v)} subkeys")
+            for subk in list(v.keys())[:max_values]:
+                print(f"     └─ {subk} → {len(v[subk])} ids")
+        elif isinstance(v, list):
+            print(f"  🔑 {k}: List of {len(v)} items")
+        else:
+            print(f"  🔑 {k}: {type(v)}")
+    if len(keys) > max_keys:
+        print(f"  ... ({len(keys) - max_keys} more keys omitted)")
