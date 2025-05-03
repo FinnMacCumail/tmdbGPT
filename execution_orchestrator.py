@@ -129,31 +129,11 @@ class ExecutionOrchestrator:
             # Insert fallback injection or graceful handling here
             return state  # or inject a fallback step if you have one
 
-        # ✅ Phase 21.5: Evaluate constraint tree and inject media validation steps
-        if hasattr(state, "constraint_tree") and state.constraint_tree:
-
-            media_type = state.extraction_result.get("media_type", "movie")
-            ids = evaluate_constraint_tree(
-                state.constraint_tree, state.data_registry)
-            print(
-                f"🔍 Phase 21.5 - Intersected IDs from constraint tree: {ids}")
-
-            validation_steps = []
-            for media_type, id_set in ids.items():
-                for id_ in sorted(id_set):
-                    validation_steps.append({
-                        "step_id": f"step_validate_{media_type}_{id_}",
-                        "endpoint": f"/{media_type}/{id_}",
-                        "method": "GET",
-                        "requires": [f"{media_type}_id"],
-                        "produces": [],
-                        "from_constraint_tree": True
-                    })
-
-                state.plan_steps = validation_steps + state.plan_steps
-            else:
-                print(
-                    "⚠️ Phase 21.5 - No matches from constraint tree evaluation. Consider relaxing.")
+        # ✅ Phase 21.5: Evaluate and inject constraint-tree-based steps (with relaxation fallback)
+        if self._evaluate_and_inject_from_constraint_tree(state):
+            print("✅ Constraint tree steps injected.")
+        else:
+            print("🛑 No executable steps from constraint tree.")
 
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
@@ -429,6 +409,62 @@ class ExecutionOrchestrator:
                 print(f"❌ Network mismatch for {movie.get('id')}")
 
         return score
+
+    # phase 21.5 - ID injection logic
+    def _inject_validation_steps_from_ids(self, ids_by_type: Dict[str, Set[int]], state):
+        validation_steps = []
+        for media_type, id_set in ids_by_type.items():
+            for id_ in sorted(id_set):
+                validation_steps.append({
+                    "step_id": f"step_validate_{media_type}_{id_}",
+                    "endpoint": f"/{media_type}/{id_}",
+                    "method": "GET",
+                    "requires": [f"{media_type}_id"],
+                    "produces": [],
+                    "from_constraint_tree": True
+                })
+        print(
+            f"✅ Injecting {len(validation_steps)} validation steps from constraint tree.")
+        state.plan_steps = validation_steps + state.plan_steps
+
+    # phase 21.5 - Constraint-aware fallback / relaxation
+    def _evaluate_and_inject_from_constraint_tree(self, state) -> bool:
+        """
+        Evaluates the constraint tree and injects validation steps if any matches are found.
+        If no matches, performs a relaxation and retries once.
+
+        Returns True if any steps were injected, else False.
+        """
+        from constraint_model import evaluate_constraint_tree, relax_constraint_tree
+
+        if not hasattr(state, "constraint_tree") or not state.constraint_tree:
+            return False
+
+        print("🔍 Evaluating constraint tree...")
+        ids = evaluate_constraint_tree(
+            state.constraint_tree, state.data_registry)
+        if ids:
+            self._inject_validation_steps_from_ids(ids, state)
+            return True
+
+        print("⚠️ Phase 21.5 - No matches. Attempting constraint-based relaxation...")
+
+        relaxed_tree = relax_constraint_tree(
+            state.constraint_tree, max_drops=1)
+        if relaxed_tree:
+            relaxed_ids = evaluate_constraint_tree(
+                relaxed_tree, state.data_registry)
+            if relaxed_ids:
+                print(f"♻️ Relaxed constraint tree matched: {relaxed_ids}")
+                self._inject_validation_steps_from_ids(relaxed_ids, state)
+                state.constraint_tree = relaxed_tree  # ✅ Replace with relaxed version
+                return True
+            else:
+                print("🛑 Still no matches after relaxing constraints.")
+        else:
+            print("🛑 Cannot relax further — no constraints left.")
+
+        return False
 
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
         seen_step_keys = seen_step_keys or set()
