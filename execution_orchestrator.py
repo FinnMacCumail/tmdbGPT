@@ -126,17 +126,16 @@ class ExecutionOrchestrator:
         print(f"🧭 Question Type: {getattr(state, 'question_type', None)}")
         print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
 
-        # ✅ phase 9.2 - pgpv - PLACE THIS RIGHT HERE before popping steps
-        if not self._safe_to_execute(state):
-            print(f"🛑 Fallback triggered due to unsafe plan.")
-            # Insert fallback injection or graceful handling here
-            return state  # or inject a fallback step if you have one
-
         # ✅ Phase 21.5: Evaluate and inject constraint-tree-based steps (with relaxation fallback)
         if self._evaluate_and_inject_from_constraint_tree(state):
             print("✅ Constraint tree steps injected.")
         else:
             print("🛑 No executable steps from constraint tree.")
+
+        # ✅ phase 9.2 - pgpv - Safety check happens AFTER constraint planning
+        if not self._safe_to_execute(state):
+            print(f"🛑 Fallback triggered due to unsafe plan.")
+            return state
 
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
@@ -389,11 +388,13 @@ class ExecutionOrchestrator:
         validation_steps = []
         for media_type, id_set in ids_by_type.items():
             for id_ in sorted(id_set):
+                param_key = f"{media_type}_id"
                 validation_steps.append({
                     "step_id": f"step_validate_{media_type}_{id_}",
                     "endpoint": f"/{media_type}/{id_}",
                     "method": "GET",
-                    "requires": [f"{media_type}_id"],
+                    "requires": [param_key],
+                    "params": {param_key: id_},  # ✅ added this
                     "produces": [],
                     "from_constraint_tree": True
                 })
@@ -402,6 +403,7 @@ class ExecutionOrchestrator:
         state.plan_steps = validation_steps + state.plan_steps
 
     # phase 21.5 - Constraint-aware fallback / relaxation
+
     def _evaluate_and_inject_from_constraint_tree(self, state) -> bool:
         """
         Evaluates the constraint tree and injects validation steps if any matches are found.
@@ -473,7 +475,8 @@ class ExecutionOrchestrator:
 
         # Convert constraint objects to dicts
         constraints = sorted(
-            [c.dict() for c in tree.constraints],
+            # Use c.to_dict() instead of c.dict()
+            [c.to_dict() for c in tree.constraints],
             key=lambda d: (d["key"], str(d["value"]))
         )
         tree_repr = _Serializable(
