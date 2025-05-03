@@ -1,5 +1,8 @@
 
-from typing import List, Union
+from param_utils import get_param_key_for_type
+from typing import List, Union, Dict, Set
+from collections import defaultdict
+
 
 class Constraint:
     def __init__(
@@ -34,6 +37,7 @@ class Constraint:
     def __repr__(self):
         return f"Constraint(key={self.key}, value={self.value}, type={self.type}, subtype={self.subtype}, priority={self.priority}, confidence={self.confidence})"
 
+
 class ConstraintGroup:
     def __init__(self, constraints: List[Union["Constraint", "ConstraintGroup"]], logic: str = "AND"):
         self.constraints = constraints
@@ -52,8 +56,6 @@ class ConstraintGroup:
         return f"ConstraintGroup(logic={self.logic}, constraints={self.constraints})"
 
 
-from param_utils import get_param_key_for_type
-
 class ConstraintBuilder:
     def build_from_query_entities(self, query_entities):
         if not query_entities:
@@ -68,8 +70,39 @@ class ConstraintBuilder:
                 subtype=ent.get("role"),
                 priority=ent.get("priority", 2),
                 confidence=ent.get("confidence", 1.0),
-                metadata={k: v for k, v in ent.items() if k not in {"type", "name", "id", "role", "priority", "confidence"}}
+                metadata={k: v for k, v in ent.items() if k not in {
+                    "type", "name", "id", "role", "priority", "confidence"}}
             )
             constraints.append(c)
 
         return ConstraintGroup(constraints, logic="AND")
+
+
+def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dict[str, Set[int]]:
+    results: List[Dict[str, Set[int]]] = []
+
+    for node in group:
+        if isinstance(node, ConstraintGroup):
+            result = evaluate_constraint_tree(node, data_registry)
+        else:
+            id_set = data_registry.get(
+                node.key, {}).get(str(node.value), set())
+            result = {node.type: id_set} if id_set else {}
+
+        results.append(result)
+
+    merged: Dict[str, Set[int]] = defaultdict(set)
+
+    if group.logic == "AND":
+        all_types = set.intersection(*(set(r.keys()) for r in results if r))
+        for t in all_types:
+            intersected = set.intersection(
+                *(r.get(t, set()) for r in results if t in r))
+            if intersected:
+                merged[t] = intersected
+    else:
+        for r in results:
+            for t, ids in r.items():
+                merged[t].update(ids)
+
+    return dict(merged)
