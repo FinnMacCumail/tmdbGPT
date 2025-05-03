@@ -16,6 +16,7 @@ from plan_validator import SymbolicConstraintFilter
 from constraint_model import evaluate_constraint_tree, relax_constraint_tree
 from typing import TYPE_CHECKING
 from dependency_manager import DependencyManager
+from constraint_model import Constraint, ConstraintGroup
 
 
 class ExecutionOrchestrator:
@@ -341,7 +342,6 @@ class ExecutionOrchestrator:
 
     def _score_movie_against_query(self, movie, query_entities, constraint_tree, state):
         provenance = {
-            # You can add logic later to track which constraints matched
             "matched_constraints": [],
             "relaxed_constraints": getattr(state, "relaxation_log", []),
             "post_validations": []
@@ -349,6 +349,7 @@ class ExecutionOrchestrator:
 
         score = 0.0
 
+        # 🎯 1. Post-validation checks (already implemented)
         if self.post_validator.has_all_cast(movie, query_entities):
             score += 0.5
             provenance["post_validations"].append("has_all_cast")
@@ -358,6 +359,25 @@ class ExecutionOrchestrator:
         if self.post_validator.validate_genres(movie, query_entities):
             score += 0.2
             provenance["post_validations"].append("validate_genres")
+
+        # 🎯 2. Constraint matches from constraint_tree
+        def collect_constraints(group):
+            for c in group:
+                if isinstance(c, ConstraintGroup):
+                    yield from collect_constraints(c)
+                elif isinstance(c, Constraint):
+                    yield c
+
+        for constraint in collect_constraints(constraint_tree):
+            # e.g., constraint.key = 'with_genres', constraint.value = 18
+            movie_val = movie.get(constraint.key)
+            if movie_val:
+                if isinstance(movie_val, list) and constraint.value in movie_val:
+                    provenance["matched_constraints"].append(
+                        f"{constraint.key}={constraint.value}")
+                elif movie_val == constraint.value:
+                    provenance["matched_constraints"].append(
+                        f"{constraint.key}={constraint.value}")
 
         movie["_provenance"] = provenance
         return score
