@@ -15,7 +15,7 @@ from plan_validator import SymbolicConstraintFilter
 from response_formatter import ResponseFormatter, format_fallback
 from response_formatter import format_ranked_list
 from plan_validator import PlanValidator
-from constraint_model import ConstraintBuilder, ConstraintGroup
+from constraint_model import ConstraintBuilder, ConstraintGroup, Constraint
 
 load_dotenv()
 
@@ -66,6 +66,8 @@ class AppState(BaseModel):
     debug: Optional[bool] = True
     visited_fingerprints: Set[str] = Field(default_factory=set)
     post_validation_log: Optional[List[str]] = Field(default_factory=list)
+    constraint_tree_evaluated: bool = False
+    last_dropped_constraints: Optional[List[Constraint]] = []
 
     class Config:
         arbitrary_types_allowed = True
