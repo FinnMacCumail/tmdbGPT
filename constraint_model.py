@@ -64,7 +64,7 @@ class ConstraintBuilder:
         constraints = []
         for ent in query_entities:
             c = Constraint(
-                key=get_param_key_for_type(ent["type"]),
+                key=get_param_key_for_type(ent["type"], prefer="with_"),
                 value=ent["id"],
                 type_=ent["type"],
                 subtype=ent.get("role"),
