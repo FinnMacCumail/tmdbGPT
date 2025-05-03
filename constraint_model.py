@@ -141,3 +141,26 @@ def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> Tuple[O
         return ConstraintGroup(new_members, logic=group.logic) if new_members else None
 
     return rebuild_group(group), list(to_drop)
+
+
+def normalize_constraint_tree(group: ConstraintGroup) -> ConstraintGroup:
+    """
+    Flattens nested ConstraintGroups and deduplicates Constraints within a group.
+    """
+    seen = set()
+    flat_constraints = []
+
+    def flatten(group_or_constraint):
+        if isinstance(group_or_constraint, ConstraintGroup):
+            for member in group_or_constraint:
+                flatten(member)
+        elif isinstance(group_or_constraint, Constraint):
+            sig = (group_or_constraint.key, group_or_constraint.value,
+                   group_or_constraint.type)
+            if sig not in seen:
+                seen.add(sig)
+                flat_constraints.append(group_or_constraint)
+
+    flatten(group)
+
+    return ConstraintGroup(flat_constraints, logic=group.logic)
