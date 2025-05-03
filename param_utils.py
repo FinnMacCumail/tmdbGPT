@@ -149,3 +149,29 @@ def normalize_entity_type(entity_type: str) -> str:
     Currently a no-op but ready for future extensions.
     """
     return entity_type.lower().strip()
+
+
+
+import json
+
+# Cached map loaded from file
+_param_to_entity_map = None
+
+def load_param_to_entity_map(path="data/param_to_entity_map.json"):
+    global _param_to_entity_map
+    if _param_to_entity_map is None:
+        with open(path, "r") as f:
+            _param_to_entity_map = json.load(f)
+    return _param_to_entity_map
+
+def get_param_key_for_type(type_, prefer="default"):
+    """
+    Get the most appropriate TMDB parameter key for a given constraint type.
+    Optionally select preferred match (e.g., with_cast over with_people).
+    """
+    param_map = load_param_to_entity_map()
+    for param, ent_type in param_map.items():
+        if ent_type == type_:
+            if prefer == "default":
+                return param  # return first match found
+    return type_  # fallback
