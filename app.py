@@ -63,6 +63,7 @@ class AppState(BaseModel):
     intended_media_type: Optional[str] = None
     constraint_tree: Optional[ConstraintGroup] = None
     relaxation_log: List[str] = []
+    debug: Optional[bool] = True
 
     class Config:
         arbitrary_types_allowed = True
