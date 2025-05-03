@@ -88,12 +88,20 @@ class ExecutionOrchestrator:
                             continue
                         result_data = response.json()
 
-                        score = self._score_movie_against_query(
+                        score_tuple = self._score_movie_against_query(
                             movie=movie,
+                            state=state,
                             credits=result_data,
                             step=step,
                             query_entities=query_entities
                         )
+
+                        if not score_tuple:
+                            print(
+                                f"❌ Movie {movie_id} rejected (scoring returned None)")
+                            continue
+
+                        score, matched = score_tuple
 
                         if score > 0:
                             movie["final_score"] = min(score, 1.0)
@@ -340,145 +348,116 @@ class ExecutionOrchestrator:
 
         return state
 
-    def _score_movie_against_query(self, movie, query_entities, constraint_tree, state):
-        provenance = {
-            "matched_constraints": [],
-            "relaxed_constraints": getattr(state, "relaxation_log", []),
-            "post_validations": []
-        }
+    def _score_movie_against_query(self, movie, state, credits=None, **kwargs):
+        matched_constraints = []
+        relaxed = getattr(state, "last_dropped_constraints", [])
 
-        score = 0.0
+        # Check person role (e.g., director) constraints
+        for constraint in state.constraint_tree.flatten():
+            if constraint.type == "person" and constraint.subtype == "director":
+                if credits:
+                    directors = [p for p in credits.get(
+                        "crew", []) if p.get("job") == "Director"]
+                    if any(str(p["id"]) == str(constraint.value) for p in directors):
+                        matched_constraints.append(
+                            f"{constraint.key}={constraint.value}")
+                    else:
+                        return 0, []  # No match
+                else:
+                    return 0, []  # No credits to check against
 
-        # 🎯 1. Post-validation checks (already implemented)
-        if self.post_validator.has_all_cast(movie, query_entities):
-            score += 0.5
-            provenance["post_validations"].append("has_all_cast")
-        if self.post_validator.has_director(movie, query_entities):
-            score += 0.3
-            provenance["post_validations"].append("has_director")
-        if self.post_validator.validate_genres(movie, query_entities):
-            score += 0.2
-            provenance["post_validations"].append("validate_genres")
+        # Check genre constraints
+        if "genre_ids" in movie:
+            for constraint in state.constraint_tree.flatten():
+                if constraint.type == "genre":
+                    if int(constraint.value) in movie["genre_ids"]:
+                        matched_constraints.append(
+                            f"{constraint.key}={constraint.value}")
 
-        # 🎯 2. Constraint matches from constraint_tree
-        def collect_constraints(group):
-            for c in group:
-                if isinstance(c, ConstraintGroup):
-                    yield from collect_constraints(c)
-                elif isinstance(c, Constraint):
-                    yield c
+        # Track provenance
+        movie["_provenance"] = movie.get("_provenance", {})
+        movie["_provenance"]["matched_constraints"] = matched_constraints
+        movie["_provenance"]["relaxed_constraints"] = [
+            f"Dropped '{c.key}={c.value}' (priority={c.priority}, confidence={c.confidence})"
+            for c in relaxed
+        ]
+        movie["_provenance"]["post_validations"] = [
+            "has_all_cast"] if credits else []
 
-        for constraint in collect_constraints(constraint_tree):
-            # e.g., constraint.key = 'with_genres', constraint.value = 18
-            movie_val = movie.get(constraint.key)
-            if movie_val:
-                if isinstance(movie_val, list) and constraint.value in movie_val:
-                    provenance["matched_constraints"].append(
-                        f"{constraint.key}={constraint.value}")
-                elif movie_val == constraint.value:
-                    provenance["matched_constraints"].append(
-                        f"{constraint.key}={constraint.value}")
-
-        movie["_provenance"] = provenance
-        return score
+        return len(matched_constraints), matched_constraints
 
     # phase 21.5 - ID injection logic
-    def _inject_validation_steps_from_ids(self, ids_by_type: Dict[str, Set[int]], state):
-        validation_steps = []
-        for media_type, id_set in ids_by_type.items():
+
+    def _inject_validation_steps_from_ids(self, ids_by_key, state):
+        for key, id_set in ids_by_key.items():
+            # Determine the media type based on the key
+            if key.startswith("with_movies"):
+                media_type = "movie"
+            elif key.startswith("with_tv"):
+                media_type = "tv"
+            else:
+                print(f"⏭️ Skipping non-media validation group: {key}")
+                continue
+
             for id_ in sorted(id_set):
-                param_key = f"{media_type}_id"
-                validation_steps.append({
-                    "step_id": f"step_validate_{media_type}_{id_}",
+                step_id = f"step_validate_{media_type}_{id_}"
+                if step_id in state.completed_steps:
+                    continue
+
+                step = {
+                    "step_id": step_id,
                     "endpoint": f"/{media_type}/{id_}",
-                    "method": "GET",
-                    "requires": [param_key],
-                    "params": {param_key: id_},  # ✅ added this
-                    "produces": [],
-                    "from_constraint_tree": True
-                })
-        print(
-            f"✅ Injecting {len(validation_steps)} validation steps from constraint tree.")
-        print(f"📦 Validation steps injected: {validation_steps}")
-        state.plan_steps = validation_steps + state.plan_steps
+                    "parameters": {},
+                    "type": "validation"
+                }
+                state.plan_steps.insert(0, step)
+                print(f"✅ Injected validation step: {step_id}")
 
     # phase 21.5 - Constraint-aware fallback / relaxation
 
-    def _evaluate_and_inject_from_constraint_tree(self, state) -> bool:
+    def _evaluate_and_inject_from_constraint_tree(self, state):
         """
-        Evaluates the constraint tree and injects validation steps if any matches are found.
-        If no matches, performs a relaxation and retries once.
-
-        Returns True if any steps were injected, else False.
+        Evaluates the constraint tree against the symbolic registry,
+        injects validation steps for matching IDs, and tracks relaxation state.
         """
-        fingerprint = self._make_constraint_fingerprint(state.constraint_tree)
+        print("🌿 Evaluating constraint tree against symbolic registry...")
 
-        if fingerprint in state.visited_fingerprints:
-            print(
-                f"🔁 [PRUNE] Skipping already visited fingerprint: {fingerprint}")
-            print(f"🧾 [Visited Fingerprints]: {state.visited_fingerprints}")
-
-            ExecutionTraceLogger.log_step(
-                step_id="step_pruning",
-                path="(internal)",
-                status="Skipped execution due to repeated constraint fingerprint",
-                summary={"fingerprint": fingerprint},
-                state=state
-            )
-            return False
-
-        # ✅ First-time fingerprint
-        state.visited_fingerprints.add(fingerprint)
-        print(f"🧪 [NEW Fingerprint Recorded]: {fingerprint}")
-
-        if not hasattr(state, "constraint_tree") or not state.constraint_tree:
-            print("⛔ No constraint tree available on state.")
-            return False
-
-        print("📍 Preparing to evaluate constraint tree...")
-        print_registry_snapshot(state.data_registry)
-
-        ids = evaluate_constraint_tree(
+        ids_by_key = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
 
-        print(f"🎯 Constraint evaluation returned: {ids}")
-        if ids:
-            print("✅ Injecting validation steps from constraint matches...")
-            self._inject_validation_steps_from_ids(ids, state)
+        if ids_by_key:
+            print(
+                f"🎯 Constraint evaluation matched symbolic IDs: {ids_by_key}")
+            self._inject_validation_steps_from_ids(ids_by_key, state)
             return True
 
-        print("⚠️ Phase 21.5 - No matches. Attempting constraint-based relaxation...")
+        print("🛑 No matches found — attempting constraint relaxation...")
 
-        relaxed_tree, dropped, reasons = relax_constraint_tree(
-            state.constraint_tree, max_drops=1
-        )
+        relaxed_tree, dropped_constraints, reasons = relax_constraint_tree(
+            state.constraint_tree)
 
-        if reasons:
-            print(f"🧾 Relaxation reasons: {reasons}")
-            state.relaxation_log.extend(reasons)
+        state.last_dropped_constraints = dropped_constraints
 
-        if dropped:
-            for constraint in dropped:
-                reason = f"Dropped '{constraint.key}={constraint.value}' (priority={constraint.priority}, confidence={constraint.confidence})"
-                print(f"📝 {reason}")
-                state.relaxation_log.append(reason)
+        if not relaxed_tree:
+            print("🚫 Constraint relaxation failed — no constraints could be dropped.")
+            return False
 
-        if relaxed_tree:
-            print(f"♻️ Relaxed constraint tree: {relaxed_tree}")
-            relaxed_ids = evaluate_constraint_tree(
-                relaxed_tree, state.data_registry)
-            print(f"🎯 Relaxed constraint evaluation returned: {relaxed_ids}")
-            if relaxed_ids:
-                print("✅ Injecting validation steps from relaxed constraint matches...")
-                self._inject_validation_steps_from_ids(relaxed_ids, state)
-                state.constraint_tree = relaxed_tree
-                return True
-            else:
-                print("🛑 Still no matches after relaxing constraints.")
-        else:
-            print("🛑 Cannot relax further — no constraints left.")
+        state.constraint_tree = relaxed_tree
+        state.relaxation_log.extend(reasons)
 
-        print("🛑 No validation steps injected from constraint tree.")
+        print(
+            f"♻️ Relaxation applied. Dropped constraints: {[f'{c.key}={c.value}' for c in dropped_constraints]}")
+        print(f"📜 Relaxation reasons: {reasons}")
+
+        ids_by_key = evaluate_constraint_tree(
+            state.constraint_tree, state.data_registry)
+
+        if ids_by_key:
+            print(f"🎯 Post-relaxation match: {ids_by_key}")
+            self._inject_validation_steps_from_ids(ids_by_key, state)
+            return True
+
+        print("🛑 Even after relaxation, no symbolic matches found.")
         return False
 
     # phase Phase 21.5.8: Smart Step Pruning
@@ -499,120 +478,140 @@ class ExecutionOrchestrator:
             logic=tree.logic, constraints=constraints).json()
         return hashlib.md5(tree_repr.encode()).hexdigest()
 
-    from param_utils import update_symbolic_registry  # top of file
-
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
         seen_step_keys = seen_step_keys or set()
         print(f"🔎 BEGIN _handle_discover_movie_step for {step_id}")
 
+        # Phase 1: Post-validation
         filtered_movies = self._run_post_validations(step, json_data, state)
+        if not filtered_movies:
+            print("⚠️ No valid results matched required cast/director.")
+            ExecutionTraceLogger.log_step(
+                step_id, path, "Filtered", "No matching results", state=state
+            )
+            state.responses.append(
+                "⚠️ No valid results matched all required cast/director.")
 
-        if filtered_movies:
-            print(f"✅ Found {len(filtered_movies)} filtered result(s)")
-            query_entities = state.extraction_result.get("query_entities", [])
-            ranked = EntityAwareReranker.boost_by_entity_mentions(
-                filtered_movies, query_entities)
+            already_dropped = {p.strip()
+                               for p in step_id.split("_relaxed_")[1:] if p}
+            relaxed_steps = FallbackHandler.relax_constraints(
+                step, already_dropped, state=state)
 
-            # ✅ Registry: store validated list under the step_id
-            state.data_registry[step_id]["validated"] = ranked
-
-            # 🧠 Extract constraint metadata for provenance
-            matched = [c.to_string()
-                       for c in state.constraint_tree if hasattr(c, "to_string")]
-            relaxed = list(state.relaxation_log)
-            validated = list(state.post_validation_log)
-
-            for movie in ranked:
-                movie["final_score"] = movie.get("final_score", 1.0)
-                movie["type"] = "movie_summary"
-                movie["_provenance"] = {
-                    "matched_constraints": matched,
-                    "relaxed_constraints": relaxed,
-                    "post_validations": validated
-                }
-
-                # ✅ Update symbolic registry
-                update_symbolic_registry(
-                    entity=movie, registry=state.data_registry)
-
-                # 🔍 Optional: Log symbolic fields added
+            if relaxed_steps:
+                for relaxed_step in relaxed_steps:
+                    if relaxed_step["step_id"] not in state.completed_steps:
+                        constraint_dropped = relaxed_step["step_id"].split("_relaxed_")[
+                            1]
+                        print(
+                            f"♻️ Injected relaxed retry: {relaxed_step['step_id']} (Dropped {constraint_dropped})")
+                        state.plan_steps.insert(0, relaxed_step)
+                        ExecutionTraceLogger.log_step(
+                            relaxed_step["step_id"], path,
+                            status=f"Relaxation Injected ({constraint_dropped})",
+                            summary=f"Dropped constraint: {constraint_dropped}",
+                            state=state
+                        )
+                state.relaxed_parameters.extend(already_dropped)
+                ExecutionTraceLogger.log_step(
+                    step_id, path, "Relaxation Started", summary="Injected relaxed steps", state=state
+                )
+                state.completed_steps.append(step_id)
                 print(
-                    f"📦 [Registry Updated] ID {movie.get('id')} → genres {movie.get('genre_ids', [])}")
+                    f"✅ Marked original step completed after injecting relaxed retries.")
+                return
 
-                # Add to response
-                state.responses.append(movie)
-
-            ExecutionTraceLogger.log_step(
-                step_id, path, "Validated", summary=ranked[0], state=state
+            # No more relaxation → fallback
+            print("🛑 All filter drop retries exhausted. Injecting semantic fallback...")
+            fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
+                original_step=step,
+                extraction_result=state.extraction_result,
+                resolved_entities=state.resolved_entities
             )
+            if fallback_step["step_id"] not in state.completed_steps:
+                state.plan_steps.insert(0, fallback_step)
+                ExecutionTraceLogger.log_step(
+                    fallback_step["step_id"], fallback_step["endpoint"],
+                    status="Semantic Fallback Injected",
+                    summary=f"Enriched fallback injected with parameters: {fallback_step.get('parameters', {})}",
+                    state=state
+                )
+                print(
+                    f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
+            else:
+                print("⚠️ Fallback already completed — skipping reinjection.")
+
             state.completed_steps.append(step_id)
-            print(f"✅ Step marked completed: {step_id}")
+            print(f"✅ Marked as completed: {step_id}")
             return
 
-        # ❌ No valid results — trigger relaxation
-        print("⚠️ No valid results matched required cast/director.")
-        ExecutionTraceLogger.log_step(
-            step_id, path, "Filtered", "No matching results", state=state
-        )
-        state.responses.append(
-            "⚠️ No valid results matched all required cast/director.")
+        # Phase 2: Rank and boost
+        print(f"✅ Found {len(filtered_movies)} filtered result(s)")
+        query_entities = state.extraction_result.get("query_entities", [])
+        ranked = EntityAwareReranker.boost_by_entity_mentions(
+            filtered_movies, query_entities)
 
-        already_dropped = set()
-        if "_relaxed_" in step_id:
-            already_dropped.update(p.strip()
-                                   for p in step_id.split("_relaxed_")[1:] if p)
+        # Phase 3: Symbolic registry + provenance
+        ids = evaluate_constraint_tree(
+            state.constraint_tree, state.data_registry)
+        matched_keys = set(ids.keys())
+        matched = []
+        for c in state.constraint_tree:
+            if isinstance(c, Constraint) and c.key in matched_keys:
+                matched.append(f"{c.key}={c.value}")
+        relaxed = list(state.relaxation_log)
+        validated = list(state.post_validation_log)
 
-        relaxed_steps = FallbackHandler.relax_constraints(
-            step, already_dropped, state=state)
-
-        if relaxed_steps:
-            for relaxed_step in relaxed_steps:
-                if relaxed_step["step_id"] not in state.completed_steps:
-                    constraint_dropped = relaxed_step["step_id"].split("_relaxed_")[
-                        1]
-                    print(
-                        f"♻️ Injected relaxed retry: {relaxed_step['step_id']} (Dropped {constraint_dropped})")
-                    state.plan_steps.insert(0, relaxed_step)
-                    ExecutionTraceLogger.log_step(
-                        relaxed_step["step_id"], path,
-                        status=f"Relaxation Injected ({constraint_dropped})",
-                        summary=f"Dropped constraint: {constraint_dropped}",
-                        state=state
-                    )
-
-            state.relaxed_parameters.extend(already_dropped)
-            ExecutionTraceLogger.log_step(
-                step_id, path, "Relaxation Started", summary="Injected relaxed steps", state=state
-            )
-            state.completed_steps.append(step_id)
-            print(f"✅ Marked original step completed after injecting relaxed retries.")
-            return
-
-        # 🛑 No more relaxation possible → fallback
-        print("🛑 All filter drop retries exhausted. Injecting semantic fallback...")
-
-        fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
-            original_step=step,
-            extraction_result=state.extraction_result,
-            resolved_entities=state.resolved_entities
-        )
-
-        if fallback_step["step_id"] not in state.completed_steps:
-            state.plan_steps.insert(0, fallback_step)
-            ExecutionTraceLogger.log_step(
-                fallback_step["step_id"],
-                path=fallback_step["endpoint"],
-                status="Semantic Fallback Injected",
-                summary=f"Enriched fallback injected with parameters: {fallback_step.get('parameters', {})}",
-                state=state
-            )
+        for movie in ranked:
+            movie["final_score"] = movie.get("final_score", 1.0)
+            movie["type"] = "movie_summary"
+            movie["_provenance"] = {
+                "matched_constraints": matched,
+                "relaxed_constraints": relaxed,
+                "post_validations": validated
+            }
+            update_symbolic_registry(movie, state.data_registry)
             print(
-                f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
-        else:
-            print("⚠️ Fallback already completed — skipping reinjection.")
+                f"📦 [Registry Updated] ID {movie.get('id')} → genres {movie.get('genre_ids', [])}")
+            state.responses.append(movie)
 
+        # Phase 4: Save validated results
+        state.data_registry[step_id]["validated"] = ranked
+
+        # ✅ Phase 5: Restore dropped constraints if now satisfied
+        if state.relaxation_log and (dropped := getattr(state, "last_dropped_constraints", [])):
+            restored = []
+            for c in dropped:
+                ids = state.data_registry.get(
+                    c.key, {}).get(str(c.value), set())
+                if ids:
+                    state.constraint_tree.constraints.append(c)
+                    restored.append(f"{c.key}={c.value}")
+            if restored:
+                print(
+                    f"🔁 Restored relaxed constraints that now match: {restored}")
+                already_logged = set(state.relaxation_log)
+                for restored_id in restored:
+                    msg = f"Restored: {restored_id}"
+                    if msg not in already_logged:
+                        state.relaxation_log.append(msg)
+
+        # Phase 6: Re-evaluate constraints (deferred)
+        if not getattr(state, "constraint_tree_evaluated", False):
+            ids = evaluate_constraint_tree(
+                state.constraint_tree, state.data_registry)
+            if ids:
+                print(f"🔄 Deferred Constraint Evaluation → matched IDs: {ids}")
+                self._inject_validation_steps_from_ids(ids, state)
+            else:
+                print("🛑 No constraint matches after deferred evaluation.")
+            state.constraint_tree_evaluated = True
+
+        # Final log
+        ExecutionTraceLogger.log_step(
+            step_id, path, "Validated", summary=ranked[0], state=state
+        )
         state.completed_steps.append(step_id)
-        print(f"✅ Marked as completed: {step_id}")
+        print(f"✅ Step marked completed: {step_id}")
 
     def _handle_generic_response(self, step, step_id, path, json_data, state):
         print(f"📥 Handling generic response for {path}...")
