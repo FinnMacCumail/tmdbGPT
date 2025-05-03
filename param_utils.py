@@ -184,3 +184,118 @@ def get_param_key_for_type(type_, prefer="default"):
         if ent_type == type_:
             return param  # fallback
     return type_  # final fallback
+
+
+def update_symbolic_registry(entity: dict, registry: dict, credits: dict = None, keywords: list = None, release_info: dict = None, watch_providers: dict = None):
+    """
+    Updates symbolic registry with known symbolic constraints.
+    - credits: from /movie/{id}/credits
+    - keywords: from /movie/{id}/keywords
+    - release_info: from /movie/{id}/release_dates
+    - watch_providers: from /movie/{id}/watch/providers
+    """
+    entity_id = entity.get("id")
+    if not entity_id:
+        return
+
+    # genre
+    for gid in entity.get("genre_ids", []):
+        registry.setdefault("with_genres", {}).setdefault(
+            str(gid), set()).add(entity_id)
+
+    # company
+    for comp in entity.get("production_companies", []):
+        cid = comp.get("id")
+        if cid:
+            registry.setdefault("with_companies", {}).setdefault(
+                str(cid), set()).add(entity_id)
+
+    # network
+    for net in entity.get("networks", []):
+        nid = net.get("id")
+        if nid:
+            registry.setdefault("with_networks", {}).setdefault(
+                str(nid), set()).add(entity_id)
+
+    # language
+    lang = entity.get("original_language")
+    if lang:
+        registry.setdefault("with_original_language", {}).setdefault(
+            str(lang), set()).add(entity_id)
+
+    # country
+    for country in entity.get("origin_country", []):
+        registry.setdefault("watch_region", {}).setdefault(
+            str(country), set()).add(entity_id)
+
+    # person indexing from credits
+    if credits:
+        for cast_member in credits.get("cast", []):
+            pid = cast_member.get("id")
+            if pid:
+                registry.setdefault("with_people", {}).setdefault(
+                    str(pid), set()).add(entity_id)
+                registry.setdefault("with_cast", {}).setdefault(
+                    str(pid), set()).add(entity_id)
+        for crew_member in credits.get("crew", []):
+            pid = crew_member.get("id")
+            job = crew_member.get("job", "").lower()
+            if pid:
+                registry.setdefault("with_people", {}).setdefault(
+                    str(pid), set()).add(entity_id)
+                registry.setdefault("with_crew", {}).setdefault(
+                    str(pid), set()).add(entity_id)
+                if job == "director":
+                    registry.setdefault("with_crew_director", {}).setdefault(
+                        str(pid), set()).add(entity_id)
+
+    # keywords
+    if keywords:
+        for kw in keywords:
+            kid = kw.get("id")
+            if kid:
+                registry.setdefault("with_keywords", {}).setdefault(
+                    str(kid), set()).add(entity_id)
+
+    # certifications
+    if release_info:
+        results = release_info.get("results", [])
+        for region_block in results:
+            country_code = region_block.get("iso_3166_1")
+            for release in region_block.get("release_dates", []):
+                cert = release.get("certification")
+                if cert:
+                    registry.setdefault("certification", {}).setdefault(
+                        cert, set()).add(entity_id)
+                if country_code:
+                    registry.setdefault("certification_country", {}).setdefault(
+                        country_code, set()).add(entity_id)
+
+    # watch providers and monetization types
+    if watch_providers:
+        results = watch_providers.get("results", {})
+        for country_code, info in results.items():
+            registry.setdefault("watch_region", {}).setdefault(
+                country_code, set()).add(entity_id)
+            for m_type in ["flatrate", "buy", "rent", "ads"]:
+                if m_type in info:
+                    registry.setdefault("with_watch_monetization_types", {}).setdefault(
+                        m_type, set()).add(entity_id)
+                    for provider in info[m_type]:
+                        pid = provider.get("provider_id")
+                        if pid:
+                            registry.setdefault("with_watch_providers", {}).setdefault(
+                                str(pid), set()).add(entity_id)
+
+    # Numeric/date value fields for .gte/.lte filtering
+    if "vote_average" in entity:
+        registry.setdefault("vote_average", {})[
+            entity_id] = entity["vote_average"]
+    if "vote_count" in entity:
+        registry.setdefault("vote_count", {})[entity_id] = entity["vote_count"]
+    if "release_date" in entity:
+        registry.setdefault("release_date", {})[
+            entity_id] = entity["release_date"]
+    if "first_air_date" in entity:
+        registry.setdefault("first_air_date", {})[
+            entity_id] = entity["first_air_date"]
