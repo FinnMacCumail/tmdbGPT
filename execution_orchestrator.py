@@ -489,38 +489,47 @@ class ExecutionOrchestrator:
 
         filtered_movies = self._run_post_validations(step, json_data, state)
 
-        # ✅ Success: Validation passed
         if filtered_movies:
             print(f"✅ Found {len(filtered_movies)} filtered result(s)")
             query_entities = state.extraction_result.get("query_entities", [])
-            for movie in filtered_movies:
-                movie["final_score"] = movie.get("final_score", 1.0)
             ranked = EntityAwareReranker.boost_by_entity_mentions(
                 filtered_movies, query_entities)
             state.data_registry[step_id]["validated"] = ranked
+
+            matched = [c.to_string()
+                       for c in state.constraint_tree if hasattr(c, "to_string")]
+            relaxed = list(state.relaxation_log)
+            validated = list(state.post_validation_log)
+
             for movie in ranked:
-                title = movie.get("title") or movie.get("name")
-                overview = movie.get("overview", "")
-                summary = f"{title}: {overview}".strip(": ")
-                state.responses.append(f"📌 {summary}")
+                movie["final_score"] = movie.get("final_score", 1.0)
+                movie["type"] = "movie_summary"
+                movie["_provenance"] = {
+                    "matched_constraints": matched,
+                    "relaxed_constraints": relaxed,
+                    "post_validations": validated
+                }
+                state.responses.append(movie)
+
             ExecutionTraceLogger.log_step(
-                step_id, path, "Validated", state.responses[-1], state=state)
+                step_id, path, "Validated", summary=ranked[0], state=state
+            )
             state.completed_steps.append(step_id)
             print(f"✅ Step marked completed: {step_id}")
             return
 
-        # ❌ Recovery: No valid results
+        # ❌ No valid results — trigger relaxation
         print("⚠️ No valid results matched required cast/director.")
         ExecutionTraceLogger.log_step(
-            step_id, path, "Filtered", "No matching results", state=state)
+            step_id, path, "Filtered", "No matching results", state=state
+        )
         state.responses.append(
             "⚠️ No valid results matched all required cast/director.")
 
-        # 🛠 Smart Relaxation Mode
         already_dropped = set()
         if "_relaxed_" in step_id:
-            parts = step_id.split("_relaxed_")[1:]
-            already_dropped.update(p.strip() for p in parts if p)
+            already_dropped.update(p.strip()
+                                   for p in step_id.split("_relaxed_")[1:] if p)
 
         relaxed_steps = FallbackHandler.relax_constraints(
             step, already_dropped, state=state)
@@ -528,24 +537,19 @@ class ExecutionOrchestrator:
         if relaxed_steps:
             for relaxed_step in relaxed_steps:
                 if relaxed_step["step_id"] not in state.completed_steps:
-                    state.plan_steps.insert(0, relaxed_step)
                     constraint_dropped = relaxed_step["step_id"].split("_relaxed_")[
                         1]
                     print(
                         f"♻️ Injected relaxed retry: {relaxed_step['step_id']} (Dropped {constraint_dropped})")
-
+                    state.plan_steps.insert(0, relaxed_step)
                     ExecutionTraceLogger.log_step(
-                        # log for the new relaxed step ID!
-                        relaxed_step["step_id"],
-                        path,
+                        relaxed_step["step_id"], path,
                         status=f"Relaxation Injected ({constraint_dropped})",
                         summary=f"Dropped constraint: {constraint_dropped}",
                         state=state
                     )
 
-            # ✅ Track relaxed parameters
-            state.relaxed_parameters.extend(list(already_dropped))
-
+            state.relaxed_parameters.extend(already_dropped)
             ExecutionTraceLogger.log_step(
                 step_id, path, "Relaxation Started", summary="Injected relaxed steps", state=state
             )
@@ -553,7 +557,7 @@ class ExecutionOrchestrator:
             print(f"✅ Marked original step completed after injecting relaxed retries.")
             return
 
-        # 🛑 No more relaxations possible → Inject semantic fallback
+        # 🛑 No more relaxation possible → fallback
         print("🛑 All filter drop retries exhausted. Injecting semantic fallback...")
 
         fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
@@ -564,17 +568,13 @@ class ExecutionOrchestrator:
 
         if fallback_step["step_id"] not in state.completed_steps:
             state.plan_steps.insert(0, fallback_step)
-
-            # 🔥 NEW: Log the actual fallback_step itself
             ExecutionTraceLogger.log_step(
-                # <— now logging the fallback step itself
                 fallback_step["step_id"],
                 path=fallback_step["endpoint"],
                 status="Semantic Fallback Injected",
                 summary=f"Enriched fallback injected with parameters: {fallback_step.get('parameters', {})}",
                 state=state
             )
-
             print(
                 f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
         else:
@@ -582,8 +582,6 @@ class ExecutionOrchestrator:
 
         state.completed_steps.append(step_id)
         print(f"✅ Marked as completed: {step_id}")
-
-        return
 
     def _handle_generic_response(self, step, step_id, path, json_data, state):
         print(f"📥 Handling generic response for {path}...")
