@@ -952,13 +952,16 @@ class ExecutionTraceLogger:
             text = summary if isinstance(summary, str) else json.dumps(summary)
             print(f"└─ Result: {text[:100]}{'...' if len(text) > 100 else ''}")
 
-        # ✅ NEW: Save trace into AppState if provided
         if state is not None:
+            # phase 21.5 log enhancement
             state.execution_trace.append({
                 "step_id": step_id,
                 "endpoint": path,
                 "status": status,
-                "notes": summary if isinstance(summary, str) else str(summary)
+                "notes": summary if isinstance(summary, str) else str(summary),
+                "constraint_tree": str(getattr(state, "constraint_tree", None)),
+                "relaxation_log": getattr(state, "relaxation_log", []),
+                "injected_steps": [getattr(s, "endpoint", str(s)) for s in getattr(state, "steps", [])] if hasattr(state, "steps") else []
             })
 
 # Usage inside orchestrator loop:
