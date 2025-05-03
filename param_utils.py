@@ -2,6 +2,7 @@ import json
 
 import os
 
+
 def normalize_parameters(value):
     """
     Normalize TMDB parameters field to ensure it is a dict.
@@ -19,6 +20,7 @@ def normalize_parameters(value):
     elif isinstance(value, list):
         return {}
     return value if isinstance(value, dict) else {}
+
 
 class GenreNormalizer:
     GENRE_ALIASES = {
@@ -60,9 +62,11 @@ class GenreNormalizer:
         else:
             normalized = GenreNormalizer.GENRE_ALIASES.get(name, name)
         if name != normalized:
-            print(f"🎭 Normalized genre alias for {media_type}: '{name}' → '{normalized}'")
+            print(
+                f"🎭 Normalized genre alias for {media_type}: '{name}' → '{normalized}'")
         return normalized
-    
+
+
 class ParameterMapper:
     VALUE_PARAM_MAP = {
         # Numeric filters
@@ -97,11 +101,13 @@ class ParameterMapper:
             try:
                 if ent_value:
                     step_parameters[param_name] = cast_fn(ent_value)
-                    print(f"✅ Injected {param_name} = {step_parameters[param_name]}")
+                    print(
+                        f"✅ Injected {param_name} = {step_parameters[param_name]}")
             except ValueError:
-                print(f"⚠️ Failed to parse value '{ent_value}' for param '{param_name}'")
+                print(
+                    f"⚠️ Failed to parse value '{ent_value}' for param '{param_name}'")
 
-                
+
 # --- Dynamic Entity → Parameter Map for Phase 2 ---
 
 # --- Load param_to_entity_map.json ---
@@ -119,6 +125,8 @@ for param, entity in PARAM_TO_ENTITY_MAP.items():
     ENTITY_TO_PARAM_MAP[entity].append(param)
 
 # --- Function to resolve best param for a given entity ---
+
+
 def resolve_parameter_for_entity(entity_type: str) -> str:
     """
     Resolve a TMDB parameter for a given entity type.
@@ -143,6 +151,7 @@ def resolve_parameter_for_entity(entity_type: str) -> str:
     # ✅ Fallback: first available candidate
     return candidates[0]
 
+
 def normalize_entity_type(entity_type: str) -> str:
     """
     Normalize entity type strings.
@@ -151,11 +160,9 @@ def normalize_entity_type(entity_type: str) -> str:
     return entity_type.lower().strip()
 
 
-
-import json
-
 # Cached map loaded from file
 _param_to_entity_map = None
+
 
 def load_param_to_entity_map(path="data/param_to_entity_map.json"):
     global _param_to_entity_map
@@ -164,14 +171,16 @@ def load_param_to_entity_map(path="data/param_to_entity_map.json"):
             _param_to_entity_map = json.load(f)
     return _param_to_entity_map
 
+# phase 21.5
+
+
 def get_param_key_for_type(type_, prefer="default"):
-    """
-    Get the most appropriate TMDB parameter key for a given constraint type.
-    Optionally select preferred match (e.g., with_cast over with_people).
-    """
     param_map = load_param_to_entity_map()
     for param, ent_type in param_map.items():
         if ent_type == type_:
-            if prefer == "default":
-                return param  # return first match found
-    return type_  # fallback
+            if prefer != "default" and param.startswith(prefer):
+                return param
+    for param, ent_type in param_map.items():
+        if ent_type == type_:
+            return param  # fallback
+    return type_  # final fallback
