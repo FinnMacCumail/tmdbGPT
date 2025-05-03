@@ -339,75 +339,27 @@ class ExecutionOrchestrator:
 
         return state
 
-    def _score_movie_against_query(self, movie, credits, step, query_entities) -> float:
-        """
-        Score a movie against roles, genre, year, runtime, rating validations.
-        """
+    def _score_movie_against_query(self, movie, query_entities, constraint_tree, state):
+        provenance = {
+            # You can add logic later to track which constraints matched
+            "matched_constraints": [],
+            "relaxed_constraints": getattr(state, "relaxation_log", []),
+            "post_validations": []
+        }
+
         score = 0.0
-        points_per_role = 0.5  # ⚡ tune if needed
 
-        # 🎯 1. Validate Roles
-        role_results = PostValidator.validate_roles(credits, query_entities)
-        for role_key, passed in role_results.items():
-            if passed:
-                score += points_per_role
+        if self.post_validator.has_all_cast(movie, query_entities):
+            score += 0.5
+            provenance["post_validations"].append("has_all_cast")
+        if self.post_validator.has_director(movie, query_entities):
+            score += 0.3
+            provenance["post_validations"].append("has_director")
+        if self.post_validator.validate_genres(movie, query_entities):
+            score += 0.2
+            provenance["post_validations"].append("validate_genres")
 
-        # 🎯 2. Validate Genre
-        expected_genres = step["parameters"].get("with_genres")
-        if expected_genres:
-            genre_ids = [int(g) for g in expected_genres.split(",")]
-            if PostValidator.validate_genres(movie, genre_ids):
-                score += 0.2
-                print(f"✅ Genre OK for {movie.get('id')}")
-            else:
-                print(f"❌ Genre mismatch for {movie.get('id')}")
-
-        # 🎯 3. Validate Year
-        expected_year = step["parameters"].get(
-            "primary_release_year") or step["parameters"].get("first_air_date_year")
-        if expected_year:
-            if PostValidator.validate_year(movie, expected_year):
-                score += 0.2
-                print(f"✅ Year OK for {movie.get('id')}")
-            else:
-                print(f"❌ Year mismatch for {movie.get('id')}")
-
-        # 🎯 4. Validate Runtime
-        min_runtime = step["parameters"].get("with_runtime.gte")
-        max_runtime = step["parameters"].get("with_runtime.lte")
-        if min_runtime or max_runtime:
-            if PostValidator.meets_runtime(movie, min_minutes=min_runtime, max_minutes=max_runtime):
-                score += 0.3
-                print(f"✅ Runtime OK for {movie.get('id')}")
-            else:
-                print(f"❌ Runtime check failed for {movie.get('id')}")
-
-        # 🎯 5. Validate Rating
-        min_rating = step["parameters"].get("vote_average.gte")
-        vote_average = movie.get("vote_average", 0)
-        if min_rating:
-            if vote_average >= float(min_rating):
-                score += 0.3
-                print(f"✅ Rating OK for {movie.get('id')}")
-            else:
-                print(f"❌ Rating below threshold for {movie.get('id')}")
-
-        # 🎯 6. Validate Production Company
-        if any(e.get("type") == "company" for e in query_entities):
-            if PostValidator.validate_company(movie, query_entities):
-                score += 0.3
-                print(f"✅ Company match OK for {movie.get('id')}")
-            else:
-                print(f"❌ Company mismatch for {movie.get('id')}")
-
-        # 🎯 7. Validate Network (for TV only)
-        if any(e.get("type") == "network" for e in query_entities):
-            if PostValidator.validate_network(movie, query_entities):
-                score += 0.3
-                print(f"✅ Network match OK for {movie.get('id')}")
-            else:
-                print(f"❌ Network mismatch for {movie.get('id')}")
-
+        movie["_provenance"] = provenance
         return score
 
     # phase 21.5 - ID injection logic
