@@ -2,20 +2,24 @@ from typing import List, Dict
 
 RESPONSE_RENDERERS = {}
 
+
 def register_renderer(name):
     def decorator(func):
         RESPONSE_RENDERERS[name] = func
         return func
     return decorator
 
+
 def format_fallback(state) -> dict:
-    explanation = generate_explanation(state.extraction_result) or "No relevant information found."
+    explanation = generate_explanation(
+        state.extraction_result) or "No relevant information found."
     return {
         "response_format": "summary",
         "question_type": state.question_type or "summary",
         "text": f"⚠️ {explanation}",
         "entries": [f"⚠️ {explanation}"]
     }
+
 
 class ResponseFormatter:
     @staticmethod
@@ -52,17 +56,27 @@ class ResponseFormatter:
                     badge += " 🎭"
                 if "directed" in overview.lower() or "director" in overview.lower():
                     badge += " 🎬"
+
+                # ✅ Compose base line
                 line = f"{tag} {title}: {overview}{badge}"
                 if source:
                     line += f"  (from {source})"
                 if fallback_tag:
                     line = fallback_tag + " " + line
+
+                # ✅ Inject provenance if available
+                if "_provenance" in r:
+                    prov = r["_provenance"]
+                    matched = ', '.join(prov.get("matched_constraints", []))
+                    relaxed = ', '.join(prov.get("relaxed_constraints", []))
+                    validated = ', '.join(prov.get("post_validations", []))
+                    line += f"  [matched: {matched} | relaxed: {relaxed} | validated: {validated}]"
+
                 enriched.append({"line": line, "score": score})
-            else:
-                enriched.append({"line": f"📎 {str(r)}", "score": 0.2})
 
         sorted_lines = sorted(enriched, key=lambda x: x["score"], reverse=True)
         return [entry["line"] for entry in sorted_lines]
+
 
 @register_renderer("count_summary")
 def format_count_summary(state) -> dict:
@@ -80,9 +94,8 @@ def format_count_summary(state) -> dict:
         "composer": "composer"
     }.get(role, role)
 
-    
     for r in state.responses:
-        
+
         if not isinstance(r, dict):
             continue
         if r.get("type") != "movie_summary":
@@ -104,16 +117,24 @@ def format_count_summary(state) -> dict:
         "entries": [text]
     }
 
+
 @register_renderer("ranked_list")
-def format_ranked_list(state) -> dict:
-    lines = ResponseFormatter.format_responses(state.responses)
-    if not lines:
-        return format_fallback(state)
-    return {
-        "response_format": "ranked_list",
-        "question_type": "list",
-        "entries": lines[:10]
-    }
+def format_ranked_list(results, media_type="movie", include_debug=False):
+    formatted = []
+    for idx, item in enumerate(results):
+        line = f"{idx+1}. {item.get('title') or item.get('name')}"
+
+        # Optional debug append
+        if include_debug and "_provenance" in item:
+            prov = item["_provenance"]
+            matched = ', '.join(prov.get("matched_constraints", []))
+            relaxed = ', '.join(prov.get("relaxed_constraints", []))
+            validated = ', '.join(prov.get("post_validations", []))
+            line += f"  [matched: {matched} | relaxed: {relaxed} | validated: {validated}]"
+
+        formatted.append(line)
+    return formatted
+
 
 @register_renderer("summary")
 def format_summary(state) -> dict:
@@ -163,7 +184,8 @@ def format_timeline(state) -> dict:
         overview = item.get("overview", "No synopsis available.")
         source = item.get("source", "")
         score = item.get("final_score", 1.0)
-        year = item.get("release_date", "")[:4] if "release_date" in item else None
+        year = item.get("release_date", "")[
+            :4] if "release_date" in item else None
         if not year:
             match = re.search(r"(19|20)\d{2}", overview)
             year = match.group(0) if match else None
@@ -177,13 +199,15 @@ def format_timeline(state) -> dict:
         if not entries:
             return format_fallback(state)
     entries.sort(key=lambda x: x.get("release_year") or 3000)
-    name = state.extraction_result.get("query_entities", [{}])[0].get("name", "")
+    name = state.extraction_result.get("query_entities", [{}])[
+        0].get("name", "")
     return {
         "response_format": "timeline",
         "question_type": "timeline",
         "entity": name,
         "entries": entries
     }
+
 
 @register_renderer("comparison")
 def format_comparison(state) -> dict:
@@ -226,6 +250,7 @@ def format_comparison(state) -> dict:
         "left": {"name": left_name, "entries": left_entries[:3]},
         "right": {"name": right_name, "entries": right_entries[:3]}
     }
+
 
 def generate_explanation(extraction_result: dict) -> str:
     """
@@ -290,7 +315,8 @@ def generate_explanation(extraction_result: dict) -> str:
         return f"{flavor} {media_type} {filters}."
     else:
         return f"{flavor} {media_type}."
-    
+
+
 def generate_relaxation_explanation(dropped_constraints: List[str]) -> str:
     """
     Generate a human-readable explanation of which constraints were relaxed.
@@ -320,6 +346,7 @@ def generate_relaxation_explanation(dropped_constraints: List[str]) -> str:
 
 # --- Phase 19 Addition: QueryExplanationBuilder ---
 
+
 class QueryExplanationBuilder:
     @staticmethod
     def build_final_explanation(extraction_result, relaxed_parameters: list = None, fallback_used: bool = False) -> str:
@@ -347,24 +374,29 @@ class QueryExplanationBuilder:
 
         # 1. What was applied (entities involved)
         if query_entities:
-            entity_descriptions = [describe_entity(ent) for ent in query_entities if describe_entity(ent)]
+            entity_descriptions = [describe_entity(
+                ent) for ent in query_entities if describe_entity(ent)]
             if entity_descriptions:
                 applied_summary = " and ".join(entity_descriptions)
                 explanation_parts.append(f"Planned for {applied_summary}.")
 
         # 2. What was relaxed
         if relaxed_parameters:
-            relaxed_parameters = sorted(set(relaxed_parameters))  # de-duplicate and sort
+            relaxed_parameters = sorted(
+                set(relaxed_parameters))  # de-duplicate and sort
             if relaxed_parameters:
                 if len(relaxed_parameters) == 1:
                     relaxed_text = relaxed_parameters[0]
                 else:
-                    relaxed_text = ", ".join(relaxed_parameters[:-1]) + f" and {relaxed_parameters[-1]}"
-                explanation_parts.append(f"Relaxed constraints on {relaxed_text} to find matches.")
+                    relaxed_text = ", ".join(
+                        relaxed_parameters[:-1]) + f" and {relaxed_parameters[-1]}"
+                explanation_parts.append(
+                    f"Relaxed constraints on {relaxed_text} to find matches.")
 
         # 3. Fallback notice
         if fallback_used:
-            explanation_parts.append("Fallback discovery was used to broaden the search results.")
+            explanation_parts.append(
+                "Fallback discovery was used to broaden the search results.")
 
         # 4. Combine all parts
         if not explanation_parts:
