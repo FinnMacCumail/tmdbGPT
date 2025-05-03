@@ -14,6 +14,7 @@ from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
 from response_formatter import ResponseFormatter, format_fallback
 from plan_validator import PlanValidator
+from constraint_model import ConstraintBuilder, ConstraintGroup
 
 load_dotenv()
 
@@ -57,6 +58,7 @@ class AppState(BaseModel):
     relaxed_parameters: Optional[List[str]] = Field(default_factory=list)
     explanation: Optional[str] = None 
     intended_media_type: Optional[str] = None
+    constraint_tree: Optional[ConstraintGroup] = None
 
 def parse(state: AppState) -> AppState:
     print("→ running node: PARSE")
@@ -127,6 +129,12 @@ def retrieve_context(state: AppState) -> AppState:
 
 def plan(state: AppState) -> AppState:
     print("→ running node: PLAN")
+    # Phase 0: Build constraint tree from query entities
+    builder = ConstraintBuilder()
+    state.constraint_tree = builder.build_from_query_entities(
+        state.extraction_result.get("query_entities", [])
+    )
+    print("📐 Built Constraint Tree:", state.constraint_tree)
 
     # Phase 1: Inject the query text into resolved_entities
     if "input" in state.__dict__:
