@@ -13,6 +13,7 @@ import time
 from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
 from response_formatter import ResponseFormatter, format_fallback
+from response_formatter import format_ranked_list
 from plan_validator import PlanValidator
 from constraint_model import ConstraintBuilder, ConstraintGroup
 
@@ -263,7 +264,8 @@ def respond(state: AppState):
         return {"responses": state.formatted_response}
 
     print("⚠️ No formatted response found. Using default formatter.")
-    lines = ResponseFormatter.format_responses(state.responses)
+    lines = ResponseFormatter.format_responses(
+        state.responses, include_debug=state.debug if hasattr(state, "debug") else True)
 
     if not lines:
         fallback = format_fallback(state)
