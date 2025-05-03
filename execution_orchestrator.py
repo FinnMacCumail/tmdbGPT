@@ -17,6 +17,8 @@ from constraint_model import evaluate_constraint_tree, relax_constraint_tree
 from typing import TYPE_CHECKING
 from dependency_manager import DependencyManager
 from constraint_model import Constraint, ConstraintGroup
+import hashlib
+from pydantic import BaseModel
 
 
 class ExecutionOrchestrator:
@@ -411,11 +413,12 @@ class ExecutionOrchestrator:
         fingerprint = self._make_constraint_fingerprint(state.constraint_tree)
 
         if fingerprint in state.visited_fingerprints:
-            self.logger.log_step(
-                state,
-                step_type="step_pruning",
-                message="⏭️ Skipped execution due to repeated constraint fingerprint",
-                metadata={"fingerprint": fingerprint}
+            ExecutionTraceLogger.log_step(
+                step_id="step_pruning",
+                path="(internal)",
+                status="Skipped execution due to repeated constraint fingerprint",
+                summary={"fingerprint": fingerprint},
+                state=state
             )
             return False  # ✅ Skip redundant evaluation
 
@@ -462,26 +465,20 @@ class ExecutionOrchestrator:
         return False
 
     # phase Phase 21.5.8: Smart Step Pruning
-    def _make_constraint_fingerprint(self, tree) -> str:
-        """
-        Create a deterministic string fingerprint for a given constraint tree.
-        Used to prevent redundant retries in Phase 21.8.
-        """
+    def _make_constraint_fingerprint(self, tree: ConstraintGroup) -> str:
 
-        def flatten_tree(node):
-            constraints = []
-            if isinstance(node, list):  # fail-safe
-                for sub in node:
-                    constraints.extend(flatten_tree(sub))
-            elif hasattr(node, "__iter__"):
-                for sub in node:
-                    constraints.extend(flatten_tree(sub))
-            elif getattr(node, "key", None) and getattr(node, "value", None):
-                constraints.append(f"{node.key}={node.value}")
-            return constraints
+        class _Serializable(BaseModel):
+            logic: str
+            constraints: List[Dict]
 
-        flat_keys = sorted(flatten_tree(tree))
-        return "|".join(flat_keys)
+        # Convert constraint objects to dicts
+        constraints = sorted(
+            [c.dict() for c in tree.constraints],
+            key=lambda d: (d["key"], str(d["value"]))
+        )
+        tree_repr = _Serializable(
+            logic=tree.logic, constraints=constraints).json()
+        return hashlib.md5(tree_repr.encode()).hexdigest()
 
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
         seen_step_keys = seen_step_keys or set()
@@ -954,22 +951,31 @@ class ExecutionTraceLogger:
         print(f"├─ Step: {step_id}")
         print(f"├─ Endpoint: {path}")
         print(f"├─ Status: {status}")
-        if summary:
-            text = summary if isinstance(summary, str) else json.dumps(summary)
+
+        # Format the result for print
+        if summary is not None:
+            try:
+                text = summary if isinstance(
+                    summary, str) else json.dumps(summary, default=str)
+            except Exception:
+                text = str(summary)
             print(f"└─ Result: {text[:100]}{'...' if len(text) > 100 else ''}")
 
-        if state is not None:
-            # phase 21.5 log enhancement
-            state.execution_trace.append({
+        # Append to state trace
+        if state is not None and hasattr(state, "execution_trace"):
+            trace_entry = {
                 "step_id": step_id,
                 "endpoint": path,
                 "status": status,
                 "notes": summary if isinstance(summary, str) else str(summary),
-                "constraint_tree": str(getattr(state, "constraint_tree", None)),
-                "relaxation_log": getattr(state, "relaxation_log", []),
-                "injected_steps": [getattr(s, "endpoint", str(s)) for s in getattr(state, "steps", [])] if hasattr(state, "steps") else []
-            })
-
+                "constraint_tree": str(getattr(state, "constraint_tree", "")),
+                "relaxation_log": list(getattr(state, "relaxation_log", [])),
+                "injected_steps": [
+                    getattr(s, "endpoint", str(s))
+                    for s in getattr(state, "steps", [])
+                ] if hasattr(state, "steps") else []
+            }
+            state.execution_trace.append(trace_entry)
 # Usage inside orchestrator loop:
 # After each response:
 # will be moved inside try block where 'summaries' is defined
