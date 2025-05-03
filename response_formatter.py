@@ -122,9 +122,12 @@ def format_count_summary(state) -> dict:
 def format_ranked_list(results, media_type="movie", include_debug=False):
     formatted = []
     for idx, item in enumerate(results):
+        if not isinstance(item, dict):
+            print(f"⚠️ Skipping malformed item at index {idx}: {item}")
+            continue
+
         line = f"{idx+1}. {item.get('title') or item.get('name')}"
 
-        # Optional debug append
         if include_debug and "_provenance" in item:
             prov = item["_provenance"]
             matched = ', '.join(prov.get("matched_constraints", []))
