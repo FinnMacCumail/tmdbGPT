@@ -110,7 +110,9 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
 
 
 # phase 21.6 - Step 6: Logging and Trace
-def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> Tuple[Optional[ConstraintGroup], List[Constraint]]:
+def relax_constraint_tree(
+    group: ConstraintGroup, max_drops: int = 1
+) -> Tuple[Optional[ConstraintGroup], List[Constraint], List[str]]:
     # Flatten all constraints with metadata
     all_constraints = []
 
@@ -129,6 +131,10 @@ def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> Tuple[O
 
     # Drop up to N
     to_drop = set(sorted_constraints[:max_drops])
+    drop_reasons = [
+        f"dropped {c.key}={c.value} (type={c.type}, priority={c.priority}, confidence={c.confidence})"
+        for c in to_drop
+    ]
 
     def rebuild_group(group):
         new_members = []
@@ -141,7 +147,7 @@ def relax_constraint_tree(group: ConstraintGroup, max_drops: int = 1) -> Tuple[O
                 new_members.append(node)
         return ConstraintGroup(new_members, logic=group.logic) if new_members else None
 
-    return rebuild_group(group), list(to_drop)
+    return rebuild_group(group), list(to_drop), drop_reasons
 
 
 def normalize_constraint_tree(group: ConstraintGroup) -> ConstraintGroup:
