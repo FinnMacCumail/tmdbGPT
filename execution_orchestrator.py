@@ -448,8 +448,10 @@ class ExecutionOrchestrator:
 
         print("⚠️ Phase 21.5 - No matches. Attempting constraint-based relaxation...")
 
-        relaxed_tree, dropped = relax_constraint_tree(
+        relaxed_tree, dropped, reasons = relax_constraint_tree(
             state.constraint_tree, max_drops=1)
+        if reasons:
+            state.relaxation_log.extend(reasons)
         if dropped:
             for constraint in dropped:
                 reason = f"Dropped '{constraint.key}={constraint.value}' (priority={constraint.priority}, confidence={constraint.confidence})"
