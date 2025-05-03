@@ -8,7 +8,7 @@ from langgraph.graph import StateGraph, END
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Set
 import time
 from nlp_retriever import RerankPlanning
 from plan_validator import SymbolicConstraintFilter
@@ -64,6 +64,7 @@ class AppState(BaseModel):
     constraint_tree: Optional[ConstraintGroup] = None
     relaxation_log: List[str] = []
     debug: Optional[bool] = True
+    visited_fingerprints: Set[str] = set()
 
     class Config:
         arbitrary_types_allowed = True

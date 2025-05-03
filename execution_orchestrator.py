@@ -407,6 +407,20 @@ class ExecutionOrchestrator:
 
         Returns True if any steps were injected, else False.
         """
+        # ✅ Phase 21.5.8: Smart Step Pruning via constraint fingerprinting
+        fingerprint = self._make_constraint_fingerprint(state.constraint_tree)
+
+        if fingerprint in state.visited_fingerprints:
+            self.logger.log_step(
+                state,
+                step_type="step_pruning",
+                message="⏭️ Skipped execution due to repeated constraint fingerprint",
+                metadata={"fingerprint": fingerprint}
+            )
+            return False  # ✅ Skip redundant evaluation
+
+        # Mark this fingerprint as visited
+        state.visited_fingerprints.add(fingerprint)
 
         if not hasattr(state, "constraint_tree") or not state.constraint_tree:
             return False
@@ -446,6 +460,28 @@ class ExecutionOrchestrator:
             print("🛑 Cannot relax further — no constraints left.")
 
         return False
+
+    # phase Phase 21.5.8: Smart Step Pruning
+    def _make_constraint_fingerprint(self, tree) -> str:
+        """
+        Create a deterministic string fingerprint for a given constraint tree.
+        Used to prevent redundant retries in Phase 21.8.
+        """
+
+        def flatten_tree(node):
+            constraints = []
+            if isinstance(node, list):  # fail-safe
+                for sub in node:
+                    constraints.extend(flatten_tree(sub))
+            elif hasattr(node, "__iter__"):
+                for sub in node:
+                    constraints.extend(flatten_tree(sub))
+            elif getattr(node, "key", None) and getattr(node, "value", None):
+                constraints.append(f"{node.key}={node.value}")
+            return constraints
+
+        flat_keys = sorted(flatten_tree(tree))
+        return "|".join(flat_keys)
 
     def _handle_discover_movie_step(self, step, step_id, path, json_data, state, depth=0, seen_step_keys=None):
         seen_step_keys = seen_step_keys or set()
