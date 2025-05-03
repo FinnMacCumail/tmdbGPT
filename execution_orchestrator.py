@@ -16,6 +16,7 @@ from plan_validator import SymbolicConstraintFilter
 from dependency_manager import DependencyManage
 from constraint_model import ConstraintGroup
 from typing import TYPE_CHECKING
+from dependency_manager import DependencyManager
 
 
 class ExecutionOrchestrator:
@@ -107,40 +108,6 @@ class ExecutionOrchestrator:
                 break  # Only apply the first matching rule
 
         return validated or movie_results
-
-    if TYPE_CHECKING:
-        from constraint_model import ConstraintGroup, Constraint
-
-
-def evaluate_constraint_tree(group: "ConstraintGroup", data_registry: dict) -> Dict[str, Set[int]]:
-    results: List[Dict[str, Set[int]]] = []
-
-    for node in group:
-        if isinstance(node, group.__class__):  # supports recursive ConstraintGroup
-            result = evaluate_constraint_tree(node, data_registry)
-        else:  # node is a Constraint
-            id_set = data_registry.get(
-                node.key, {}).get(str(node.value), set())
-            result = {node.type: id_set} if id_set else {}
-
-        results.append(result)
-
-        merged: Dict[str, Set[int]] = defaultdict(set)
-
-        if group.logic == "AND":
-            all_types = set.intersection(
-                *(set(r.keys()) for r in results if r))
-            for t in all_types:
-                intersected = set.intersection(
-                    *(r.get(t, set()) for r in results if t in r))
-                if intersected:
-                    merged[t] = intersected
-        else:  # OR logic
-            for r in results:
-                for t, ids in r.items():
-                    merged[t].update(ids)
-
-        return dict(merged)
 
     def execute(self, state):
         print(f"\n[DEBUG] Entering Orchestrator Execution")
@@ -958,3 +925,38 @@ class ExecutionTraceLogger:
 
 # On failure:
 # will be moved inside exception block where 'response' is defined
+
+
+if TYPE_CHECKING:
+    from constraint_model import ConstraintGroup, Constraint
+
+
+def evaluate_constraint_tree(group: "ConstraintGroup", data_registry: dict) -> Dict[str, Set[int]]:
+    results: List[Dict[str, Set[int]]] = []
+
+    for node in group:
+        if isinstance(node, group.__class__):  # Nested ConstraintGroup
+            result = evaluate_constraint_tree(node, data_registry)
+        else:  # Leaf Constraint
+            id_set = data_registry.get(
+                node.key, {}).get(str(node.value), set())
+            result = {node.type: id_set} if id_set else {}
+
+        results.append(result)
+
+    # 🧠 Merging happens AFTER collecting all results
+    merged: Dict[str, Set[int]] = defaultdict(set)
+
+    if group.logic == "AND":
+        all_types = set.intersection(*(set(r.keys()) for r in results if r))
+        for t in all_types:
+            intersected = set.intersection(
+                *(r.get(t, set()) for r in results if t in r))
+            if intersected:
+                merged[t] = intersected
+    else:  # OR logic
+        for r in results:
+            for t, ids in r.items():
+                merged[t].update(ids)
+
+    return dict(merged)
