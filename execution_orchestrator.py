@@ -13,7 +13,7 @@ from fallback_handler import FallbackHandler, FallbackSemanticBuilder
 from post_validator import ResultScorer
 from response_formatter import QueryExplanationBuilder
 from plan_validator import SymbolicConstraintFilter
-from constraint_model import evaluate_constraint_tree
+from constraint_model import evaluate_constraint_tree, relax_constraint_tree
 from typing import TYPE_CHECKING
 from dependency_manager import DependencyManager
 
@@ -435,7 +435,6 @@ class ExecutionOrchestrator:
 
         Returns True if any steps were injected, else False.
         """
-        from constraint_model import evaluate_constraint_tree, relax_constraint_tree
 
         if not hasattr(state, "constraint_tree") or not state.constraint_tree:
             return False
@@ -449,8 +448,16 @@ class ExecutionOrchestrator:
 
         print("⚠️ Phase 21.5 - No matches. Attempting constraint-based relaxation...")
 
-        relaxed_tree = relax_constraint_tree(
+        relaxed_tree, dropped = relax_constraint_tree(
             state.constraint_tree, max_drops=1)
+        if dropped:
+            for constraint in dropped:
+                reason = f"Dropped '{constraint.key}={constraint.value}' (priority={constraint.priority}, confidence={constraint.confidence})"
+                print(f"📝 {reason}")
+                if not hasattr(state, "relaxation_log"):
+                    state.relaxation_log = []
+                state.relaxation_log.append(reason)
+
         if relaxed_tree:
             relaxed_ids = evaluate_constraint_tree(
                 relaxed_tree, state.data_registry)
