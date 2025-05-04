@@ -9,11 +9,14 @@ class PostValidator:
         Evaluate results against the current constraint tree using symbolic matching and relaxation.
         Annotate results with provenance for matched/relaxed constraints.
         """
+
         validated = []
 
         # Step 1: Evaluate current constraints
         media_matches = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
+
+        print("Symbolic Matches:", media_matches)
 
         if not media_matches["movie"] and not media_matches["tv"]:
             print("🛑 No media matches found. Attempting relaxation...")
