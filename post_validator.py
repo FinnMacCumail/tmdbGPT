@@ -1,6 +1,60 @@
 from typing import List, Dict
+from constraint_model import evaluate_constraint_tree, relax_constraint_tree
+
 
 class PostValidator:
+    @staticmethod
+    def validate_results(results, state):
+        """
+        Evaluate results against the current constraint tree using symbolic matching and relaxation.
+        Annotate results with provenance for matched/relaxed constraints.
+        """
+        validated = []
+
+        # Step 1: Evaluate current constraints
+        media_matches = evaluate_constraint_tree(
+            state.constraint_tree, state.data_registry)
+
+        if not media_matches["movie"] and not media_matches["tv"]:
+            print("🛑 No media matches found. Attempting relaxation...")
+
+            relaxed_tree, dropped_constraints, reasons = relax_constraint_tree(
+                state.constraint_tree)
+            if not relaxed_tree:
+                print("❌ Could not relax any constraints.")
+                return []
+
+            state.constraint_tree = relaxed_tree
+            state.last_dropped_constraints = dropped_constraints
+            state.relaxation_log.extend(reasons)
+
+            # Retry evaluation after relaxing
+            media_matches = evaluate_constraint_tree(
+                state.constraint_tree, state.data_registry)
+
+        # Step 2: Apply match scoring to results
+        for result in results:
+            media_type = "tv" if "first_air_date" in result else "movie"
+            matched_keys = []
+
+            for param_key, id_set in media_matches.get(media_type, {}).items():
+                if str(result.get("id")) in map(str, id_set):
+                    matched_keys.append(f"{param_key}={result.get('id')}")
+
+            # Provenance tagging
+            result["_provenance"] = {
+                "matched_constraints": matched_keys,
+                "relaxed_constraints": [
+                    f"{c.key}={c.value}" for c in getattr(state, "last_dropped_constraints", [])
+                ],
+                "post_validations": []
+            }
+
+            if matched_keys:
+                validated.append(result)
+
+        return validated
+
     @staticmethod
     def has_all_cast(credits: Dict, required_ids: List[int]) -> bool:
         cast_ids = {c["id"] for c in credits.get("cast", [])}
@@ -10,16 +64,18 @@ class PostValidator:
     def has_director(credits: Dict, director_name: str) -> bool:
         crew = credits.get("crew", [])
         return any(
-            member["job"] == "Director" and member["name"].lower() == director_name.lower()
+            member["job"] == "Director" and member["name"].lower(
+            ) == director_name.lower()
             for member in crew
         )
-    
+
     # Phase 20 Role-Aware Multi-Entity Planning and Execution
     @staticmethod
     def has_writer(credits: Dict, writer_name: str) -> bool:
         crew = credits.get("crew", [])
         return any(
-            member["job"].lower() in {"writer", "screenplay"} and member["name"].lower() == writer_name.lower()
+            member["job"].lower() in {
+                "writer", "screenplay"} and member["name"].lower() == writer_name.lower()
             for member in crew
         )
 
@@ -27,7 +83,8 @@ class PostValidator:
     def has_producer(credits: Dict, producer_name: str) -> bool:
         crew = credits.get("crew", [])
         return any(
-            "producer" in member["job"].lower() and member["name"].lower() == producer_name.lower()
+            "producer" in member["job"].lower(
+            ) and member["name"].lower() == producer_name.lower()
             for member in crew
         )
 
@@ -35,10 +92,11 @@ class PostValidator:
     def has_composer(credits: Dict, composer_name: str) -> bool:
         crew = credits.get("crew", [])
         return any(
-            member["job"].lower() in {"composer", "music", "score"} and member["name"].lower() == composer_name.lower()
+            member["job"].lower() in {
+                "composer", "music", "score"} and member["name"].lower() == composer_name.lower()
             for member in crew
         )
-    
+
     # 🧩 NEW: Dynamic Role Validator Mapping - # Phase 20 Role-Aware Multi-Entity Planning and Execution
     ROLE_VALIDATORS = {
         "cast": has_all_cast.__func__,
@@ -47,7 +105,7 @@ class PostValidator:
         "producer": has_producer.__func__,
         "composer": has_composer.__func__,
     }
-   
+
     @staticmethod
     def meets_runtime(movie_data: Dict, min_minutes: int = None, max_minutes: int = None) -> bool:
         runtime = movie_data.get("runtime")
@@ -58,7 +116,8 @@ class PostValidator:
 
     @staticmethod
     def has_keywords(movie_keywords: Dict, keyword_terms: List[str]) -> bool:
-        found = set(kw["name"].lower() for kw in movie_keywords.get("keywords", []))
+        found = set(kw["name"].lower()
+                    for kw in movie_keywords.get("keywords", []))
         return any(term.lower() in found for term in keyword_terms)
 
     @staticmethod
@@ -83,30 +142,35 @@ class PostValidator:
 
             if role == "cast" or role == "actor":
                 passed = any(
-                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    (person_name in (member.get("name", "").lower())
+                     or person_id == member.get("id"))
                     for member in cast_list
                 )
             elif role == "director":
                 passed = any(
-                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    (person_name in (member.get("name", "").lower())
+                     or person_id == member.get("id"))
                     and member.get("job", "").lower() == "director"
                     for member in crew_list
                 )
             elif role == "writer":
                 passed = any(
-                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    (person_name in (member.get("name", "").lower())
+                     or person_id == member.get("id"))
                     and member.get("job", "").lower() in {"writer", "screenplay"}
                     for member in crew_list
                 )
             elif role == "producer":
                 passed = any(
-                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    (person_name in (member.get("name", "").lower())
+                     or person_id == member.get("id"))
                     and "producer" in member.get("job", "").lower()
                     for member in crew_list
                 )
             elif role == "composer":
                 passed = any(
-                    (person_name in (member.get("name", "").lower()) or person_id == member.get("id"))
+                    (person_name in (member.get("name", "").lower())
+                     or person_id == member.get("id"))
                     and ("composer" in member.get("job", "").lower() or "music" in member.get("job", "").lower())
                     for member in crew_list
                 )
@@ -131,7 +195,7 @@ class PostValidator:
         total_roles = len(role_results)
         score = num_passed / total_roles
         return round(score, 2)
-    
+
     @staticmethod
     def validate_company(result, query_entities) -> bool:
         companies = result.get("production_companies", [])
@@ -142,7 +206,6 @@ class PostValidator:
                 return True
 
         return False
-
 
     @staticmethod
     def validate_network(result, query_entities) -> bool:
@@ -178,19 +241,23 @@ class PostValidator:
 
         # If query mentions cast/director → validate roles
         if any(e.get("type") == "person" for e in query_entities):
-            valid = valid and PostValidator.validate_roles(result, query_entities)
+            valid = valid and PostValidator.validate_roles(
+                result, query_entities)
 
         # If query mentions production company
         if any(e.get("type") == "company" for e in query_entities):
-            valid = valid and PostValidator.validate_company(result, query_entities)
+            valid = valid and PostValidator.validate_company(
+                result, query_entities)
 
         # If query mentions network
         if any(e.get("type") == "network" for e in query_entities):
-            valid = valid and PostValidator.validate_network(result, query_entities)
+            valid = valid and PostValidator.validate_network(
+                result, query_entities)
 
         # If query mentions genre
         if any(e.get("type") == "genre" for e in query_entities):
-            valid = valid and PostValidator.validate_genre(result, query_entities)
+            valid = valid and PostValidator.validate_genre(
+                result, query_entities)
 
         return valid
 
@@ -204,7 +271,7 @@ class PostValidator:
 
         genres = result.get("genre_ids", []) or []
         return any(str(genre_id) in map(str, genres) for genre_id in expected_genre_ids)
-    
+
     @staticmethod
     def validate_year(result: dict, expected_year: str) -> bool:
         """
@@ -221,6 +288,7 @@ class PostValidator:
                 return True
 
         return False
+
 
 class ResultScorer:
     @staticmethod
@@ -244,14 +312,18 @@ class ResultScorer:
 
             if entity_type == "person":
                 if role == "cast":
-                    validations[f"cast_{resolved_id}"] = ResultScorer._validate_cast(result, resolved_id)
+                    validations[f"cast_{resolved_id}"] = ResultScorer._validate_cast(
+                        result, resolved_id)
                 elif role == "director":
-                    validations[f"director_{resolved_id}"] = ResultScorer._validate_director(result, resolved_id)
+                    validations[f"director_{resolved_id}"] = ResultScorer._validate_director(
+                        result, resolved_id)
                 # future roles can go here
             elif entity_type == "network":
-                validations[f"network_{resolved_id}"] = ResultScorer._validate_network(result, resolved_id)
+                validations[f"network_{resolved_id}"] = ResultScorer._validate_network(
+                    result, resolved_id)
             elif entity_type == "company":
-                validations[f"company_{resolved_id}"] = ResultScorer._validate_company(result, resolved_id)
+                validations[f"company_{resolved_id}"] = ResultScorer._validate_company(
+                    result, resolved_id)
 
         return validations
 
@@ -282,6 +354,3 @@ class ResultScorer:
         passed = sum(1 for v in validations.values() if v)
         total = len(validations)
         return round(passed / total, 2)
-    
-    
-
