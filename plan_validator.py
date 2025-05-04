@@ -45,11 +45,11 @@ QUESTION_TYPE_ROUTING = {
 }
 
 
-
 class PlanValidator:
     def __init__(self):
         self.client = PersistentClient(path="./chroma_db")
-        self.param_collection = self.client.get_or_create_collection("tmdb_parameters")
+        self.param_collection = self.client.get_or_create_collection(
+            "tmdb_parameters")
         self.PARAM_USED_IN = {}
         self._preload_parameter_usage()
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -80,8 +80,8 @@ class PlanValidator:
             "credit": "with_credits",
             "language": "with_original_language",
             "country": "region",
-            "rating": "vote_average.gte",  
-            "date": "primary_release_year" 
+            "rating": "vote_average.gte",
+            "date": "primary_release_year"
         }
         return list({
             ENTITY_PARAM_MAP.get(ent["type"])
@@ -101,7 +101,8 @@ class PlanValidator:
         entity_types = set()
 
         if query_entities:
-            entity_types = {e["type"] for e in query_entities if isinstance(e, dict)}
+            entity_types = {e["type"]
+                            for e in query_entities if isinstance(e, dict)}
         elif entities:
             entity_types = {e.replace("_id", "") for e in entities}
 
@@ -131,15 +132,17 @@ class PlanValidator:
 
         return path_params
 
-
     def inject_path_slot_parameters(self, step, resolved_entities, extraction_result=None):
         if "parameters" not in step:
             step["parameters"] = {}
 
         # ✅ Extract components from the extraction result
-        query_entities = extraction_result.get("query_entities", []) if extraction_result else []
-        entities = extraction_result.get("entities", []) if extraction_result else []
-        intents = extraction_result.get("intents", []) if extraction_result else []
+        query_entities = extraction_result.get(
+            "query_entities", []) if extraction_result else []
+        entities = extraction_result.get(
+            "entities", []) if extraction_result else []
+        intents = extraction_result.get(
+            "intents", []) if extraction_result else []
 
         # ✅ Resolve implicit path parameters (e.g., media_type, time_window)
         path_slots = self.resolve_path_slots(
@@ -151,12 +154,13 @@ class PlanValidator:
         for slot, value in path_slots.items():
             if f"{{{slot}}}" in step["endpoint"] and slot not in step["parameters"]:
                 step["parameters"][slot] = value
-                print(f"🧩 Injected path slot: {slot} = {value} into {step['endpoint']}")
+                # print(f"🧩 Injected path slot: {slot} = {value} into {step['endpoint']}")
 
         # ✅ Inject value-based query filters (e.g. rating, year) using mapped param logic
-        ParameterMapper.inject_parameters_from_entities(query_entities, step["parameters"])
+        ParameterMapper.inject_parameters_from_entities(
+            query_entities, step["parameters"])
 
-        print(f"✅ Final injected parameters: {step.get('parameters', {})}")
+        # print(f"✅ Final injected parameters: {step.get('parameters', {})}")
         return step
 
     # phase 2.2 - Semantic Parameter Inference (Dynamic Enhancement)
@@ -183,7 +187,7 @@ class PlanValidator:
         # Extract suggested parameter names
         suggested_parameters = results.get("ids", [[]])[0]
         return suggested_parameters
-    
+
     def inject_parameters_from_query_entities(self, step: dict, query_entities: list) -> dict:
         """
         Dynamically inject missing parameters into a plan step based on extracted query entities.
@@ -218,8 +222,8 @@ class PlanValidator:
 
             injected.append((resolved_param, value))
 
-        if injected:
-            print(f"✅ Injected parameters from query entities: {injected}")
+        # if injected:
+        #     print(f"✅ Injected parameters from query entities: {injected}")
 
         return step
 
@@ -240,43 +244,45 @@ class PlanValidator:
             extracted_intents = []
 
         # ✅ Step 1: Ensure param compatibility was handled
-        required_params = self._resolve_required_parameters_from_entities(query_entities)
-        print(f"🔍 Resolved required parameters: {required_params}")
+        required_params = self._resolve_required_parameters_from_entities(
+            query_entities)
+        # print(f"🔍 Resolved required parameters: {required_params}")
 
         if not required_params:
-            print("🔎 No symbolic filtering required — using all semantic matches.")
+            # print("🔎 No symbolic filtering required — using all semantic matches.")
             filtered_matches = semantic_matches
         else:
             filtered_matches = []
             for m in semantic_matches:
                 path = m["path"]
                 if self._endpoint_supports_required_params(path, required_params):
-                    print(f"✅ Included: {path}")
+                    # print(f"✅ Included: {path}")
                     filtered_matches.append(m)
-                else:
-                    print(f"❌ Excluded: {path} — missing one of: {required_params}")
+                # else:
+                #     print(f"❌ Excluded: {path} — missing one of: {required_params}")
 
             if not filtered_matches:
-                print("⚠️ No strict param-compatible endpoints found, falling back to semantic matches.")
+                # print("⚠️ No strict param-compatible endpoints found, falling back to semantic matches.")
                 filtered_matches = semantic_matches
 
         # ✅ Step 1.5: Ensure intent compatibility
-        print(f"🔍 Checking intent compatibility: {extracted_intents}")
+        # print(f"🔍 Checking intent compatibility: {extracted_intents}")
         intent_filtered_matches = []
         for m in filtered_matches:
-            supported_intents = m.get("metadata", {}).get("supported_intents", [])
+            supported_intents = m.get("metadata", {}).get(
+                "supported_intents", [])
             if not supported_intents or not extracted_intents:
                 # No intent constraint, allow
                 intent_filtered_matches.append(m)
             elif any(intent in supported_intents for intent in extracted_intents):
                 intent_filtered_matches.append(m)
-            else:
-                print(f"❌ Excluded endpoint '{m['path']}' due to intent mismatch (supported: {supported_intents}, allowed: {extracted_intents})")
+            # else:
+            #     print(f"❌ Excluded endpoint '{m['path']}' due to intent mismatch (supported: {supported_intents}, allowed: {extracted_intents})")
 
         filtered_matches = intent_filtered_matches
 
         if not filtered_matches:
-            print("⚠️ No endpoints matched extracted intents, falling back to semantic matches.")
+            # print("⚠️ No endpoints matched extracted intents, falling back to semantic matches.")
             filtered_matches = semantic_matches
 
         # ✅ Step 2: Normalize .path key so LLM can read it
@@ -288,18 +294,19 @@ class PlanValidator:
         query = getattr(state, "input", "") or getattr(state, "raw_query", "")
         question_type = state.extraction_result.get("question_type")
         llm = OpenAILLMClient()
-        recommended = llm.get_focused_endpoints(query, filtered_matches, question_type=question_type)
-        print(f"📤 LLM recommended endpoints: {recommended}")
+        recommended = llm.get_focused_endpoints(
+            query, filtered_matches, question_type=question_type)
+        # print(f"📤 LLM recommended endpoints: {recommended}")
         if recommended:
             before = len(filtered_matches)
             filtered_matches = [
                 m for m in filtered_matches
                 if m.get("path") in recommended or m.get("endpoint") in recommended
             ]
-            print(f"🧭 LLM endpoint focus pruning: {before} → {len(filtered_matches)}")
+            # print(f"🧭 LLM endpoint focus pruning: {before} → {len(filtered_matches)}")
 
         return filtered_matches
-    
+
     def enrich_plan_with_semantic_parameters(self, step: dict, query_text: str) -> dict:
         """
         After basic injection, perform semantic inference to suggest missing parameters 
@@ -316,7 +323,8 @@ class PlanValidator:
             if param not in step["parameters"]:
                 # Handle special cases for common semantic params
                 if param == "vote_average.gte":
-                    step["parameters"][param] = "7.0"  # Assume top-rated means 7+
+                    # Assume top-rated means 7+
+                    step["parameters"][param] = "7.0"
                     injected.append((param, "7.0"))
                 elif param == "primary_release_year":
                     from datetime import datetime
@@ -331,14 +339,15 @@ class PlanValidator:
                     step["parameters"][param] = "true"
                     injected.append((param, "true"))
 
-        if injected:
-            print(f"✨ Semantically inferred parameters injected: {injected}")
+        # if injected:
+        #     print(f"✨ Semantically inferred parameters injected: {injected}")
 
         return step
 
 
 class SymbolicConstraintFilter:
-    MEDIA_FILTER_ENTITIES = {"genre", "rating", "date", "runtime", "votes", "language", "country"}
+    MEDIA_FILTER_ENTITIES = {"genre", "rating", "date",
+                             "runtime", "votes", "language", "country"}
 
     @staticmethod
     def is_media_endpoint(produces_entities: list) -> bool:
@@ -351,27 +360,32 @@ class SymbolicConstraintFilter:
         resolved_keys = set(resolved_entities.keys())
 
         routing = QUESTION_TYPE_ROUTING.get(question_type, {})
-        allowed_intents = set(routing.get("preferred_intents", []) + routing.get("fallback_intents", []))
+        allowed_intents = set(routing.get(
+            "preferred_intents", []) + routing.get("fallback_intents", []))
 
         filtered = []
 
         for match in matches:
             endpoint = match.get("endpoint") or match.get("path", "")
             # Manual override for role-aware count queries
-            #phase 17.9 format count problem
+            # phase 17.9 format count problem
             if endpoint in {"/person/{person_id}/movie_credits", "/person/{person_id}/tv_credits"}:
                 if question_type == "count":
                     if any(
-                        ent.get("type") == "person" and ent.get("role") in {"director", "cast", "writer", "producer", "composer"}
+                        ent.get("type") == "person" and ent.get("role") in {
+                            "director", "cast", "writer", "producer", "composer"}
                         for ent in extraction_result.get("query_entities", [])
                     ):
-                        print(f"✅ [Symbolic] Forcing inclusion of {endpoint} for role-aware count query")
+                        # print(f"✅ [Symbolic] Forcing inclusion of {endpoint} for role-aware count query")
                         filtered.append(match)
                         continue
             metadata = match.get("metadata", match)
-            supported_intents = SymbolicConstraintFilter._extract_supported_intents(metadata)
-            consumes = SymbolicConstraintFilter._extract_consumed_entities(metadata)
-            produces = SymbolicConstraintFilter._extract_produced_entities(metadata)
+            supported_intents = SymbolicConstraintFilter._extract_supported_intents(
+                metadata)
+            consumes = SymbolicConstraintFilter._extract_consumed_entities(
+                metadata)
+            produces = SymbolicConstraintFilter._extract_produced_entities(
+                metadata)
 
             # --- Entity Penalty ---
             missing_required_entities = []
@@ -383,7 +397,7 @@ class SymbolicConstraintFilter:
                 if entity_type not in consumes:
                     if entity_type in SymbolicConstraintFilter.MEDIA_FILTER_ENTITIES:
                         if SymbolicConstraintFilter.is_media_endpoint(produces):
-                            print(f"⚡ Skipping penalty for {entity_type} because endpoint produces media items.")
+                            # print(f"⚡ Skipping penalty for {entity_type} because endpoint produces media items.")
                             continue
                     missing_required_entities.append(key)
 
@@ -391,38 +405,44 @@ class SymbolicConstraintFilter:
             soft_relaxed_fields = []
             if missing_required_entities:
                 for key in missing_required_entities:
-                    entity_type = SymbolicConstraintFilter._map_key_to_entity(key)
+                    entity_type = SymbolicConstraintFilter._map_key_to_entity(
+                        key)
                     if entity_type in SymbolicConstraintFilter.MEDIA_FILTER_ENTITIES:
                         soft_relaxed_fields.append(key)
 
                 if soft_relaxed_fields and len(soft_relaxed_fields) == len(missing_required_entities):
-                    print(f"⚡ Soft relaxing missing filters: {soft_relaxed_fields}")
+                    # print(f"⚡ Soft relaxing missing filters: {soft_relaxed_fields}")
                     match["soft_relaxed"] = soft_relaxed_fields
-                    match["force_allow"] = True  # ✅ NEW: force allow intent match
+                    # ✅ NEW: force allow intent match
+                    match["force_allow"] = True
                 elif "credits" in endpoint and SymbolicConstraintFilter.is_media_endpoint(produces):
-                    print(f"⚡ Force-allowing {endpoint} because it produces media items via credits endpoint.")
-                    match["force_allow"] = True  # ✅ NEW: allow credits endpoints
+                    # print(f"⚡ Force-allowing {endpoint} because it produces media items via credits endpoint.")
+                    # ✅ NEW: allow credits endpoints
+                    match["force_allow"] = True
 
             entity_penalty = 0.0
             if missing_required_entities:
                 if SymbolicConstraintFilter.is_media_endpoint(produces):
-                    print(f"⚡ Allowing media-producing endpoint {endpoint} even though missing: {missing_required_entities}")
+                    # print(f"⚡ Allowing media-producing endpoint {endpoint} even though missing: {missing_required_entities}")
                     entity_penalty = 0.0
                 else:
                     entity_penalty = 0.2 * len(missing_required_entities)
-                    print(f"⚠️ Entity penalty on '{endpoint}' for missing: {missing_required_entities}")
+                    # print(f"⚠️ Entity penalty on '{endpoint}' for missing: {missing_required_entities}")
 
             # --- Question Type Penalty ---
             qt_penalty = 0.0
             if question_type:
-                expected_patterns = SymbolicConstraintFilter._expected_patterns_for_question_type(question_type)
+                expected_patterns = SymbolicConstraintFilter._expected_patterns_for_question_type(
+                    question_type)
                 endpoint_lower = endpoint.lower()
                 if expected_patterns and not any(pat in endpoint_lower for pat in expected_patterns):
                     if SymbolicConstraintFilter.is_media_endpoint(produces):
-                        print(f"⚡ Skipping question type penalty because endpoint produces media items.")
+                        print(
+                            f"⚡ Skipping question type penalty because endpoint produces media items.")
                     else:
                         qt_penalty = 0.3
-                        print(f"⚠️ Question type mismatch on '{endpoint}' for question_type='{question_type}' (expected {expected_patterns})")
+                        # print(
+                        #     f"⚠️ Question type mismatch on '{endpoint}' for question_type='{question_type}' (expected {expected_patterns})")
 
             # --- Apply Penalties ---
             existing_penalty = match.get("penalty", 0.0)
@@ -430,7 +450,8 @@ class SymbolicConstraintFilter:
             match["penalty"] = existing_penalty + total_penalty
 
             # --- Intent Overlap or Soft Relaxed Check ---
-            intent_overlap = any(intent in allowed_intents for intent in supported_intents)
+            intent_overlap = any(
+                intent in allowed_intents for intent in supported_intents)
 
             # 🧠 NEW: Dynamic fallback matching
             routing = QUESTION_TYPE_ROUTING.get(question_type, {})
@@ -439,28 +460,27 @@ class SymbolicConstraintFilter:
             if not intent_overlap and wildcards:
                 for wildcard in wildcards:
                     if any(supported_intent.startswith(wildcard) for supported_intent in supported_intents):
-                        print(f"⚡ Allowed wildcard intent '{supported_intents}' because matches wildcard '{wildcard}' for question_type '{question_type}'.")
+                        # print(f"⚡ Allowed wildcard intent '{supported_intents}' because matches wildcard '{wildcard}' for question_type '{question_type}'.")
                         intent_overlap = True
                         break
 
             if intent_overlap:
-                print(f"✅ Allowed intent overlap: {supported_intents} matches allowed intents {allowed_intents}")
+                # print(f"✅ Allowed intent overlap: {supported_intents} matches allowed intents {allowed_intents}")
                 filtered.append(match)
             else:
                 if match.get("soft_relaxed") or match.get("force_allow"):
-                    print(f"⚡ Allowing endpoint {endpoint} because soft-relaxed or force-allowed")
+                    # print(f"⚡ Allowing endpoint {endpoint} because soft-relaxed or force-allowed")
                     filtered.append(match)
-                else:
-                    print(f"❌ Excluded endpoint '{endpoint}' due to intent mismatch (supported: {supported_intents}, allowed: {allowed_intents})")
+                # else:
+                #     print(f"❌ Excluded endpoint '{endpoint}' due to intent mismatch (supported: {supported_intents}, allowed: {allowed_intents})")
 
         return filtered
-    
+
     @staticmethod
     def _map_key_to_entity(key: str) -> str:
         if key.endswith("_id"):
             return key[:-3]  # person_id → person
         return key
-    
 
     @staticmethod
     def _extract_consumed_entities(metadata: dict) -> list:
@@ -478,7 +498,6 @@ class SymbolicConstraintFilter:
         except:
             return []
 
-    
     @staticmethod
     def _extract_supported_intents(metadata: dict) -> list:
         raw = metadata.get("supported_intents", [])
@@ -501,7 +520,7 @@ class SymbolicConstraintFilter:
             "fact": ["/details", "/movie", "/person"]
         }
         return mapping.get(question_type, [])
-    
+
     @staticmethod
     def prioritize_media_type(matches, extraction_result):
         """
@@ -526,5 +545,4 @@ class SymbolicConstraintFilter:
             elif media_type:
                 match["score"] -= 0.2  # Penalize wrong media type
 
-        return matches        
-
+        return matches

@@ -68,26 +68,27 @@ class AppState(BaseModel):
     post_validation_log: Optional[List[str]] = Field(default_factory=list)
     constraint_tree_evaluated: bool = False
     last_dropped_constraints: Optional[List[Constraint]] = []
+    query: Optional[str] = None
 
     class Config:
         arbitrary_types_allowed = True
 
 
 def parse(state: AppState) -> AppState:
-    print("→ running node: PARSE")
+    # print("→ running node: PARSE")
     return state.model_copy(update={"status": "parsed", "step": "parse", "__write_guard__": f"parse_{int(time.time()*1000)}"})
 
 
 def extract_entities(state: AppState) -> AppState:
-    print("→ running node: EXTRACT_ENTITIES")
+    # print("→ running node: EXTRACT_ENTITIES")
 
     if hasattr(state, "mock_extraction") and state.mock_extraction:
         extraction = state.mock_extraction
-        print("🤖 Using mock extraction instead of real OpenAI extraction.")
+        # print("🤖 Using mock extraction instead of real OpenAI extraction.")
     else:
         extraction = openai_client.extract_entities_and_intents(state.input)
 
-    print("📤 Extracted entities:")
+    # print("📤 Extracted entities:")
 
     if not extraction:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
@@ -96,7 +97,7 @@ def extract_entities(state: AppState) -> AppState:
 
 
 def resolve_entities(state: AppState) -> AppState:
-    print("→ running node: RESOLVE_ENTITIES")
+    # print("→ running node: RESOLVE_ENTITIES")
     extraction = state.extraction_result
     query_entities = extraction.get("query_entities", [])
 
@@ -120,11 +121,10 @@ def resolve_entities(state: AppState) -> AppState:
         # Print resolution status with optional fallback annotation
         fallback_tag = " (fallback)" if ent.get(
             "resolved_as") == "fallback" else ""
-        print(
-            f"✅ Resolved '{ent['name']}' as {resolved_type} → {resolved_id}{fallback_tag}")
+        # print( f"✅ Resolved '{ent['name']}' as {resolved_type} → {resolved_id}{fallback_tag}")
 
-    if not resolved_by_type:
-        print("⚠️ No query_entities could be resolved.")
+    # if not resolved_by_type:
+    #     print("⚠️ No query_entities could be resolved.")
 
     # Ensure resolved types are reflected in entity list
     for ent in resolved_entities:
@@ -139,19 +139,19 @@ def resolve_entities(state: AppState) -> AppState:
 
 
 def retrieve_context(state: AppState) -> AppState:
-    print("→ running node: RETRIEVE_CONTEXT")
+    # print("→ running node: RETRIEVE_CONTEXT")
     retrieved_matches = semantic_retrieval(state.extraction_result)
     return state.model_copy(update={"retrieved_matches": retrieved_matches, "step": "retrieve_context"})
 
 
 def plan(state: AppState) -> AppState:
-    print("→ running node: PLAN")
+    # print("→ running node: PLAN")
     # Phase 0: Build constraint tree from query entities
     builder = ConstraintBuilder()
     state.constraint_tree = builder.build_from_query_entities(
         state.extraction_result.get("query_entities", [])
     )
-    print("📐 Built Constraint Tree:", state.constraint_tree)
+    # print("📐 Built Constraint Tree:", state.constraint_tree)
 
     # Phase 1: Inject the query text into resolved_entities
     if "input" in state.__dict__:
@@ -182,8 +182,7 @@ def plan(state: AppState) -> AppState:
             or step.get("endpoint", "").startswith(f"/discover/{intended_type}")
             or step.get("endpoint", "").startswith("/person/")
         ]
-        print(
-            f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
+        # print(f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
 
     # Phase 6: Convert to execution-ready steps
     execution_steps = convert_matches_to_execution_steps(
@@ -202,16 +201,14 @@ def plan(state: AppState) -> AppState:
             if param_name in SAFE_OPTIONAL_PARAMS and param_name not in step["parameters"]:
                 step["parameters"][param_name] = "<dynamic_value_or_prompt>"
 
-    print(
-        f"💡 Smart enrichment added: {[p for p in optional_params if p in SAFE_OPTIONAL_PARAMS]}")
+    # print(f"💡 Smart enrichment added: {[p for p in optional_params if p in SAFE_OPTIONAL_PARAMS]}")
 
     # Phase 7: Inject multi-role dependency steps
     # from dependency_manager import expand_plan_with_dependencies
     dependency_steps = DependencyManager.expand_plan_with_dependencies(
         state, state.resolved_entities)
     if dependency_steps:
-        print(
-            f"🔁 Injected {len(dependency_steps)} role-aware dependency steps.")
+        # print(f"🔁 Injected {len(dependency_steps)} role-aware dependency steps.")
         execution_steps.extend(dependency_steps)
 
     # Phase 8: Deduplicate
@@ -232,12 +229,12 @@ def plan(state: AppState) -> AppState:
             continue
         signal_steps.append(step)
 
-    print("\n🧭 Final Execution Plan:")
-    for s in signal_steps:
-        print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
+    # print("\n🧭 Final Execution Plan:")
+    # for s in signal_steps:
+    #     print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
 
     if not signal_steps:
-        print("⚠️ No executable steps found. Using fallback...")
+        # print("⚠️ No executable steps found. Using fallback...")
         signal_steps = FallbackHandler.generate_steps(
             state.resolved_entities, state.extraction_result)
 
@@ -248,7 +245,7 @@ def plan(state: AppState) -> AppState:
 
 
 def execute(state: AppState) -> AppState:
-    print("→ running node: EXECUTE")
+    # print("→ running node: EXECUTE")
     dependency_manager.analyze_dependencies(state)
     updated_state = orchestrator.execute(state.model_copy(update={
         "pending_steps": state.plan_steps,
@@ -256,19 +253,19 @@ def execute(state: AppState) -> AppState:
         "question_type": state.extraction_result.get("question_type"),
         "response_format": state.extraction_result.get("response_format"),
     }))
-    print(f"🧭 Question Type: {updated_state.question_type}")
-    print(f"🎨 Response Format: {updated_state.response_format}")
+    # print(f"🧭 Question Type: {updated_state.question_type}")
+    # print(f"🎨 Response Format: {updated_state.response_format}")
     return updated_state.model_copy(update={"plan_steps": []})
     # return updated_state.model_copy(update={"executed": True, "step": "execute"})
 
 
 def respond(state: AppState):
-    print("→ running node: RESPOND")
+    # print("→ running node: RESPOND")
     if state.formatted_response:
-        print("🧾 Returning pre-formatted response")
+        # print("🧾 Returning pre-formatted response")
         return {"responses": state.formatted_response}
 
-    print("⚠️ No formatted response found. Using default formatter.")
+    # print("⚠️ No formatted response found. Using default formatter.")
     if state.response_format == "ranked_list":
         lines = format_ranked_list(state.responses, include_debug=True)
     else:
@@ -310,14 +307,14 @@ def build_app_graph():
 
 
 if __name__ == "__main__":
-    print("\n--- STARTING GRAPH ---")
+    # print("\n--- STARTING GRAPH ---")
     graph = build_app_graph()
 
     while True:
         user_input = input("\nAsk something (or type 'exit' to quit): ")
         if user_input.lower() in {"exit", "quit"}:
             break
-        print("Initial input state:", {"input": user_input})
+        # print("Initial input state:", {"input": user_input})
         result = graph.invoke({"input": user_input})
         print("\n--- RESPONSE ---")
         print(result["responses"])

@@ -7,15 +7,19 @@ from llm_client import OpenAILLMClient
 from entity_reranker import EntityAwareReranker
 from param_utils import normalize_parameters
 from plan_validator import PlanValidator
-
+import logging
 
 load_dotenv()
+
+# Suppress SentenceTransformer logs before instantiation
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
 
 # Init clients
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
 openai_client = OpenAILLMClient()
+
 
 class MediaTypeAwareReranker:
     @staticmethod
@@ -38,7 +42,8 @@ class MediaTypeAwareReranker:
 
         for m in matches:
             try:
-                media_type = m.get("media_type") or m.get("metadata", {}).get("media_type", "any")
+                media_type = m.get("media_type") or m.get(
+                    "metadata", {}).get("media_type", "any")
             except Exception:
                 media_type = "any"
 
@@ -62,7 +67,8 @@ class ParameterAwareReranker:
 
         for m in matches:
             try:
-                supports_parameters = json.loads(m.get("supports_parameters", "[]"))
+                supports_parameters = json.loads(
+                    m.get("supports_parameters", "[]"))
             except Exception:
                 supports_parameters = []
 
@@ -96,6 +102,7 @@ JOIN_PARAM_MAP = {
     "movie_id": "with_movies"
 }
 
+
 def hybrid_search(prompt: str, top_k: int = 10) -> list:
     """
     Interpret a natural language prompt to generate structured extraction,
@@ -112,6 +119,8 @@ def hybrid_search(prompt: str, top_k: int = 10) -> list:
     return semantic_retrieval(structured, top_k=top_k)
 
 # This llm call not used directly in the application - it is for semantic embed testpurposes
+
+
 def extract_intent_entities(openai, query):
     prompt = f"""
     Extract intents and entities from the user's query using this schema:
@@ -163,7 +172,7 @@ def extract_intent_entities(openai, query):
             name_lower = ent.get("name", "").strip().lower()
             for keyword, corrected_type in streaming_services.items():
                 if keyword in name_lower and ent.get("type") != corrected_type:
-                    print(f"🔁 Correcting '{ent['name']}' type: {ent['type']} → {corrected_type}")
+                    # print(f"🔁 Correcting '{ent['name']}' type: {ent['type']} → {corrected_type}")
                     ent["type"] = corrected_type
                     if corrected_type not in result["entities"]:
                         result["entities"].append(corrected_type)
@@ -177,7 +186,8 @@ def extract_intent_entities(openai, query):
 def score_match(user_extraction, candidate_metadata):
     user_intents = set(user_extraction.get("intents", []))
     user_entities = set(user_extraction.get("entities", []))
-    query_entities = [e for e in user_extraction.get("query_entities", []) if isinstance(e, dict)]
+    query_entities = [e for e in user_extraction.get(
+        "query_entities", []) if isinstance(e, dict)]
 
     try:
         endpoint_intents = json.loads(candidate_metadata.get("intents", "[]"))
@@ -191,25 +201,30 @@ def score_match(user_extraction, candidate_metadata):
     path = candidate_metadata.get("path", "")
 
     # --- Normalized intent score
-    matched_intents = [ei for ei in endpoint_intents if ei.get("intent") in user_intents]
+    matched_intents = [ei for ei in endpoint_intents if ei.get(
+        "intent") in user_intents]
     intent_score = sum(float(i.get("confidence", 0)) for i in matched_intents)
     if matched_intents:
         intent_score /= len(matched_intents)
     intent_score = min(intent_score, 1.0)
 
     # --- Entity score
-    weights = {"movie": 0.5, "year": 0.3, "genre": 0.4, "rating": 0.4, "person": 0.4, "date": 0.3}
+    weights = {"movie": 0.5, "year": 0.3, "genre": 0.4,
+               "rating": 0.4, "person": 0.4, "date": 0.3}
     if "discovery.filtered" in user_intents:
         weights.update({"rating": 0.6, "year": 0.5})
     elif "trending.popular" in user_intents:
         weights.update({"year": 0.1, "rating": 0.1})
 
-    entity_score = sum(weights.get(e, 0.1) for e in user_entities & endpoint_entities)
+    entity_score = sum(weights.get(e, 0.1)
+                       for e in user_entities & endpoint_entities)
 
     # --- Param compatibility
     try:
-        endpoint_params = json.loads(candidate_metadata.get("parameters", "[]"))
-        param_names = {p.get("name", "") for p in endpoint_params if isinstance(p, dict)}
+        endpoint_params = json.loads(
+            candidate_metadata.get("parameters", "[]"))
+        param_names = {p.get("name", "")
+                       for p in endpoint_params if isinstance(p, dict)}
     except Exception:
         param_names = set()
     param_overlap = len([e for e in user_entities if e in param_names])
@@ -235,6 +250,7 @@ def score_match(user_extraction, candidate_metadata):
     score = intent_score + entity_score + 0.5 * param_boost - mismatch_penalty
     return round(score, 3)
 
+
 def semantic_retrieval(extraction_result, top_k=10):
     embedding_text = json.dumps(extraction_result)
     query_embedding = embedder.encode(embedding_text).tolist()
@@ -248,7 +264,8 @@ def semantic_retrieval(extraction_result, top_k=10):
     matches = []
     for metadata, distance in zip(results["metadatas"][0], results["distances"][0]):
         # ✅ Normalize parameters (crucial fix)
-        metadata["parameters"] = normalize_parameters(metadata.get("parameters", {}))
+        metadata["parameters"] = normalize_parameters(
+            metadata.get("parameters", {}))
 
         score = score_match(extraction_result, metadata)
         final_score = 0.7 * score + 0.3 * (1 - distance)
@@ -272,10 +289,11 @@ def semantic_retrieval(extraction_result, top_k=10):
         matches, extraction_result.get("query_entities", [])
     )
 
-    matches = MediaTypeAwareReranker.boost_by_media_type(matches, extraction_result)
-
+    matches = MediaTypeAwareReranker.boost_by_media_type(
+        matches, extraction_result)
 
     return matches
+
 
 def convert_matches_to_execution_steps(matches, extraction_result, resolved_entities):
     """
@@ -296,16 +314,17 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
         parameters = normalize_parameters(raw_params)
 
         if not isinstance(parameters, dict):
-            print(f"❌ Parameter normalization failed for {endpoint}: type={type(parameters)} → forcing empty dict")
+            # print(f"❌ Parameter normalization failed for {endpoint}: type={type(parameters)} → forcing empty dict")
             parameters = {}
         else:
-            assert isinstance(parameters, dict), f"🔴 Parameters not a dict after normalization: {endpoint}"
-
+            assert isinstance(
+                parameters, dict), f"🔴 Parameters not a dict after normalization: {endpoint}"
 
         # 🔁 Inject resolved path-style entity_id substitutions
         for entity_key, entity_value in resolved_entities.items():
             if f"{{{entity_key}}}" in endpoint:
-                parameters[entity_key] = entity_value[0] if isinstance(entity_value, list) else entity_value
+                parameters[entity_key] = entity_value[0] if isinstance(
+                    entity_value, list) else entity_value
 
         # 🧩 Inject resolved IDs for with_* joins
         for entity_key, param_name in JOIN_PARAM_MAP.items():
@@ -329,9 +348,11 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
 
         # tmdb up -
         plan_validator = PlanValidator()
-        step = plan_validator.inject_parameters_from_query_entities(step, extraction_result.get("query_entities", []))
+        step = plan_validator.inject_parameters_from_query_entities(
+            step, extraction_result.get("query_entities", []))
         # 🔥 Then: enrich with semantic parameters (Phase 18.1 starter)
-        query_text = extraction_result.get("query_text") or extraction_result.get("raw_query") or ""
+        query_text = extraction_result.get(
+            "query_text") or extraction_result.get("raw_query") or ""
         if query_text:
             step = plan_validator.enrich_plan_with_semantic_parameters(
                 step, query_text=query_text
@@ -340,4 +361,3 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
         steps.append(step)
 
     return steps
-

@@ -60,8 +60,7 @@ class FallbackSemanticBuilder:
             )
 
         # Final debug
-        print(
-            f"✨ Smart fallback created: {fallback_step['endpoint']} with params {fallback_step['parameters']}")
+        # print(f"✨ Smart fallback created: {fallback_step['endpoint']} with params {fallback_step['parameters']}")
 
         return fallback_step
 
@@ -93,14 +92,14 @@ class FallbackHandler:
                 relaxed_step["parameters"].pop(param_key, None)
                 relaxed_step["step_id"] = f"{original_step['step_id']}_relaxed_{label}"
                 relaxed_steps.append(relaxed_step)
-                print(f"♻️ Relaxing {label}: dropped {param_key}")
+                # print(f"♻️ Relaxing {label}: dropped {param_key}")
 
                 # ➡️ NEW: Track relaxation
                 if state is not None:
                     if not hasattr(state, "relaxed_parameters"):
                         state.relaxed_parameters = []
                     state.relaxed_parameters.append(label)
-                    print(f"📝 Relaxation tracked: {label}")
+                    # print(f"📝 Relaxation tracked: {label}")
 
                     # ➡️ Log in execution trace
                     from execution_orchestrator import ExecutionTraceLogger
@@ -164,8 +163,7 @@ class FallbackHandler:
                 str(nid) for nid in resolved_entities["network_id"])
 
         # Safety warning if no enrichment at all
-        if not fallback_step["parameters"]:
-            print(
-                f"⚠️ Warning: Fallback step for {fallback_step['endpoint']} has no enrichment injected!")
+        # if not fallback_step["parameters"]:
+        #     print(f"⚠️ Warning: Fallback step for {fallback_step['endpoint']} has no enrichment injected!")
 
         return fallback_step

@@ -36,7 +36,8 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 # TMDB API configuration
 BASE_URL = "https://api.themoviedb.org/3"
 HEADERS = {"Authorization": f"Bearer {TMDB_API_KEY}"}
-   
+
+
 def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
     """
     Use newly resolved entities to find and append follow-up steps to the plan.
@@ -52,12 +53,15 @@ def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
         return []
 
     current_intents = state.extraction_result.get("intents", [])
-    followup_matches = DependencyEndpointSuggester.suggest_followups(newly_resolved, current_intents)
+    followup_matches = DependencyEndpointSuggester.suggest_followups(
+        newly_resolved, current_intents)
 
     existing_endpoints = {step["endpoint"] for step in state.plan_steps}
-    new_matches = [m for m in followup_matches if m["endpoint"] not in existing_endpoints]
+    new_matches = [m for m in followup_matches if m["endpoint"]
+                   not in existing_endpoints]
 
     return convert_matches_to_execution_steps(new_matches, state.extraction_result, state.resolved_entities)
+
 
 class DependencyEndpointSuggester:
     @staticmethod
@@ -95,6 +99,7 @@ class DependencyEndpointSuggester:
 
         return unique
 
+
 class PathRewriter:
     @staticmethod
     def rewrite(path: str, resolved_entities: dict) -> str:
@@ -116,6 +121,7 @@ class PathRewriter:
 
         return re.sub(r"{(\w+)}", replacer, path)
 
+
 class PostStepUpdater:
     @staticmethod
     def update(state, step, json_data):
@@ -125,9 +131,9 @@ class PostStepUpdater:
         extracted = {}
 
         if path.startswith("/search/"):
-            print("🔎 Raw /search/person results:")
+            # print("🔎 Raw /search/person results:")
             for item in json_data.get("results", []):
-                print(f"  → {item.get('name')} (id={item.get('id')})")
+                # print(f"  → {item.get('name')} (id={item.get('id')})")
                 if not isinstance(item, dict):
                     continue
                 entity_id = item.get("id")
@@ -137,7 +143,7 @@ class PostStepUpdater:
                     if entity_type:
                         key = f"{entity_type}_id"
                         extracted.setdefault(key, []).append(entity_id)
-                        print(f"🔍 Resolved {entity_type}: '{entity_name}' → {entity_id}")
+                        # print(f"🔍 Resolved {entity_type}: '{entity_name}' → {entity_id}")
 
         if extracted:
             state.resolved_entities.update(extracted)
@@ -178,8 +184,10 @@ class RerankPlanning:
 
         # ✅ Load optional semantic parameters if query available
         validator = PlanValidator()
-        query_text = resolved_entities.get("__query", "")  # ⚡ expect __query injected upstream
-        optional_params = validator.infer_semantic_parameters(query_text) if query_text else []
+        # ⚡ expect __query injected upstream
+        query_text = resolved_entities.get("__query", "")
+        optional_params = validator.infer_semantic_parameters(
+            query_text) if query_text else []
         SAFE_OPTIONAL_PARAMS = {
             "vote_average.gte", "vote_count.gte", "primary_release_year",
             "release_date.gte", "with_runtime.gte", "with_runtime.lte",
@@ -210,19 +218,20 @@ class RerankPlanning:
             # --- Bonus Boost for Strong Param Coverage ---
             if optional_match_count >= 3:
                 boost += 0.05
-                print(f"⭐ Strong optional param coverage bonus applied (+0.05) for {endpoint}")
+                # print(f"⭐ Strong optional param coverage bonus applied (+0.05) for {endpoint}")
 
             # --- Apply Pre-Recorded Penalty from SymbolicConstraintFilter ---
             additional_penalty = match.get("penalty", 0.0)
             if additional_penalty > 0:
-                print(f"🔻 Applying additional penalty of {additional_penalty} to {endpoint}")
+                # print(f"🔻 Applying additional penalty of {additional_penalty} to {endpoint}")
                 penalty += additional_penalty
 
             # --- NEW: Penalty if Missing Supported Intents ---
-            supported_intents = SymbolicConstraintFilter._extract_supported_intents(match.get("metadata", match))
+            supported_intents = SymbolicConstraintFilter._extract_supported_intents(
+                match.get("metadata", match))
             if not supported_intents:
                 penalty += 0.1
-                print(f"⚠️ Missing supported_intents penalty applied to {endpoint} (-0.1)")
+                # print(f"⚠️ Missing supported_intents penalty applied to {endpoint} (-0.1)")
 
             # --- Final Scoring ---
             base_score = match.get("final_score", 0.0)
@@ -236,15 +245,14 @@ class RerankPlanning:
             reranked.append(match)
 
             # --- Clean Debug Output ---
-            print("\n📊 Rerank Debug Info")
-            print(f"Endpoint: {endpoint}")
-            print(f"🔹 Base Score: {base_score}")
-            print(f"➕ Boost Applied: {round(boost, 3)}")
-            print(f"➖ Penalty Applied: {round(penalty, 3)}")
-            print(f"🎯 Final Score: {final_score}")
-            print(f"🔎 Missing Entities (path params): {needs}")
-            print("-" * 40)
-
+            # print("\n📊 Rerank Debug Info")
+            # print(f"Endpoint: {endpoint}")
+            # print(f"🔹 Base Score: {base_score}")
+            # print(f"➕ Boost Applied: {round(boost, 3)}")
+            # print(f"➖ Penalty Applied: {round(penalty, 3)}")
+            # print(f"🎯 Final Score: {final_score}")
+            # print(f"🔎 Missing Entities (path params): {needs}")
+            # print("-" * 40)
 
         return sorted(reranked, key=lambda x: x["final_score"], reverse=True)
 
@@ -268,25 +276,29 @@ class RerankPlanning:
         deferred = []
 
         # Extract question type and roles from extraction result
-        question_type = extraction_result.get("question_type", "summary") if extraction_result else "summary"
-        query_entities = extraction_result.get("query_entities", []) if extraction_result else []
+        question_type = extraction_result.get(
+            "question_type", "summary") if extraction_result else "summary"
+        query_entities = extraction_result.get(
+            "query_entities", []) if extraction_result else []
 
         for match in ranked_matches:
             endpoint_path = match.get("endpoint") or match.get("path", "")
-            print(f"🔍 Evaluating: {endpoint_path}")
+            # print(f"🔍 Evaluating: {endpoint_path}")
             # 🔐 Standard validation: do we have required parameters?
-            is_valid = RerankPlanning.validate_parameters(endpoint_path, resolved_entities)
-            print(f"🔎 validate_parameters = {is_valid} for {endpoint_path}")
+            is_valid = RerankPlanning.validate_parameters(
+                endpoint_path, resolved_entities)
+            # print(f"🔎 validate_parameters = {is_valid} for {endpoint_path}")
             # phase 19.7 ✅ Strategic override: allow /person/{id}/movie_credits or tv_credits if role + count query
             if not is_valid:
-                print(f"⚠️ Rejected in feasibility: {endpoint_path} due to missing resolved params")
+                # print(f"⚠️ Rejected in feasibility: {endpoint_path} due to missing resolved params")
                 if endpoint_path in {"/person/{person_id}/movie_credits", "/person/{person_id}/tv_credits"}:
                     if question_type == "count":
                         if any(
-                            ent.get("type") == "person" and ent.get("role") in {"director", "cast", "writer", "producer", "composer"}
+                            ent.get("type") == "person" and ent.get("role") in {
+                                "director", "cast", "writer", "producer", "composer"}
                             for ent in query_entities
                         ):
-                            print(f"✅ Allowing role-aware count query: {endpoint_path}")
+                            # print(f"✅ Allowing role-aware count query: {endpoint_path}")
                             is_valid = True
 
             if is_valid:
@@ -297,6 +309,7 @@ class RerankPlanning:
                 deferred.append(match)
 
         return feasible, deferred
+
 
 class ResultExtractor:
     @staticmethod
@@ -332,7 +345,8 @@ class ResultExtractor:
             title = item.get("title") or item.get("name", "Untitled")
             overview = item.get("overview") or "No synopsis available."
             score = item.get("vote_average", 0) / 10.0
-            release_date = item.get("release_date") or item.get("first_air_date")
+            release_date = item.get(
+                "release_date") or item.get("first_air_date")
 
             summaries.append({
                 "type": "movie_summary",
@@ -383,7 +397,7 @@ class ResultExtractor:
             job = crew.get("job", "").lower()
             if job in {"director", "writer", "producer", "composer"}:
                 title = crew.get("title") or crew.get("name") or "Untitled"
-                
+
                 summaries.append({
                     "type": "movie_summary",
                     "title": crew.get("title") or crew.get("original_title") or crew.get("name", "Untitled"),
@@ -398,7 +412,7 @@ class ResultExtractor:
         for cast in json_data.get("cast", []):
             title = cast.get("title") or cast.get("name") or "Untitled"
             character = cast.get("character", "")
-            
+
             summaries.append({
                 "type": "movie_summary",
                 "title": cast.get("title") or cast.get("original_title") or cast.get("name", "Untitled"),
@@ -408,9 +422,8 @@ class ResultExtractor:
                 "final_score": 1.0,
                 "job": "cast"  # ✅ Also helps count actor roles
             })
-        
-        return summaries
 
+        return summaries
 
     @staticmethod
     def _extract_person_profile(json_data):
@@ -456,9 +469,11 @@ class ResultExtractor:
                     continue
 
                 title = item.get("title") or item.get("name", "Untitled")
-                overview = item.get("overview") or item.get("job") or item.get("character") or item.get("description") or "No synopsis available."
+                overview = item.get("overview") or item.get("job") or item.get(
+                    "character") or item.get("description") or "No synopsis available."
                 score = item.get("vote_average", 0) / 10.0
-                release_date = item.get("release_date") or item.get("first_air_date")
+                release_date = item.get(
+                    "release_date") or item.get("first_air_date")
 
                 summaries.append({
                     "type": "movie_summary",
@@ -471,7 +486,8 @@ class ResultExtractor:
 
         # --- Flat object fallback (for /person/{id} etc.) ---
         flat_title = json_data.get("title") or json_data.get("name")
-        flat_overview = json_data.get("overview") or json_data.get("biography") or ""
+        flat_overview = json_data.get(
+            "overview") or json_data.get("biography") or ""
 
         if flat_title or flat_overview:
             is_person_profile = (
@@ -489,10 +505,8 @@ class ResultExtractor:
             })
 
         return summaries
-   
 
     @staticmethod
-
     def post_filter_responses(responses, query_entities, extraction_result):
         """
         Post-filter responses only if necessary.
@@ -511,12 +525,15 @@ class ResultExtractor:
             )
 
         if strong_filter_applied:
-            print("⚡ Strong filters already applied in plan — skipping aggressive post-filtering.")
-            return responses  # ✅ Skip aggressive filtering if strong param filtering was applied.
+            # print("⚡ Strong filters already applied in plan — skipping aggressive post-filtering.")
+            # ✅ Skip aggressive filtering if strong param filtering was applied.
+            return responses
 
         # ✅ Otherwise fallback to textual entity matching
-        genre_names = [e["name"].lower() for e in query_entities if e.get("type") == "genre"]
-        person_names = [e["name"].lower() for e in query_entities if e.get("type") == "person"]
+        genre_names = [e["name"].lower()
+                       for e in query_entities if e.get("type") == "genre"]
+        person_names = [e["name"].lower()
+                        for e in query_entities if e.get("type") == "person"]
 
         filtered = []
         for r in responses:
@@ -535,5 +552,3 @@ class ResultExtractor:
                 filtered.append(r)
 
         return filtered
-
-     

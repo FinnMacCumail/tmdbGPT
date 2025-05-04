@@ -20,6 +20,7 @@ from constraint_model import Constraint, ConstraintGroup
 import hashlib
 from pydantic import BaseModel
 from param_utils import update_symbolic_registry
+from log_summary import log_summary
 
 
 class ExecutionOrchestrator:
@@ -121,10 +122,7 @@ class ExecutionOrchestrator:
         return validated or movie_results
 
     def execute(self, state):
-        print(f"\n[DEBUG] Entering Orchestrator Execution")
-        print(f"🧭 [DEBUG] Initial question_type: {state.question_type}")
-        print(f"🎨 [DEBUG] Initial response_format: {state.response_format}")
-
+        # print(log_summary(state, header="🚀 Starting Execution"))
         state.error = None
         state.data_registry = {}
         state.completed_steps = []
@@ -132,18 +130,18 @@ class ExecutionOrchestrator:
         step_origin_depth = {}
         MAX_CHAIN_DEPTH = 3
 
-        print(f"🧭 Question Type: {getattr(state, 'question_type', None)}")
-        print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
+        # print(f"🧭 Question Type: {getattr(state, 'question_type', None)}")
+        # print(f"🎨 Response Format: {getattr(state, 'response_format', None)}")
 
         # ✅ Phase 21.5: Evaluate and inject constraint-tree-based steps (with relaxation fallback)
-        if self._evaluate_and_inject_from_constraint_tree(state):
-            print("✅ Constraint tree steps injected.")
-        else:
-            print("🛑 No executable steps from constraint tree.")
+        # if self._evaluate_and_inject_from_constraint_tree(state):
+        #     print("✅ Constraint tree steps injected.")
+        # else:
+        #     print("🛑 No executable steps from constraint tree.")
 
         # ✅ phase 9.2 - pgpv - Safety check happens AFTER constraint planning
         if not self._safe_to_execute(state):
-            print(f"🛑 Fallback triggered due to unsafe plan.")
+            # print(f"🛑 Fallback triggered due to unsafe plan.")
             return state
 
         while state.plan_steps:
@@ -153,12 +151,10 @@ class ExecutionOrchestrator:
             if state.intended_media_type and step.get("endpoint"):
                 if state.intended_media_type != "both":
                     if "/tv" in step["endpoint"] and state.intended_media_type != "tv":
-                        print(
-                            f"⏭️ Skipping TV step {step['step_id']} for movie query.")
+                        # print( f"⏭️ Skipping TV step {step['step_id']} for movie query.")
                         continue
                     if "/movie" in step["endpoint"] and state.intended_media_type != "movie":
-                        print(
-                            f"⏭️ Skipping Movie step {step['step_id']} for TV query.")
+                        # print(f"⏭️ Skipping Movie step {step['step_id']} for TV query.")
                         continue
             step_id = step.get("step_id")
 
@@ -181,34 +177,28 @@ class ExecutionOrchestrator:
                         soft_missing.append(req)
 
                 if soft_missing and len(soft_missing) == len(missing_requires):
-                    print(
-                        f"⚡ Soft relaxation: missing only soft filters {soft_missing}. Proceeding with relaxed step.")
+                    # print(f"⚡ Soft relaxation: missing only soft filters {soft_missing}. Proceeding with relaxed step.")
                     # ✅ Mark the step as relaxed so post-filtering can occur later
                     step.setdefault("soft_relaxed", []).extend(soft_missing)
                 else:
-                    print(
-                        f"⏭️ Skipping step {step_id}: missing required core entities {missing_requires}")
+                    # print(f"⏭️ Skipping step {step_id}: missing required core entities {missing_requires}")
                     continue  # Skip hard requirements
 
-            print(f"\n[DEBUG] Executing Step: {step_id}")
+            # print(f"\n[DEBUG] Executing Step: {step_id}")
             # print(f"[DEBUG] Current question_type: {state.question_type}")
             # print(f"[DEBUG] Current response_format: {state.response_format}")
 
-            print(f"▶️ Popped step: {step_id}")
-            print(
-                f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
+            # print(f"▶️ Popped step: {step_id}")
+            # print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
             if not state.plan_steps:
                 if not step.get("fallback_injected"):  # ✅ NEW: avoid fallback looping
                     state = DependencyManager.analyze_dependencies(state)
                     # 🚀 NEW: inject lookup steps after role-based intersection
                     state = self._inject_lookup_steps_from_role_intersection(
                         state)
-                else:
-                    print(
-                        f"🛑 Step {step.get('step_id')} is fallback-injected. Skipping dependency expansion and lookup injection.")
 
             if step_id in state.completed_steps:
-                print(f"✅ Skipping already completed step: {step_id}")
+                # print(f"✅ Skipping already completed step: {step_id}")
                 continue
             # Skip param injection if already relaxed
             if "_relaxed" not in step.get("step_id", ""):
@@ -226,12 +216,8 @@ class ExecutionOrchestrator:
             # 🛡 Sanity check on parameters
             params = step.get("parameters", {})
             if not isinstance(params, dict):
-                print(
-                    f"🚨 Malformed parameters in step {step_id} → {type(params)}")
+                # print(f"🚨 Malformed parameters in step {step_id} → {type(params)}")
                 params = {}
-            else:
-                assert isinstance(
-                    params, dict), f"❌ Step {step_id} has non-dict parameters: {type(params)}"
 
             # 🧠 Replace placeholders in the path using updated params
             path = step.get("endpoint")
@@ -241,17 +227,16 @@ class ExecutionOrchestrator:
                     value = v[0] if isinstance(v, list) else v
                     path = path.replace(f"{{{k}}}", str(value))
                     # print(f"🧩 Replaced path slot: {{{k}}} → {v}")
-            print(f"🛠️ Resolved full path: {path}")
+            # print(f"🛠️ Resolved full path: {path}")
             path = PathRewriter.rewrite(path, state.resolved_entities)
             full_url = f"{self.base_url}{path}"
-            print(f"\n⚡ Executing {step_id}: {path}")
+            # print(f"\n⚡ Executing {step_id}: {path}")
 
             # Sanitize structured query parameter
             if isinstance(params.get("query"), dict):
                 original = params["query"]
                 params["query"] = original.get("name", "")
-                print(
-                    f"🔧 Flattened structured query param from {original} → '{params['query']}'")
+                # print(f"🔧 Flattened structured query param from {original} → '{params['query']}'")
 
             # ✅ Deduplication AFTER path + param injection
             param_string = "&".join(
@@ -260,20 +245,19 @@ class ExecutionOrchestrator:
             step_hash = sha256(dedup_key.encode()).hexdigest()
 
             if step_hash in seen_step_keys:
-                print(
-                    f"🔁 Skipping duplicate step_id {step_id} (hash={step_hash}) with same parameters")
+                # print(f"🔁 Skipping duplicate step_id {step_id} (hash={step_hash}) with same parameters")
                 continue
 
             seen_step_keys.add(step_hash)
 
             try:
-                print(f"📤 Calling TMDB: {full_url}")
+                # print(f"📤 Calling TMDB: {full_url}")
                 # print(f"📦 Params: {params}")
                 response = requests.get(
                     full_url, headers=self.headers, params=params)
 
                 if response.status_code == 200:
-                    print(f"✅ Success: {response.status_code}")
+                    # print(f"✅ Success: {response.status_code}")
                     try:
                         json_data = response.json()
                         state.data_registry[step_id] = json_data
@@ -298,8 +282,7 @@ class ExecutionOrchestrator:
                             new_steps = expand_plan_with_dependencies(
                                 state, new_entities)
                             if new_steps:
-                                print(
-                                    f"🔁 Appending {len(new_steps)} new dependent step(s) to execution queue.")
+                                # print(f"🔁 Appending {len(new_steps)} new dependent step(s) to execution queue.")
                                 for new_step in new_steps:
                                     state.plan_steps.append(new_step)
                                     step_origin_depth[new_step["step_id"]
@@ -321,8 +304,8 @@ class ExecutionOrchestrator:
         # 👇 Generate final formatted output
         final_output = renderer(state)
 
-        print("\n--- FINAL RESPONSE ---")
-        print(final_output)
+        # print("\n--- FINAL RESPONSE ---")
+        # print(final_output)
 
         # 👇 You can optionally assign it to state if needed
         state.formatted_response = final_output
@@ -334,7 +317,7 @@ class ExecutionOrchestrator:
                               for step in state.plan_steps)
         )
 
-        print("[DEBUG] Orchestrator execution completed.")
+        # print("[DEBUG] Orchestrator execution completed.")
         # phase 17.4 - logging
         if getattr(state, "relaxed_parameters", []):
             relaxed_summary = ", ".join(sorted(set(state.relaxed_parameters)))
@@ -346,6 +329,7 @@ class ExecutionOrchestrator:
                 state=state
             )
 
+        log_summary(state)
         return state
 
     def _score_movie_against_query(self, movie, state, credits=None, **kwargs):
@@ -614,7 +598,7 @@ class ExecutionOrchestrator:
         # print(f"✅ Step marked completed: {step_id}")
 
     def _handle_generic_response(self, step, step_id, path, json_data, state):
-        print(f"📥 Handling generic response for {path}...")
+        # print(f"📥 Handling generic response for {path}...")
 
         summaries = ResultExtractor.extract(
             path, json_data, state.resolved_entities)
@@ -625,8 +609,7 @@ class ExecutionOrchestrator:
 
         # ✅ Always apply fallback tagging first
         if step.get("fallback_injected") and isinstance(json_data, dict) and "results" in json_data:
-            print(
-                f"♻️ Tagging fallback-injected results from {step['endpoint']}")
+            # print(f"♻️ Tagging fallback-injected results from {step['endpoint']}")
             for movie in json_data["results"]:
                 movie["final_score"] = 0.3
                 movie["source"] = step["endpoint"] + "_relaxed"
@@ -638,8 +621,7 @@ class ExecutionOrchestrator:
                 query_entities=query_entities,
                 extraction_result=state.extraction_result
             )
-            print(
-                f"🔎 Post-filtered to {len(filtered_summaries)} summaries after entity matching")
+            # print(f"🔎 Post-filtered to {len(filtered_summaries)} summaries after entity matching")
             summaries = filtered_summaries
 
         # 🎯 NEW: Phase 20.4 — Role Validation for each summary
@@ -652,16 +634,13 @@ class ExecutionOrchestrator:
 
             if summary["final_score"] >= 0.5:  # Only accept reasonable matches
                 validated_summaries.append(summary)
-                print(
-                    f"🎯 Validated {summary.get('title', 'Unknown')} → Score: {summary['final_score']}")
-            else:
-                print(
-                    f"⚠️ Low score ({summary['final_score']}) for {summary.get('title', 'Unknown')} — skipping.")
+                # print(f"🎯 Validated {summary.get('title', 'Unknown')} → Score: {summary['final_score']}")
+            # else:
+            #     print(f"⚠️ Low score ({summary['final_score']}) for {summary.get('title', 'Unknown')} — skipping.")
 
         # 🛡 Optional: if no validated results, fallback
         if not validated_summaries:
-            print(
-                f"🛑 No high-quality results after validation for {step_id}. Injecting fallback...")
+            # print(f"🛑 No high-quality results after validation for {step_id}. Injecting fallback...")
 
             fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
                 original_step=step,
@@ -671,8 +650,7 @@ class ExecutionOrchestrator:
 
             if fallback_step["step_id"] not in state.completed_steps:
                 state.plan_steps.insert(0, fallback_step)
-                print(
-                    f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
+                # print(f"🧭 Injected enriched fallback step: {fallback_step['endpoint']}")
 
             state.completed_steps.append(step_id)
             return  # Stop handling this batch
@@ -684,7 +662,7 @@ class ExecutionOrchestrator:
         ExecutionTraceLogger.log_step(
             step_id, path, "Handled", validated_summaries[:1] if validated_summaries else [], state=state)
         state.completed_steps.append(step_id)
-        print(f"✅ Step marked completed: {step_id}")
+        # print(f"✅ Step marked completed: {step_id}")
 
     def _intersect_movie_ids_across_roles(self, state) -> dict:
         """
@@ -745,8 +723,8 @@ class ExecutionOrchestrator:
         if network_sets:
             intersected_tv_ids &= set.intersection(*network_sets)
 
-        print(f"🎯 Intersected movie IDs: {intersected_movie_ids}")
-        print(f"🎯 Intersected TV IDs: {intersected_tv_ids}")
+        # print(f"🎯 Intersected movie IDs: {intersected_movie_ids}")
+        # print(f"🎯 Intersected TV IDs: {intersected_tv_ids}")
         return {
             "movie_ids": intersected_movie_ids,
             "tv_ids": intersected_tv_ids
@@ -770,13 +748,12 @@ class ExecutionOrchestrator:
             })
 
         # Insert validation steps at the beginning of plan queue
-        print(
-            f"✅ Injecting {len(validation_steps)} validation step(s) after intersection.")
+        # print(f"✅ Injecting {len(validation_steps)} validation step(s) after intersection.")
         state.plan_steps = validation_steps + state.plan_steps
 
     def _safe_to_execute(self, state) -> bool:
         if not state.plan_steps:
-            print(f"🛑 No steps available to execute — fallback needed.")
+            # print(f"🛑 No steps available to execute — fallback needed.")
             return False
 
         # ✅ NEW: allow if any /discover/ steps present
@@ -786,16 +763,14 @@ class ExecutionOrchestrator:
         ]
 
         if media_steps:
-            print(
-                f"⚡ Proceeding with {len(media_steps)} discovery step(s): {[s['endpoint'] for s in media_steps]}")
+            # print(f"⚡ Proceeding with {len(media_steps)} discovery step(s): {[s['endpoint'] for s in media_steps]}")
             return True
 
         if len(state.plan_steps) == 1:
             step = state.plan_steps[0]
             produces = step.get("produces", [])
             if SymbolicConstraintFilter.is_media_endpoint(produces):
-                print(
-                    f"⚡ Proceeding with single media-producing step: {step['step_id']} ({step['endpoint']})")
+                # print(f"⚡ Proceeding with single media-producing step: {step['step_id']} ({step['endpoint']})")
                 return True
 
         # 🧠 Otherwise: try intersection
@@ -804,9 +779,8 @@ class ExecutionOrchestrator:
             self._inject_validation_steps(state, intersected_ids)
             return True
 
-        print(
-            f"🛑 [Fallback Trigger] No executable steps in plan. Current steps: {state.plan_steps}")
-        print(f"🛑 No intersection or valid steps — fallback needed.")
+        # print(f"🛑 [Fallback Trigger] No executable steps in plan. Current steps: {state.plan_steps}")
+        # print(f"🛑 No intersection or valid steps — fallback needed.")
         return False
 
     def _inject_lookup_steps_from_role_intersection(self, state):
@@ -825,7 +799,7 @@ class ExecutionOrchestrator:
 
         if not found_movies and not found_tv:
             # 🚨 No intersection — try relaxing role constraints first
-            print("⚠️ No intersection found. Attempting to relax roles...")
+            # print("⚠️ No intersection found. Attempting to relax roles...")
             relaxed_state = self._relax_roles_and_retry_intersection(state)
 
             # After relaxing, retry intersection
@@ -836,7 +810,7 @@ class ExecutionOrchestrator:
 
             if not found_movies and not found_tv:
                 # 🚨 Still nothing — trigger fallback
-                print("🛑 No matches after relaxing roles. Triggering fallback...")
+                # print("🛑 No matches after relaxing roles. Triggering fallback...")
 
                 fallback_step = FallbackHandler.generate_steps(
                     state.resolved_entities,
@@ -847,7 +821,7 @@ class ExecutionOrchestrator:
                     fallback_step = [fallback_step]
 
                 for fs in reversed(fallback_step):
-                    print(f"♻️ Injected fallback step: {fs.get('endpoint')}")
+                    # print(f"♻️ Injected fallback step: {fs.get('endpoint')}")
                     state.plan_steps.insert(0, fs)
 
                 from execution_orchestrator import ExecutionTraceLogger
@@ -861,10 +835,9 @@ class ExecutionOrchestrator:
 
                 return state
 
-            else:
-                # ✅ Intersection successful after relaxing
-                print(
-                    f"✅ Found intersection after relaxing roles: {found_movies or found_tv}")
+            # else:
+            #     # ✅ Intersection successful after relaxing
+            #     print(f"✅ Found intersection after relaxing roles: {found_movies or found_tv}")
 
         # 🚀 Inject lookup steps
         if intended_type == "movie":
@@ -876,7 +849,7 @@ class ExecutionOrchestrator:
                     "produces": [],
                     "requires": ["movie_id"]
                 }
-                print(f"🔎 Injected movie lookup step: {lookup_step}")
+                # print(f"🔎 Injected movie lookup step: {lookup_step}")
                 state.plan_steps.insert(0, lookup_step)
 
         elif intended_type == "tv":
@@ -888,7 +861,7 @@ class ExecutionOrchestrator:
                     "produces": [],
                     "requires": ["tv_id"]
                 }
-                print(f"🔎 Injected tv lookup step: {lookup_step}")
+                # print(f"🔎 Injected tv lookup step: {lookup_step}")
                 state.plan_steps.insert(0, lookup_step)
 
         elif intended_type == "both":
@@ -901,7 +874,7 @@ class ExecutionOrchestrator:
                         "produces": [],
                         "requires": ["movie_id"]
                     }
-                    print(f"🔎 Injected movie lookup step: {lookup_step}")
+                    # print(f"🔎 Injected movie lookup step: {lookup_step}")
                     state.plan_steps.insert(0, lookup_step)
             elif found_tv:
                 for tv_id in sorted(found_tv):
@@ -912,7 +885,7 @@ class ExecutionOrchestrator:
                         "produces": [],
                         "requires": ["tv_id"]
                     }
-                    print(f"🔎 Injected tv lookup step: {lookup_step}")
+                    # print(f"🔎 Injected tv lookup step: {lookup_step}")
                     state.plan_steps.insert(0, lookup_step)
 
         return state
@@ -931,8 +904,7 @@ class ExecutionOrchestrator:
         for role_prefix in ["step_director_", "step_writer_", "step_producer_", "step_composer_"]:
             for step_id in list(state.completed_steps):
                 if step_id.startswith(role_prefix):
-                    print(
-                        f"♻️ Dropping step {step_id} to relax strict crew role constraint.")
+                    # print(f"♻️ Dropping step {step_id} to relax strict crew role constraint.")
                     state.completed_steps.remove(step_id)
                     state.data_registry.pop(step_id, None)
                     role_name = role_prefix.replace(
@@ -954,15 +926,13 @@ class ExecutionOrchestrator:
         # 2️⃣ Retry intersection after dropping strict crew roles
         intersection = self._intersect_movie_ids_across_roles(state)
         if intersection["movie_ids"] or intersection["tv_ids"]:
-            print(
-                f"✅ Successful intersection after relaxing strict roles: {intersection}")
+            # print(f"✅ Successful intersection after relaxing strict roles: {intersection}")
             return state
 
         # 3️⃣ If still no matches, reluctantly drop cast (actor) roles
         for step_id in list(state.completed_steps):
             if step_id.startswith("step_cast_"):
-                print(
-                    f"⚠️ Dropping step {step_id} (cast) to relax actor constraint.")
+                # print(f"⚠️ Dropping step {step_id} (cast) to relax actor constraint.")
                 state.completed_steps.remove(step_id)
                 state.data_registry.pop(step_id, None)
                 relaxed_roles.append("cast")
@@ -1019,20 +989,3 @@ class ExecutionTraceLogger:
 
 # On failure:
 # will be moved inside exception block where 'response' is defined
-
-
-def print_registry_snapshot(data_registry, max_keys=10, max_values=5):
-    print("📦 [Registry Snapshot]")
-    keys = list(data_registry.keys())
-    for k in keys[:max_keys]:
-        v = data_registry[k]
-        if isinstance(v, dict):
-            print(f"  🔑 {k}: {len(v)} subkeys")
-            for subk in list(v.keys())[:max_values]:
-                print(f"     └─ {subk} → {len(v[subk])} ids")
-        elif isinstance(v, list):
-            print(f"  🔑 {k}: List of {len(v)} items")
-        else:
-            print(f"  🔑 {k}: {type(v)}")
-    if len(keys) > max_keys:
-        print(f"  ... ({len(keys) - max_keys} more keys omitted)")
