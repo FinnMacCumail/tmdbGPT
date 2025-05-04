@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from app import build_app_graph
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from app import AppState
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +38,11 @@ async def run_query(req: QueryRequest, request: Request):
     logger.info(f"🧠 Parsed query: {req.query!r}")
 
     try:
-        result = graph.invoke({"input": req.query})
+        # Create a proper AppState with both input and query
+        state = AppState(input=req.query, query=req.query)
+
+        # Invoke the graph with the AppState
+        result = graph.invoke(state)
 
         logger.info("✅ Graph invoke completed.")
 
