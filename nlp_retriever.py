@@ -103,23 +103,15 @@ class DependencyEndpointSuggester:
 class PathRewriter:
     @staticmethod
     def rewrite(path: str, resolved_entities: dict) -> str:
-        """
-        Replaces unresolved placeholders in endpoint paths with resolved entity values.
-        Example: /person/{person_id} → /person/123 if person_id is in resolved_entities.
-
-        Args:
-            path (str): the endpoint path with placeholders
-            resolved_entities (dict): dictionary of resolved entity keys and values
-
-        Returns:
-            str: updated path with substitutions applied
-        """
-
         def replacer(match):
             key = match.group(1)
-            return str(resolved_entities.get(key, match.group(0)))
+            value = resolved_entities.get(key)
+            if isinstance(value, list) and len(value) == 1:
+                return str(value[0])
+            return str(value) if value is not None else match.group(0)
 
-        return re.sub(r"{(\w+)}", replacer, path)
+        rewritten = re.sub(r"{(\w+)}", replacer, path)
+        return rewritten or path  # ✅ fallback to original if empty
 
 
 class PostStepUpdater:
@@ -317,23 +309,38 @@ class ResultExtractor:
         resolved_entities = resolved_entities or {}
 
         if not json_data:
+            print("⚠️ ResultExtractor: Empty json_data")
             return []
 
-        if "movie_credits" in endpoint or "tv_credits" in endpoint:
+        print(f"🧪 ResultExtractor.extract called with endpoint: {endpoint}")
+
+        # ✅ Credits endpoints: tv or movie
+        if "tv_credits" in endpoint or "movie_credits" in endpoint:
+            print("🎯 Routing to _extract_credits (tv/movie)")
             return ResultExtractor._extract_credits(json_data, endpoint)
 
+        # ✅ Discovery endpoint
         if "/discover/" in endpoint:
+            print("🎯 Routing to _extract_discovery")
             return ResultExtractor._extract_discovery(json_data, endpoint)
 
+        # ✅ Search: person
         if "/search/person" in endpoint:
+            print("🎯 Routing to _extract_search_person")
             return ResultExtractor._extract_search_person(json_data)
 
+        # ✅ Person profile (not a sub-resource like /credits, /tv, /movie)
         if "/person/" in endpoint and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"]):
+            print("🎯 Routing to _extract_person_profile")
             return ResultExtractor._extract_person_profile(json_data)
 
+        # ✅ Company / Network lookups
         if "/company/" in endpoint or "/network/" in endpoint:
+            print("🎯 Routing to _extract_company_or_network")
             return ResultExtractor._extract_company_or_network(json_data)
 
+        # ✅ Generic fallback
+        print("🛠️ Routing to _extract_generic (fallback)")
         return ResultExtractor._extract_generic(json_data, endpoint)
 
     @staticmethod
@@ -389,39 +396,103 @@ class ResultExtractor:
         return summaries
 
     @staticmethod
-    def _extract_credits(json_data, endpoint):
+    def _extract_credits(json_data: dict, endpoint: str) -> list:
+        """
+        Dispatcher for credit extraction.
+        Routes to TV or Movie logic based on endpoint path.
+        """
+        if "tv_credits" in endpoint:
+            return ResultExtractor._extract_tv_credits(json_data)
+        elif "movie_credits" in endpoint:
+            return ResultExtractor._extract_movie_credits(json_data)
+        return []
+
+    @staticmethod
+    def _extract_tv_credits(json_data: dict) -> list:
+        cast = json_data.get("cast", [])
+        crew = json_data.get("crew", [])
+        print(
+            f"🟢 _extract_tv_credits called — cast: {len(cast)}, crew: {len(crew)}")
+
         summaries = []
 
-        # ✅ Crew roles: director, writer, producer, composer
-        for crew in json_data.get("crew", []):
-            job = crew.get("job", "").lower()
-            if job in {"director", "writer", "producer", "composer"}:
-                title = crew.get("title") or crew.get("name") or "Untitled"
-
-                summaries.append({
-                    "type": "movie_summary",
-                    "title": crew.get("title") or crew.get("original_title") or crew.get("name", "Untitled"),
-                    "overview": job.capitalize(),
-                    "source": endpoint,
-                    "release_date": crew.get("release_date") or crew.get("first_air_date"),
-                    "final_score": 1.0,
-                    "job": job  # ✅ Needed for count_summary formatter
-                })
-
-        # ✅ Cast
-        for cast in json_data.get("cast", []):
-            title = cast.get("title") or cast.get("name") or "Untitled"
-            character = cast.get("character", "")
+        for entry in cast:
+            title = entry.get("name") or entry.get(
+                "original_name") or "Untitled"
+            overview = entry.get("overview") or entry.get(
+                "character") or "Cast"
+            release_date = entry.get("first_air_date") or "Unknown"
 
             summaries.append({
-                "type": "movie_summary",
-                "title": cast.get("title") or cast.get("original_title") or cast.get("name", "Untitled"),
-                "overview": cast.get("character") or "Cast",
-                "source": endpoint,
-                "release_date": cast.get("release_date") or cast.get("first_air_date"),
+                "type": "tv_summary",
+                "title": title,
+                "overview": overview,
+                "release_date": release_date,
                 "final_score": 1.0,
-                "job": "cast"  # ✅ Also helps count actor roles
+                "source": "/tv_credits",
+                "job": "cast",
+                "id": entry.get("id")
             })
+
+        allowed_jobs = {"director", "writer", "producer"}
+        for entry in crew:
+            job = (entry.get("job") or "").lower()
+            if job in allowed_jobs:
+                title = entry.get("name") or entry.get(
+                    "original_name") or "Untitled"
+                overview = entry.get("overview") or job.title()
+                release_date = entry.get("first_air_date") or "Unknown"
+
+                summaries.append({
+                    "type": "tv_summary",
+                    "title": title,
+                    "overview": overview,
+                    "release_date": release_date,
+                    "final_score": 1.0,
+                    "source": "/tv_credits",
+                    "job": job,
+                    "id": entry.get("id")
+                })
+
+        print(f"✅ Returning {len(summaries)} TV summaries")
+        return summaries
+
+    @staticmethod
+    def _extract_movie_credits(json_data: dict) -> list:
+        """
+        Extract summaries from /person/{id}/movie_credits
+        """
+        summaries = []
+        cast = json_data.get("cast", [])
+        crew = json_data.get("crew", [])
+        movie_crew_roles = {"director", "writer",
+                            "producer", "composer"}  # more inclusive
+
+        for entry in cast:
+            summaries.append({
+                "type": "movie_summary",
+                "title": entry.get("title") or entry.get("original_title") or "Untitled",
+                "overview": entry.get("overview") or entry.get("character") or "Cast",
+                "release_date": entry.get("release_date"),
+                "final_score": 1.0,
+                "source": "/movie_credits",
+                "job": "cast",
+                "id": entry.get("id")
+            })
+
+        for entry in crew:
+            job = entry.get("job", "").lower()
+            if job in movie_crew_roles:
+                summaries.append({
+                    "type": "movie_summary",
+                    "title": entry.get("title") or entry.get("original_title") or "Untitled",
+                    "overview": entry.get("overview") or job.title(),
+                    "release_date": entry.get("release_date"),
+                    "final_score": 1.0,
+                    "source": "/movie_credits",
+                    "job": job,
+                    "id": entry.get("id")
+                })
 
         return summaries
 
@@ -505,6 +576,26 @@ class ResultExtractor:
             })
 
         return summaries
+
+    @staticmethod
+    def should_post_filter(endpoint: str, applied_params: dict = None) -> bool:
+        """
+        Determines whether post-filtering is needed for a given TMDB endpoint.
+
+        Post-filtering is only applied if:
+        - The endpoint is a broad retrieval type (e.g. /discover, /search)
+        - No strong filtering (e.g. with_people, with_genres) was applied in the query
+        """
+        if not endpoint:
+            return False
+
+        applied_params = applied_params or {}
+
+        # Strong filters make post-filtering unnecessary
+        if any(p in applied_params for p in ("with_people", "with_genres", "with_companies", "with_networks")):
+            return False
+
+        return endpoint.startswith("/discover") or endpoint.startswith("/search")
 
     @staticmethod
     def post_filter_responses(responses, query_entities, extraction_result):
