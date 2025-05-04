@@ -92,8 +92,7 @@ def evaluate_constraint_tree(group, data_registry: dict) -> Dict[str, Set[int]]:
     Evaluate a ConstraintGroup recursively and return matched entity IDs
     grouped by constraint.key. AND groups return only intersecting IDs.
     """
-    print(
-        f"🌲 Evaluating ConstraintGroup ({group.logic}) with members: {group.constraints}")
+    # print(f"🌲 Evaluating ConstraintGroup ({group.logic}) with members: {group.constraints}")
     results: List[Dict[str, Set[int]]] = []
 
     for node in group:
@@ -102,7 +101,7 @@ def evaluate_constraint_tree(group, data_registry: dict) -> Dict[str, Set[int]]:
         else:
             value_str = str(node.value)
             id_set = data_registry.get(node.key, {}).get(value_str, set())
-            print(f"🔍 Node {node.key}={node.value} matched IDs: {id_set}")
+            # print(f"🔍 Node {node.key}={node.value} matched IDs: {id_set}")
             result = {node.key: id_set} if id_set else {}
         results.append(result)
 

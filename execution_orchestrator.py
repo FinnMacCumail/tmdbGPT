@@ -191,8 +191,8 @@ class ExecutionOrchestrator:
                     continue  # Skip hard requirements
 
             print(f"\n[DEBUG] Executing Step: {step_id}")
-            print(f"[DEBUG] Current question_type: {state.question_type}")
-            print(f"[DEBUG] Current response_format: {state.response_format}")
+            # print(f"[DEBUG] Current question_type: {state.question_type}")
+            # print(f"[DEBUG] Current response_format: {state.response_format}")
 
             print(f"▶️ Popped step: {step_id}")
             print(
@@ -240,7 +240,7 @@ class ExecutionOrchestrator:
                     # Fix: handle list injection
                     value = v[0] if isinstance(v, list) else v
                     path = path.replace(f"{{{k}}}", str(value))
-                    print(f"🧩 Replaced path slot: {{{k}}} → {v}")
+                    # print(f"🧩 Replaced path slot: {{{k}}} → {v}")
             print(f"🛠️ Resolved full path: {path}")
             path = PathRewriter.rewrite(path, state.resolved_entities)
             full_url = f"{self.base_url}{path}"
@@ -268,7 +268,7 @@ class ExecutionOrchestrator:
 
             try:
                 print(f"📤 Calling TMDB: {full_url}")
-                print(f"📦 Params: {params}")
+                # print(f"📦 Params: {params}")
                 response = requests.get(
                     full_url, headers=self.headers, params=params)
 
@@ -611,15 +611,14 @@ class ExecutionOrchestrator:
             step_id, path, "Validated", summary=ranked[0], state=state
         )
         state.completed_steps.append(step_id)
-        print(f"✅ Step marked completed: {step_id}")
+        # print(f"✅ Step marked completed: {step_id}")
 
     def _handle_generic_response(self, step, step_id, path, json_data, state):
         print(f"📥 Handling generic response for {path}...")
 
         summaries = ResultExtractor.extract(
             path, json_data, state.resolved_entities)
-        print(
-            f"🔎 ResultExtractor.extract returned {len(summaries)} summaries for endpoint: {path}")
+        # print(f"🔎 ResultExtractor.extract returned {len(summaries)} summaries for endpoint: {path}")
 
         query_entities = state.extraction_result.get("query_entities", [])
         role_tagged = any(e.get("role") for e in query_entities)
