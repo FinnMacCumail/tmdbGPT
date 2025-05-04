@@ -156,18 +156,32 @@ class ExecutionOrchestrator:
             # print(f"🛑 Fallback triggered due to unsafe plan.")
             return state
 
+        print("🧪 About to execute steps:", [
+              s["step_id"] for s in state.plan_steps])
+        print("🎯 Intended media type:", state.intended_media_type)
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
 
             # phase 19.9 - Media Type Enforcement Baseline
-            if state.intended_media_type and step.get("endpoint"):
-                if state.intended_media_type != "both":
-                    if "/tv" in step["endpoint"] and state.intended_media_type != "tv":
-                        # print( f"⏭️ Skipping TV step {step['step_id']} for movie query.")
-                        continue
-                    if "/movie" in step["endpoint"] and state.intended_media_type != "movie":
-                        # print(f"⏭️ Skipping Movie step {step['step_id']} for TV query.")
-                        continue
+            endpoint = step.get("endpoint")
+            if not endpoint:
+                continue  # Skip steps without an endpoint
+
+            # Skip mismatched media types if enforced
+            if state.intended_media_type and state.intended_media_type != "both":
+                resolved_path = PathRewriter.rewrite(
+                    endpoint, state.resolved_entities) or ""
+                print(f"🎯 [Media Filter] Resolved path: {resolved_path}")
+
+                if "/tv" in resolved_path and state.intended_media_type != "tv":
+                    print(
+                        f"⏭️ Skipping TV step for movie query: {resolved_path}")
+                    continue
+                if "/movie" in resolved_path and state.intended_media_type != "movie":
+                    print(
+                        f"⏭️ Skipping movie step for TV query: {resolved_path}")
+                    continue
+
             step_id = step.get("step_id")
 
             # 🧩 pase 4 pgpv - NEW: Check if required entities are missing
@@ -607,20 +621,27 @@ class ExecutionOrchestrator:
         # print(f"✅ Step marked completed: {step_id}")
 
     def _handle_generic_response(self, step, step_id, path, json_data, state):
+        print(f"🛑 Check path before rewrite →  {path}")
+        path = PathRewriter.rewrite(step["endpoint"], state.resolved_entities)
+        print(f"🛑 Check path after rewrite →  {path}")
         summaries = ResultExtractor.extract(
             path, json_data, state.resolved_entities
         )
-
+        print(f"🧪 Does 'tv_credits' in path? → {'tv_credits' in path}")
         filtered_summaries = summaries
         # print(f"📊 Extracted summaries: {len(summaries)}")
 
-        if summaries:
+        applied_params = state.extraction_result.get("applied_parameters", {})
+
+        if summaries and ResultExtractor.should_post_filter(step["endpoint"], applied_params):
             filtered_summaries = ResultExtractor.post_filter_responses(
                 summaries,
                 query_entities=state.extraction_result.get(
                     "query_entities", []),
                 extraction_result=state.extraction_result
             )
+        else:
+            filtered_summaries = summaries
             # print(f"📊 Post-filtered summaries: {len(filtered_summaries)}")
 
         # 🧪 Optional: Run post-validation for /discover/tv with cast
