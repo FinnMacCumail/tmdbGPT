@@ -90,27 +90,27 @@ export default {
         }
     },
     methods: {
-        async askQuery(query) {            
+        async askQuery(query) {
             this.loading = true
             this.error = null
             this.response = null
-            this.toastMessage = ''   // ✅ Clear any old message
+            this.toastMessage = ''
 
             try {
                 const res = await askQuery(query)
-                if (res.status === 'ok') {
-                    this.response = res.response
-                } else {
-                    this.error = res.error || 'Unknown error'
-                    this.toastMessage = this.error   // ✅ Show toast
+                this.response = res
+
+                if (res.explanation?.includes('Relaxed')) {
+                    this.toastMessage = 'Relaxed some constraints to find results.'
                 }
             } catch (e) {
                 this.error = e.message || 'Request failed.'
-                this.toastMessage = this.error     // ✅ Show toast
+                this.toastMessage = this.error
             } finally {
                 this.loading = false
             }
         }
+
     }
 }
 </script>
