@@ -87,67 +87,60 @@ class ConstraintBuilder:
         return ConstraintGroup(constraints, logic="AND")
 
 
-def evaluate_constraint_tree(group, data_registry: dict) -> Dict[str, Set[int]]:
-    """
-    Evaluate a ConstraintGroup recursively and return matched entity IDs
-    grouped by constraint.key. AND groups return only intersecting IDs.
-    """
-    # print(f"🌲 Evaluating ConstraintGroup ({group.logic}) with members: {group.constraints}")
-    results: List[Dict[str, Set[int]]] = []
+def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dict[str, Dict[str, Set[int]]]:
+    results = []
 
     for node in group:
         if isinstance(node, ConstraintGroup):
             result = evaluate_constraint_tree(node, data_registry)
         else:
             value_str = str(node.value)
+            media_type = node.metadata.get("media_type", "movie")
             id_set = data_registry.get(node.key, {}).get(value_str, set())
-            # print(f"🔍 Node {node.key}={node.value} matched IDs: {id_set}")
-            result = {node.key: id_set} if id_set else {}
+            result = {media_type: {node.key: id_set}} if id_set else {}
         results.append(result)
 
-    merged: Dict[str, Set[int]] = defaultdict(set)
+    # phase 22 - GPMJE+
+    merged = {"movie": defaultdict(set), "tv": defaultdict(set)}
 
     if not results:
         return {}
 
     if group.logic == "AND":
-        # Step 1: Find global intersection of all ID sets
-        all_sets = [id_set for r in results for id_set in r.values() if id_set]
+        all_sets = []
+        for r in results:
+            for media, keys in r.items():
+                for id_set in keys.values():
+                    if id_set:
+                        all_sets.append(id_set)
+
         if not all_sets:
             return {}
         global_intersection = set.intersection(*all_sets)
 
-        # Step 2: Retain only keys whose ID sets intersect with global intersection
         for r in results:
-            for k, v in r.items():
-                filtered = v & global_intersection
-                if filtered:
-                    merged[k].update(filtered)
+            for media, keys in r.items():
+                for k, v in keys.items():
+                    filtered = v & global_intersection
+                    if filtered:
+                        merged[media][k].update(filtered)
 
     elif group.logic == "OR":
         for r in results:
-            for k, v in r.items():
-                merged[k].update(v)
+            for media, keys in r.items():
+                for k, v in keys.items():
+                    merged[media][k].update(v)
 
-    print(f"🎯 Final merged constraint results: {dict(merged)}")
-    return dict(merged)
+    return merged
 
-
-# phase 21.6 - Step 6: Logging and Trace
+# phase 22 - Priority-based relaxation across domains
 
 
 def relax_constraint_tree(
     tree: ConstraintGroup,
     max_drops: int = 1
-) -> Tuple[ConstraintGroup, List[object], List[str]]:
-    """
-    Attempt to relax a constraint tree by dropping the lowest priority/confidence constraints.
-    Returns:
-        (relaxed_tree, dropped_constraints, relaxation_log)
-    """
-    print("♻️ Starting constraint relaxation...")
+) -> Tuple[Optional[ConstraintGroup], List[Constraint], List[str]]:
     relaxed = deepcopy(tree)
-    flat_constraints = []
 
     def collect_constraints(group):
         for c in group.constraints:
@@ -157,15 +150,23 @@ def relax_constraint_tree(
                 yield c
 
     flat_constraints = list(collect_constraints(relaxed))
-
     if not flat_constraints:
-        print("⚠️ No constraints available to relax.")
         return None, [], ["No constraints found in tree"]
 
-    # Sort by (priority, confidence)
+    domain_priority = {
+        "company": 1,
+        "network": 1,
+        "genre": 2,
+        "date": 3,
+        "language": 4,
+        "runtime": 5,
+        "person": 6
+    }
+
     sorted_constraints = sorted(
         flat_constraints,
-        key=lambda c: (c.priority, -c.confidence)
+        key=lambda c: (domain_priority.get(c.type, 9),
+                       c.priority, -c.confidence)
     )
 
     dropped = []
@@ -174,17 +175,13 @@ def relax_constraint_tree(
     for constraint in sorted_constraints:
         if len(dropped) >= max_drops:
             break
-        print(
-            f"💥 Dropping constraint: {constraint.key}={constraint.value} (priority={constraint.priority}, confidence={constraint.confidence})")
         removed = False
 
         def remove_constraint(group):
             nonlocal removed
             group.constraints = [
                 c for c in group.constraints
-                if not (not isinstance(c, ConstraintGroup) and
-                        c.key == constraint.key and
-                        c.value == constraint.value)
+                if not (not isinstance(c, ConstraintGroup) and c.key == constraint.key and c.value == constraint.value)
             ]
             for c in group.constraints:
                 if isinstance(c, ConstraintGroup):
@@ -193,36 +190,9 @@ def relax_constraint_tree(
         remove_constraint(relaxed)
         dropped.append(constraint)
         reasons.append(
-            f"Dropped '{constraint.key}={constraint.value}' (priority={constraint.priority}, confidence={constraint.confidence})"
-        )
+            f"Dropped '{constraint.key}={constraint.value}' (type={constraint.type}, priority={constraint.priority}, confidence={constraint.confidence})")
 
     if not dropped:
-        print("🛑 No constraints were dropped during relaxation.")
         return None, [], ["No constraints could be dropped"]
 
-    print(
-        f"♻️ Relaxed tree after dropping: {[(c.key, c.value) for c in dropped]}")
     return relaxed, dropped, reasons
-
-
-def normalize_constraint_tree(group: ConstraintGroup) -> ConstraintGroup:
-    """
-    Flattens nested ConstraintGroups and deduplicates Constraints within a group.
-    """
-    seen = set()
-    flat_constraints = []
-
-    def flatten(group_or_constraint):
-        if isinstance(group_or_constraint, ConstraintGroup):
-            for member in group_or_constraint:
-                flatten(member)
-        elif isinstance(group_or_constraint, Constraint):
-            sig = (group_or_constraint.key, group_or_constraint.value,
-                   group_or_constraint.type)
-            if sig not in seen:
-                seen.add(sig)
-                flat_constraints.append(group_or_constraint)
-
-    flatten(group)
-
-    return ConstraintGroup(flat_constraints, logic=group.logic)
