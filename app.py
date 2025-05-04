@@ -1,3 +1,4 @@
+from entity_reranker import RoleAwareReranker  # ✅ Add at the top of app.py
 from execution_orchestrator import ExecutionOrchestrator
 from dependency_manager import DependencyManager
 from hybrid_retrieval_test import semantic_retrieval, convert_matches_to_execution_steps
@@ -16,6 +17,7 @@ from response_formatter import ResponseFormatter, format_fallback
 from response_formatter import format_ranked_list
 from plan_validator import PlanValidator
 from constraint_model import ConstraintBuilder, ConstraintGroup, Constraint
+from entity_reranker import RoleAwareReranker
 
 load_dotenv()
 
@@ -145,13 +147,11 @@ def retrieve_context(state: AppState) -> AppState:
 
 
 def plan(state: AppState) -> AppState:
-    # print("→ running node: PLAN")
     # Phase 0: Build constraint tree from query entities
     builder = ConstraintBuilder()
     state.constraint_tree = builder.build_from_query_entities(
         state.extraction_result.get("query_entities", [])
     )
-    # print("📐 Built Constraint Tree:", state.constraint_tree)
 
     # Phase 1: Inject the query text into resolved_entities
     if "input" in state.__dict__:
@@ -159,7 +159,8 @@ def plan(state: AppState) -> AppState:
 
     # Phase 2: Rerank semantic matches using resolved entities
     ranked_matches = RerankPlanning.rerank_matches(
-        state.retrieved_matches, state.resolved_entities)
+        state.retrieved_matches, state.resolved_entities
+    )
 
     # Phase 3: Apply Symbolic Constraints
     ranked_matches = SymbolicConstraintFilter.apply(
@@ -168,9 +169,25 @@ def plan(state: AppState) -> AppState:
         resolved_entities=state.resolved_entities
     )
 
+    # ✅ Phase 3.5: Boost endpoints based on person + role awareness
+    RoleAwareReranker.boost_matches_by_role(
+        ranked_matches,
+        extraction_result=state.extraction_result,
+        intended_media_type=state.intended_media_type
+    )
+
+    # ✅ Optional: sort after boosting/demotion
+    ranked_matches = sorted(
+        ranked_matches,
+        key=lambda m: m.get("_boost_score", 0) - m.get("_demote_score", 0),
+        reverse=True
+    )
+
     # Phase 4: Filter to executable steps
     feasible, deferred = RerankPlanning.filter_feasible_steps(
-        ranked_matches, state.resolved_entities, extraction_result=state.extraction_result
+        ranked_matches,
+        state.resolved_entities,
+        extraction_result=state.extraction_result
     )
 
     # Phase 5: Media Type Enforcement
@@ -182,7 +199,6 @@ def plan(state: AppState) -> AppState:
             or step.get("endpoint", "").startswith(f"/discover/{intended_type}")
             or step.get("endpoint", "").startswith("/person/")
         ]
-        # print(f"🎬 Filtered feasible steps by media type '{intended_type}': {len(feasible)} steps remaining")
 
     # Phase 6: Convert to execution-ready steps
     execution_steps = convert_matches_to_execution_steps(
@@ -201,14 +217,11 @@ def plan(state: AppState) -> AppState:
             if param_name in SAFE_OPTIONAL_PARAMS and param_name not in step["parameters"]:
                 step["parameters"][param_name] = "<dynamic_value_or_prompt>"
 
-    # print(f"💡 Smart enrichment added: {[p for p in optional_params if p in SAFE_OPTIONAL_PARAMS]}")
-
     # Phase 7: Inject multi-role dependency steps
-    # from dependency_manager import expand_plan_with_dependencies
     dependency_steps = DependencyManager.expand_plan_with_dependencies(
-        state, state.resolved_entities)
+        state, state.resolved_entities
+    )
     if dependency_steps:
-        # print(f"🔁 Injected {len(dependency_steps)} role-aware dependency steps.")
         execution_steps.extend(dependency_steps)
 
     # Phase 8: Deduplicate
@@ -229,14 +242,10 @@ def plan(state: AppState) -> AppState:
             continue
         signal_steps.append(step)
 
-    # print("\n🧭 Final Execution Plan:")
-    # for s in signal_steps:
-    #     print(f"→ {s['endpoint']} with params: {s.get('parameters', {})}")
-
     if not signal_steps:
-        # print("⚠️ No executable steps found. Using fallback...")
         signal_steps = FallbackHandler.generate_steps(
-            state.resolved_entities, state.extraction_result)
+            state.resolved_entities, state.extraction_result
+        )
 
     return state.model_copy(update={
         "plan_steps": signal_steps,
