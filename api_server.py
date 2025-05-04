@@ -20,11 +20,13 @@ app.add_middleware(
 
 graph = build_app_graph()
 
+
 class QueryRequest(BaseModel):
     query: str
 
+
 @app.post("/query")
-async def run_query(req: QueryRequest, request: Request):        
+async def run_query(req: QueryRequest, request: Request):
     # Log raw request body for debugging
     try:
         raw_body = await request.body()
@@ -38,12 +40,13 @@ async def run_query(req: QueryRequest, request: Request):
         result = graph.invoke({"input": req.query})
 
         logger.info("✅ Graph invoke completed.")
-        
+
         return {
-            "status": "ok",
-            "query": req.query,
-            "response": result.get("formatted_response"),
-            "trace": result.get("execution_trace", [])
+            "entries": result.get("formatted_response", []),
+            "question_type": result.get("question_type", "list"),
+            "response_format": result.get("response_format", "ranked_list"),
+            "execution_trace": result.get("execution_trace", []),
+            "explanation": result.get("explanation", "")
         }
     except Exception as e:
         logger.error(f"❌ Error during graph.invoke: {e}")
@@ -51,6 +54,7 @@ async def run_query(req: QueryRequest, request: Request):
             "status": "error",
             "error": str(e)
         }
+
 
 @app.get("/")
 def root():
