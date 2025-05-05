@@ -24,6 +24,33 @@ class Constraint:
         self.confidence = confidence
         self.metadata = metadata or {}
 
+    def is_satisfied_by(self, entity):
+        val = self.value
+        key = self.key
+        subtype = getattr(self, "subtype", None)
+
+        if key == "with_people":
+            role = "crew" if subtype == "director" else "cast"
+            people = entity.get("credits", {}).get(role, [])
+            people_ids = [p["id"] for p in people if isinstance(p, dict)]
+            return val in people_ids
+
+        elif key == "with_genres":
+            return val in entity.get("genre_ids", [])
+
+        elif key == "with_companies":
+            return val in [c["id"] for c in entity.get("production_companies", [])]
+
+        elif key == "with_networks":
+            return val in [n["id"] for n in entity.get("networks", [])]
+
+        elif key == "primary_release_year":
+            return str(val) in entity.get("release_date", "")
+
+        else:
+            actual = entity.get(key)
+            return val == actual or (isinstance(actual, list) and val in actual)
+
     def to_dict(self):
         return {
             "key": self.key,
@@ -63,6 +90,20 @@ class ConstraintGroup:
                 yield from item.flatten()
             else:
                 yield item
+
+    def is_satisfied_by(self, entity, log=None):
+        def eval_item(item):
+            res = item.is_satisfied_by(entity) if isinstance(
+                item, Constraint) else item.is_satisfied_by(entity, log)
+            if log is not None and isinstance(item, Constraint):
+                log.append((item, res))
+            return res
+
+        if self.logic == "AND":
+            return all(eval_item(c) for c in self.constraints)
+        elif self.logic == "OR":
+            return any(eval_item(c) for c in self.constraints)
+        return False
 
 
 class ConstraintBuilder:
