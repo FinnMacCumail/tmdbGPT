@@ -2,87 +2,119 @@ def log_summary(state, header=None):
     import logging
     from pprint import pformat
 
+    # Setup logger with fallback StreamHandler
     logger = logging.getLogger("tmdbgpt-summary")
-    print = logger.info  # Replace print with logger for structured logs
+    logger.setLevel(logging.INFO)
+
+    if not logger.hasHandlers():
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(message)s')
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+    log = logger.info  # Use this instead of print
 
     if header:
-        print(header)
+        log(header)
 
-    print("🧠 SUMMARY REPORT")
-    print("=" * 60)
+    log("🧠 DEBUGGING SUMMARY REPORT")
+    log("=" * 70)
 
     # Input
     query = getattr(state, 'query', 'N/A')
-    print(f"🔹 Query: {query}")
+    log(f"🔹 Original Query: {query}")
 
     # Media type
     media_type = getattr(state, 'intended_media_type', 'N/A')
-    print(f"🎥 Media Type: {media_type}")
+    log(f"🎥 Intended Media Type: {media_type}")
 
     # Extracted Entities
     ents = getattr(state, "extraction_result", {}).get("query_entities", [])
     if ents:
-        print("🧾 Extracted Entities:")
+        log("🧾 Extracted Entities:")
         for ent in ents:
-            eid = ent.get("resolved_id", "❓")
-            name = ent.get("name", "?")
-            typ = ent.get("type", "?")
-            role = ent.get("role", "?")
-            print(f"   - {name} ({typ}, role={role}) → {eid}")
+            log(f"   - {ent.get('name', '?')} ({ent.get('type', '?')}, role={ent.get('role', '?')}) → {ent.get('resolved_id', '❓')}")
     else:
-        print("🧾 Extracted Entities: none")
+        log("🧾 Extracted Entities: none")
 
     # Constraint Tree
-    if getattr(state, 'constraint_tree', None):
-        print("📐 Constraint Tree:")
-        try:
-            tree_str = str(state.constraint_tree)
-            if len(tree_str) > 500:
-                print(tree_str[:500] + " ... [truncated]")
-            else:
-                print(tree_str)
-        except Exception as e:
-            print(f"   [Error printing constraint tree: {e}]")
+    tree = getattr(state, 'constraint_tree', None)
+    if tree:
+        log("📐 Constraint Tree:")
+        tree_str = str(tree)
+        log(tree_str[:500] + (" ..." if len(tree_str) > 500 else ""))
     else:
-        print("📐 Constraint Tree: none")
+        log("📐 Constraint Tree: none")
 
     # Relaxation Info
     dropped = getattr(state, "last_dropped_constraints", [])
     if dropped:
-        print("♻️ Relaxed Constraints:")
+        log("♻️ Relaxed Constraints:")
         for dc in dropped:
-            print(f"   - {dc}")
+            log(f"   - {dc}")
     else:
-        print("♻️ Relaxed Constraints: none")
+        log("♻️ Relaxed Constraints: none")
 
-    # Execution Plan
+    # Post-validation log
+    validations = getattr(state, "post_validation_log", [])
+    if validations:
+        log("🔬 Post Validations:")
+        for val in validations:
+            log(f"   - {val}")
+    else:
+        log("🔬 Post Validations: none")
+
+    # Completed Steps
     steps = getattr(state, "completed_steps", [])
     if steps:
-        print("🧭 Completed Steps:")
-        for s in steps[:5]:
-            print(f"   - {s}")
-        if len(steps) > 5:
-            print(f"   ... and {len(steps)-5} more")
+        log(f"🧭 Completed Steps ({len(steps)}):")
+        for s in steps[:10]:
+            log(f"   - {s}")
+        if len(steps) > 10:
+            log(f"   ... and {len(steps) - 10} more")
     else:
-        print("🧭 Completed Steps: none")
+        log("🧭 Completed Steps: none")
+
+    # Fallback indicators
+    used_fallback = any(s.get("fallback_injected") for s in getattr(
+        state, "plan_steps", []) if isinstance(s, dict))
+    log(f"🛡️ Fallback Injected: {'✅ Yes' if used_fallback else '❌ No'}")
 
     # Final Results
     results = getattr(state, "formatted_response", [])
     if results and isinstance(results, list):
-        print(f"✅ Final Results: {len(results)} entries")
+        log(f"✅ Final Results: {len(results)} entries")
         for r in results[:3]:
-            print(f"   - {str(r)[:100]}...")
+            log(f"   - {str(r)[:100]}...")
         if len(results) > 3:
-            print(f"   ... and {len(results)-3} more")
+            log(f"   ... and {len(results) - 3} more")
     else:
-        print("✅ Final Results: none")
+        log("✅ Final Results: none")
 
     # Explanation
     explanation = getattr(state, "explanation", None)
     if explanation:
-        print(f"🗣️ Explanation: {explanation[:200]}" +
-              ("..." if len(explanation) > 200 else ""))
+        log(
+            f"🗣️ Explanation: {explanation[:200]}{'...' if len(explanation) > 200 else ''}")
     else:
-        print("🗣️ Explanation: none")
+        log("🗣️ Explanation: none")
 
-    print("=" * 60)
+    # Role Matching Debug
+    expected_roles = {
+        (qe["role"], qe["resolved_id"])
+        for qe in ents
+        if qe.get("role") and qe.get("resolved_id")
+    }
+    log("🎭 Expected Roles: " + (str(expected_roles) if expected_roles else "none"))
+
+    if hasattr(state, "data_registry"):
+        for step_id, data in state.data_registry.items():
+            if isinstance(data, dict) and ("cast" in data or "crew" in data):
+                cast_ids = {p.get("id")
+                            for p in data.get("cast", []) if p.get("id")}
+                director_ids = {p.get("id") for p in data.get(
+                    "crew", []) if p.get("job") == "Director"}
+                log(f"   📌 Step {step_id}: Cast={sorted(cast_ids)}, Director={sorted(director_ids)}")
+
+    log("=" * 70)
