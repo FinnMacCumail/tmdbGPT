@@ -361,6 +361,48 @@ class ExecutionOrchestrator:
         log_summary(state)
         return state
 
+    def _intersect_media_ids_across_constraints(self, results: list, expected: dict, media_type: str) -> list:
+        """
+        Intersect media results (movies or TV) based on expected constraints:
+        - person_ids must match cast/crew
+        - company_ids must match production_companies
+        - network_ids must match networks (TV only)
+        """
+        filtered = []
+
+        for result in results:
+            # Assume match until proven otherwise
+            match = True
+
+            # Person match (cast or crew)
+            if "person_ids" in expected:
+                cast_ids = {m.get("id")
+                            for m in result.get("cast", []) if "id" in m}
+                crew_ids = {m.get("id")
+                            for m in result.get("crew", []) if "id" in m}
+                person_matches = cast_ids.union(crew_ids)
+                if not any(pid in person_matches for pid in expected["person_ids"]):
+                    match = False
+
+            # Company match
+            if match and "company_ids" in expected:
+                company_ids = {c.get("id") for c in result.get(
+                    "production_companies", []) if "id" in c}
+                if not any(cid in company_ids for cid in expected["company_ids"]):
+                    match = False
+
+            # Network match (TV only)
+            if match and media_type == "tv" and "network_ids" in expected:
+                network_ids = {n.get("id") for n in result.get(
+                    "networks", []) if "id" in n}
+                if not any(nid in network_ids for nid in expected["network_ids"]):
+                    match = False
+
+            if match:
+                filtered.append(result)
+
+        return filtered
+
     def _score_movie_against_query(self, movie, state, credits=None, **kwargs):
         matched_constraints = []
         relaxed = getattr(state, "last_dropped_constraints", [])
@@ -687,48 +729,6 @@ class ExecutionOrchestrator:
         )
         state.completed_steps.append(step_id)
 
-    def _intersect_media_ids_across_constraints(results: list, expected: dict, media_type: str) -> list:
-        """
-        Intersect media results (movies or TV) based on expected constraints:
-        - person_ids must match cast/crew
-        - company_ids must match production_companies
-        - network_ids must match networks (TV only)
-        """
-        filtered = []
-
-        for result in results:
-            # Assume match until proven otherwise
-            match = True
-
-            # Person match (cast or crew)
-            if "person_ids" in expected:
-                cast_ids = {m.get("id")
-                            for m in result.get("cast", []) if "id" in m}
-                crew_ids = {m.get("id")
-                            for m in result.get("crew", []) if "id" in m}
-                person_matches = cast_ids.union(crew_ids)
-                if not any(pid in person_matches for pid in expected["person_ids"]):
-                    match = False
-
-            # Company match
-            if match and "company_ids" in expected:
-                company_ids = {c.get("id") for c in result.get(
-                    "production_companies", []) if "id" in c}
-                if not any(cid in company_ids for cid in expected["company_ids"]):
-                    match = False
-
-            # Network match (TV only)
-            if match and media_type == "tv" and "network_ids" in expected:
-                network_ids = {n.get("id") for n in result.get(
-                    "networks", []) if "id" in n}
-                if not any(nid in network_ids for nid in expected["network_ids"]):
-                    match = False
-
-            if match:
-                filtered.append(result)
-
-        return filtered
-
     def _inject_validation_steps(self, state, intersected_ids: set) -> None:
         """
         After intersecting movie/tv IDs, inject validation steps for the survivors.
@@ -750,78 +750,71 @@ class ExecutionOrchestrator:
         # print(f"✅ Injecting {len(validation_steps)} validation step(s) after intersection.")
         state.plan_steps = validation_steps + state.plan_steps
 
-    def _safe_to_execute(self, state) -> bool:
-        if not state.plan_steps:
-            # print(f"🛑 No steps available to execute — fallback needed.")
-            return False
+    def _safe_to_execute(self, state, results, media_type):
+        """
+        Replaces role-only intersection logic with full multi-entity intersection logic (Phase 21.3).
+        """
+        from post_validator import validate_roles
 
-        # ✅ NEW: allow if any /discover/ steps present
-        media_steps = [
-            step for step in state.plan_steps
-            if "/discover/" in (step.get("endpoint") or "")
-        ]
+        expected = {
+            "person_ids": [],
+            "company_ids": [],
+            "network_ids": []
+        }
 
-        if media_steps:
-            # print(f"⚡ Proceeding with {len(media_steps)} discovery step(s): {[s['endpoint'] for s in media_steps]}")
-            return True
+        for ent in state.extraction_result.get("query_entities", []):
+            if ent.get("type") == "person" and "resolved_id" in ent:
+                expected["person_ids"].append(ent["resolved_id"])
+            elif ent.get("type") == "company" and "resolved_id" in ent:
+                expected["company_ids"].append(ent["resolved_id"])
+            elif ent.get("type") == "network" and "resolved_id" in ent:
+                expected["network_ids"].append(ent["resolved_id"])
 
-        if len(state.plan_steps) == 1:
-            step = state.plan_steps[0]
-            produces = step.get("produces", [])
-            if SymbolicConstraintFilter.is_media_endpoint(produces):
-                # print(f"⚡ Proceeding with single media-producing step: {step['step_id']} ({step['endpoint']})")
-                return True
+        # Intersect by person + company + network
 
-        # 🧠 Otherwise: try intersection
-        intersected_ids = self.self._intersect_media_ids_across_constraints(
-            state)
-        if intersected_ids:
-            self._inject_validation_steps(state, intersected_ids)
-            return True
+        filtered = self._intersect_media_ids_across_constraints(
+            results, expected, media_type)
 
-        # print(f"🛑 [Fallback Trigger] No executable steps in plan. Current steps: {state.plan_steps}")
-        # print(f"🛑 No intersection or valid steps — fallback needed.")
-        return False
+        return len(filtered) > 0
 
     def _inject_lookup_steps_from_role_intersection(self, state):
         """
-        After dependency steps (credits) are completed,
-        intersect movies/tv across roles,
-        inject lookup steps accordingly,
-        or relax roles if needed,
-        or fallback gracefully if still empty.
+        Refactored for Phase 21.3:
+        - Intersects symbolic results across person, company, network
+        - Injects /movie/{id} or /tv/{id} lookup steps based on matched entries
+        - Applies fallback if no match after relaxing constraints
         """
-        intersection = self.self._intersect_media_ids_across_constraints(state)
         intended_type = getattr(state, "intended_media_type", "both") or "both"
+        expected = {
+            "person_ids": [],
+            "company_ids": [],
+            "network_ids": []
+        }
+        for ent in state.extraction_result.get("query_entities", []):
+            if ent.get("type") == "person" and "resolved_id" in ent:
+                expected["person_ids"].append(ent["resolved_id"])
+            elif ent.get("type") == "company" and "resolved_id" in ent:
+                expected["company_ids"].append(ent["resolved_id"])
+            elif ent.get("type") == "network" and "resolved_id" in ent:
+                expected["network_ids"].append(ent["resolved_id"])
 
-        found_movies = intersection["movie_ids"]
-        found_tv = intersection["tv_ids"]
+        intersection = self._intersect_media_ids_across_constraints(
+            state.responses, expected, intended_type)
 
-        if not found_movies and not found_tv:
-            # 🚨 No intersection — try relaxing role constraints first
-            # print("⚠️ No intersection found. Attempting to relax roles...")
+        if not intersection:
             relaxed_state = self._relax_roles_and_retry_intersection(state)
+            relaxed_intersection = self._intersect_media_ids_across_constraints(
+                relaxed_state.responses, expected, intended_type)
 
-            # After relaxing, retry intersection
-            relaxed_intersection = self.self._intersect_media_ids_across_constraints(
-                relaxed_state)
-            found_movies = relaxed_intersection["movie_ids"]
-            found_tv = relaxed_intersection["tv_ids"]
-
-            if not found_movies and not found_tv:
-                # 🚨 Still nothing — trigger fallback
-                # print("🛑 No matches after relaxing roles. Triggering fallback...")
-
+            if not relaxed_intersection:
                 fallback_step = FallbackHandler.generate_steps(
                     state.resolved_entities,
                     intents=state.extraction_result
                 )
-
                 if isinstance(fallback_step, dict):
                     fallback_step = [fallback_step]
 
                 for fs in reversed(fallback_step):
-                    # print(f"♻️ Injected fallback step: {fs.get('endpoint')}")
                     state.plan_steps.insert(0, fs)
 
                 from execution_orchestrator import ExecutionTraceLogger
@@ -832,61 +825,32 @@ class ExecutionOrchestrator:
                     summary="No matches after relaxing roles. Fallback discovery triggered.",
                     state=state
                 )
-
                 return state
-
-            # else:
-            #     # ✅ Intersection successful after relaxing
-            #     print(f"✅ Found intersection after relaxing roles: {found_movies or found_tv}")
+            else:
+                intersection = relaxed_intersection
 
         # 🚀 Inject lookup steps
-        if intended_type == "movie":
-            for movie_id in sorted(found_movies):
-                lookup_step = {
-                    "step_id": f"step_lookup_movie_{movie_id}",
-                    "endpoint": f"/movie/{movie_id}",
-                    "method": "GET",
-                    "produces": [],
-                    "requires": ["movie_id"]
-                }
-                # print(f"🔎 Injected movie lookup step: {lookup_step}")
-                state.plan_steps.insert(0, lookup_step)
-
-        elif intended_type == "tv":
-            for tv_id in sorted(found_tv):
-                lookup_step = {
-                    "step_id": f"step_lookup_tv_{tv_id}",
-                    "endpoint": f"/tv/{tv_id}",
-                    "method": "GET",
-                    "produces": [],
-                    "requires": ["tv_id"]
-                }
-                # print(f"🔎 Injected tv lookup step: {lookup_step}")
-                state.plan_steps.insert(0, lookup_step)
-
-        elif intended_type == "both":
-            if found_movies:
-                for movie_id in sorted(found_movies):
-                    lookup_step = {
+        for item in intersection:
+            if intended_type == "movie" or (intended_type == "both" and "title" in item):
+                movie_id = item.get("id")
+                if movie_id:
+                    state.plan_steps.insert(0, {
                         "step_id": f"step_lookup_movie_{movie_id}",
                         "endpoint": f"/movie/{movie_id}",
                         "method": "GET",
                         "produces": [],
                         "requires": ["movie_id"]
-                    }
-                    # print(f"🔎 Injected movie lookup step: {lookup_step}")
-                    state.plan_steps.insert(0, lookup_step)
-            elif found_tv:
-                for tv_id in sorted(found_tv):
-                    lookup_step = {
+                    })
+            elif intended_type == "tv" or (intended_type == "both" and "name" in item):
+                tv_id = item.get("id")
+                if tv_id:
+                    state.plan_steps.insert(0, {
                         "step_id": f"step_lookup_tv_{tv_id}",
                         "endpoint": f"/tv/{tv_id}",
                         "method": "GET",
                         "produces": [],
                         "requires": ["tv_id"]
-                    }
-                    # print(f"🔎 Injected tv lookup step: {lookup_step}")
-                    state.plan_steps.insert(0, lookup_step)
+                    })
 
         return state
 
@@ -924,7 +888,7 @@ class ExecutionOrchestrator:
                     )
 
         # 2️⃣ Retry intersection after dropping strict crew roles
-        intersection = self.self._intersect_media_ids_across_constraints(state)
+        intersection = self._intersect_media_ids_across_constraints(state)
         if intersection["movie_ids"] or intersection["tv_ids"]:
             # print(f"✅ Successful intersection after relaxing strict roles: {intersection}")
             return state
