@@ -1,5 +1,5 @@
 # dependency_manager.py
-from typing import Any
+from typing import Any, List
 
 
 class DependencyManager:
