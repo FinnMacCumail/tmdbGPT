@@ -687,71 +687,47 @@ class ExecutionOrchestrator:
         )
         state.completed_steps.append(step_id)
 
-    def _intersect_movie_ids_across_roles(self, state) -> dict:
+    def _intersect_media_ids_across_constraints(results: list, expected: dict, media_type: str) -> list:
         """
-        Intersect movie IDs and additional constraints (company/network) across completed steps.
-        Returns:
-            dict with "movie_ids" and "tv_ids"
+        Intersect media results (movies or TV) based on expected constraints:
+        - person_ids must match cast/crew
+        - company_ids must match production_companies
+        - network_ids must match networks (TV only)
         """
-        movie_sets = []
-        tv_sets = []
-        company_sets = []
-        network_sets = []
+        filtered = []
 
-        for step_id in state.completed_steps:
-            result = state.data_registry.get(step_id, {})
-            if not isinstance(result, dict):
-                continue
+        for result in results:
+            # Assume match until proven otherwise
+            match = True
 
-            if step_id.startswith("step_cast_") or step_id.startswith("step_director_") or step_id.startswith("step_writer_") or step_id.startswith("step_producer_") or step_id.startswith("step_composer_"):
-                ids = {m.get("id") for m in result.get(
-                    "cast", []) + result.get("crew", []) if m.get("id")}
-                if ids:
-                    movie_sets.append(ids)
+            # Person match (cast or crew)
+            if "person_ids" in expected:
+                cast_ids = {m.get("id")
+                            for m in result.get("cast", []) if "id" in m}
+                crew_ids = {m.get("id")
+                            for m in result.get("crew", []) if "id" in m}
+                person_matches = cast_ids.union(crew_ids)
+                if not any(pid in person_matches for pid in expected["person_ids"]):
+                    match = False
 
-            elif step_id.startswith("step_company_"):
-                ids = {m.get("id")
-                       for m in result.get("results", []) if m.get("id")}
-                if ids:
-                    movie_sets.append(ids)
-                    company_ids = {
-                        company.get("id") for m in result.get("results", [])
-                        for company in m.get("production_companies", [])
-                        if company.get("id")
-                    }
-                    if company_ids:
-                        company_sets.append(company_ids)
+            # Company match
+            if match and "company_ids" in expected:
+                company_ids = {c.get("id") for c in result.get(
+                    "production_companies", []) if "id" in c}
+                if not any(cid in company_ids for cid in expected["company_ids"]):
+                    match = False
 
-            elif step_id.startswith("step_network_"):
-                ids = {m.get("id")
-                       for m in result.get("results", []) if m.get("id")}
-                if ids:
-                    tv_sets.append(ids)
-                    network_ids = {
-                        network.get("id") for m in result.get("results", [])
-                        for network in m.get("networks", [])
-                        if network.get("id")
-                    }
-                    if network_ids:
-                        network_sets.append(network_ids)
+            # Network match (TV only)
+            if match and media_type == "tv" and "network_ids" in expected:
+                network_ids = {n.get("id") for n in result.get(
+                    "networks", []) if "id" in n}
+                if not any(nid in network_ids for nid in expected["network_ids"]):
+                    match = False
 
-        # 🔁 Intersect movies by all role + company constraints
-        intersected_movie_ids = set.intersection(
-            *movie_sets) if movie_sets else set()
-        if company_sets:
-            intersected_movie_ids &= set.intersection(*company_sets)
+            if match:
+                filtered.append(result)
 
-        # 🔁 Intersect TV shows by all role + network constraints
-        intersected_tv_ids = set.intersection(*tv_sets) if tv_sets else set()
-        if network_sets:
-            intersected_tv_ids &= set.intersection(*network_sets)
-
-        # print(f"🎯 Intersected movie IDs: {intersected_movie_ids}")
-        # print(f"🎯 Intersected TV IDs: {intersected_tv_ids}")
-        return {
-            "movie_ids": intersected_movie_ids,
-            "tv_ids": intersected_tv_ids
-        }
+        return filtered
 
     def _inject_validation_steps(self, state, intersected_ids: set) -> None:
         """
@@ -797,7 +773,8 @@ class ExecutionOrchestrator:
                 return True
 
         # 🧠 Otherwise: try intersection
-        intersected_ids = self._intersect_movie_ids_across_roles(state)
+        intersected_ids = self.self._intersect_media_ids_across_constraints(
+            state)
         if intersected_ids:
             self._inject_validation_steps(state, intersected_ids)
             return True
@@ -814,7 +791,7 @@ class ExecutionOrchestrator:
         or relax roles if needed,
         or fallback gracefully if still empty.
         """
-        intersection = self._intersect_movie_ids_across_roles(state)
+        intersection = self.self._intersect_media_ids_across_constraints(state)
         intended_type = getattr(state, "intended_media_type", "both") or "both"
 
         found_movies = intersection["movie_ids"]
@@ -826,7 +803,7 @@ class ExecutionOrchestrator:
             relaxed_state = self._relax_roles_and_retry_intersection(state)
 
             # After relaxing, retry intersection
-            relaxed_intersection = self._intersect_movie_ids_across_roles(
+            relaxed_intersection = self.self._intersect_media_ids_across_constraints(
                 relaxed_state)
             found_movies = relaxed_intersection["movie_ids"]
             found_tv = relaxed_intersection["tv_ids"]
@@ -947,7 +924,7 @@ class ExecutionOrchestrator:
                     )
 
         # 2️⃣ Retry intersection after dropping strict crew roles
-        intersection = self._intersect_movie_ids_across_roles(state)
+        intersection = self.self._intersect_media_ids_across_constraints(state)
         if intersection["movie_ids"] or intersection["tv_ids"]:
             # print(f"✅ Successful intersection after relaxing strict roles: {intersection}")
             return state
