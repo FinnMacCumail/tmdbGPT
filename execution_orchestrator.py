@@ -75,25 +75,19 @@ class ExecutionOrchestrator:
     def _run_post_validations(self, step, data, state):
         validated = []
         results = data.get("results", [])
-        # print(f"🎯 Raw results: {[r.get('id') for r in results]}")
-        # print(f"🔍 Running post-validations on {len(results)} item(s)...")
+        query_entities = state.extraction_result.get("query_entities", [])
 
         for rule in self.VALIDATION_REGISTRY:
             if rule["endpoint"] in step["endpoint"] and rule["trigger_param"] in step.get("parameters", {}):
-                # print(f"🧪 Applying validation rule: {rule['validator'].__name__}")
                 validator = rule["validator"]
                 build_args = rule["args_builder"]
                 args = build_args(step, state)
-
-                query_entities = state.extraction_result.get(
-                    "query_entities", [])
 
                 for item in results:
                     item_id = item.get("id")
                     if not item_id:
                         continue
 
-                    # Dynamic path: use movie or tv template
                     url_template = rule["followup_endpoint_template"]
                     url = f"{self.base_url}{url_template.replace('{tv_id}', str(item_id)).replace('{movie_id}', str(item_id))}"
 
@@ -103,9 +97,8 @@ class ExecutionOrchestrator:
                             continue
 
                         result_data = response.json()
-
                         score_tuple = self._score_movie_against_query(
-                            movie=item,  # still named 'movie' in scorer
+                            movie=item,
                             state=state,
                             credits=result_data,
                             step=step,
@@ -113,18 +106,20 @@ class ExecutionOrchestrator:
                         )
 
                         if not score_tuple:
-                            # print(f"❌ Rejected ID {item_id} (scoring returned None)")
                             continue
 
                         score, matched = score_tuple
-
                         if score > 0:
                             item["final_score"] = min(score, 1.0)
+
+                            post_validations = item.setdefault(
+                                "_provenance", {}).setdefault("post_validations", [])
+                            if rule["validator"].__name__ == "has_all_cast":
+                                post_validations.append("has_all_cast")
+                            elif rule["validator"].__name__ == "has_director":
+                                post_validations.append("has_director")
+
                             validated.append(item)
-                            # print(f"✅ Accepted ID {item_id} with score {item['final_score']}")
-                        # else:
-                        #     print(
-                        #         f"❌ Rejected ID {item_id} (no validations passed)")
 
                     except Exception as e:
                         print(f"⚠️ Validation failed for ID={item_id}: {e}")
