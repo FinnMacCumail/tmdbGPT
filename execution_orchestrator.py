@@ -452,8 +452,32 @@ class ExecutionOrchestrator:
             f"Dropped '{c.key}={c.value}' (priority={c.priority}, confidence={c.confidence})"
             for c in relaxed
         ]
-        movie["_provenance"]["post_validations"] = [
-            "has_all_cast"] if credits else []
+
+        # Begin post-validation tracking
+        post_validations = []
+        if credits:
+            # Add role-based validation
+            cast_ids = {m.get("id") for m in credits.get("cast", [])}
+            crew = credits.get("crew", [])
+            director_ids = {p.get("id")
+                            for p in crew if p.get("job") == "Director"}
+
+            for constraint in state.constraint_tree.flatten():
+                if constraint.type == "person" and constraint.subtype == "actor":
+                    if int(constraint.value) in cast_ids:
+                        post_validations.append("has_all_cast")
+                if constraint.type == "person" and constraint.subtype == "director":
+                    if int(constraint.value) in director_ids:
+                        post_validations.append("has_director")
+
+        # Add company/network matches
+        for constraint in state.constraint_tree.flatten():
+            if constraint.type == "company":
+                post_validations.append("company_matched")
+            if constraint.type == "network":
+                post_validations.append("network_matched")
+
+        movie["_provenance"]["post_validations"] = post_validations
 
         return len(matched_constraints), matched_constraints
 
