@@ -147,9 +147,9 @@ class ExecutionOrchestrator:
         #     print("🛑 No executable steps from constraint tree.")
 
         # ✅ phase 9.2 - pgpv - Safety check happens AFTER constraint planning
-        if not self._safe_to_execute(state):
-            # print(f"🛑 Fallback triggered due to unsafe plan.")
-            return state
+        # if not self._safe_to_execute(state):
+        #     # print(f"🛑 Fallback triggered due to unsafe plan.")
+        #     return state
 
         print("🧪 About to execute steps:", [
               s["step_id"] for s in state.plan_steps])
@@ -211,10 +211,18 @@ class ExecutionOrchestrator:
 
             # print(f"▶️ Popped step: {step_id}")
             # print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
-            if not state.plan_steps:
-                if not step.get("fallback_injected"):  # ✅ NEW: avoid fallback looping
-                    state = DependencyManager.analyze_dependencies(state)
-                    # 🚀 NEW: inject lookup steps after role-based intersection
+            if not step.get("fallback_injected"):  # ✅ Avoid fallback looping
+                state = DependencyManager.analyze_dependencies(state)
+
+                # ✅ Dynamically compute which role steps (e.g., step_cast_31, step_director_488) should be completed
+                expected_role_steps = {
+                    f"step_{qe['role']}_{qe['resolved_id']}"
+                    for qe in state.extraction_result.get("query_entities", [])
+                    if qe.get("type") == "person" and qe.get("role")
+                }
+
+                # ✅ Trigger intersection logic only when all symbolic role-based steps are completed
+                if expected_role_steps.issubset(set(state.completed_steps)):
                     state = self._inject_lookup_steps_from_role_intersection(
                         state)
 
@@ -785,32 +793,18 @@ class ExecutionOrchestrator:
         # print(f"✅ Injecting {len(validation_steps)} validation step(s) after intersection.")
         state.plan_steps = validation_steps + state.plan_steps
 
-    def _safe_to_execute(self, state, results, media_type):
-        """
-        Replaces role-only intersection logic with full multi-entity intersection logic (Phase 21.3).
-        """
-        from post_validator import validate_roles
-
-        expected = {
-            "person_ids": [],
-            "company_ids": [],
-            "network_ids": []
-        }
-
-        for ent in state.extraction_result.get("query_entities", []):
-            if ent.get("type") == "person" and "resolved_id" in ent:
-                expected["person_ids"].append(ent["resolved_id"])
-            elif ent.get("type") == "company" and "resolved_id" in ent:
-                expected["company_ids"].append(ent["resolved_id"])
-            elif ent.get("type") == "network" and "resolved_id" in ent:
-                expected["network_ids"].append(ent["resolved_id"])
-
-        # Intersect by person + company + network
-
-        filtered = self._intersect_media_ids_across_constraints(
-            results, expected, media_type)
-
-        return len(filtered) > 0
+    # def _safe_to_execute(self, state):
+    #     results = state.data_registry.get(
+    #         "step_discover_movie", {}).get("results", [])
+    #     media_type = getattr(state, "intended_media_type", "movie")
+    #     expected = {
+    #         "person_ids": [e["resolved_id"] for e in state.extraction_result.get("query_entities", []) if e["type"] == "person"],
+    #         "company_ids": state.resolved_entities.get("company_id", []),
+    #         "network_ids": state.resolved_entities.get("network_id", [])
+    #     }
+    #     filtered = self._intersect_media_ids_across_constraints(
+    #         results, expected, media_type)
+    #     return bool(filtered)
 
     def _inject_lookup_steps_from_role_intersection(self, state):
         """
@@ -922,9 +916,29 @@ class ExecutionOrchestrator:
                         state=state
                     )
 
+        media_type = getattr(state, "intended_media_type", "movie")
+        media_key = "id"  # Both movie and TV credits use "id" for media
+
+        results = []
+        for step_id in state.completed_steps:
+            step_data = state.data_registry.get(step_id, {})
+            results.extend(step_data.get("cast", []))
+            results.extend(step_data.get("crew", []))
+
+        expected = {
+            "person_ids": [
+                e["resolved_id"]
+                for e in state.extraction_result.get("query_entities", [])
+                if e.get("type") == "person"
+            ],
+            "company_ids": state.resolved_entities.get("company_id", []),
+            "network_ids": state.resolved_entities.get("network_id", [])
+        }
+
         # 2️⃣ Retry intersection after dropping strict crew roles
-        intersection = self._intersect_media_ids_across_constraints(state)
-        if intersection["movie_ids"] or intersection["tv_ids"]:
+        intersection = self._intersect_media_ids_across_constraints(
+            results, expected, media_type)
+        if isinstance(intersection, list) and len(intersection) > 0:
             # print(f"✅ Successful intersection after relaxing strict roles: {intersection}")
             return state
 
