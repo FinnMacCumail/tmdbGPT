@@ -1,6 +1,7 @@
 # dependency_manager.py
 from typing import Any
-  
+
+
 class DependencyManager:
     @staticmethod
     def analyze_dependencies(state):
@@ -8,7 +9,8 @@ class DependencyManager:
         Detect and intersect movie_ids across person role steps.
         Injects /movie/{id}/credits validation steps for common movie IDs.
         """
-        person_steps = [step for step in state.completed_steps if step.startswith("step_cast_") or step.startswith("step_director_")]
+        person_steps = [step for step in state.completed_steps if step.startswith(
+            "step_cast_") or step.startswith("step_director_")]
         movie_id_sets = []
         id_to_step_map = {}
 
@@ -36,43 +38,56 @@ class DependencyManager:
 
         # Inject validation steps to plan
         state.plan_steps = validation_steps + state.plan_steps
-        return state        
+        return state
 
-    def expand_plan_with_dependencies(state, newly_resolved: dict) -> list:
+    from typing import List
+
+
+class DependencyManager:
+    @staticmethod
+    def expand_plan_with_dependencies(state, newly_resolved: dict) -> List[dict]:
+        """
+        Adds dependency-based symbolic steps:
+        - Role-aware credits steps (Phase 20)
+        - Collection, TV show steps
+        - Discovery fallback enrichment with company/network (Phase 21.1)
+        """
         new_steps = []
         query_entities = state.extraction_result.get("query_entities", [])
 
+        # Phase 20: Role-aware person credit steps, TV, collection
         for key, ids in newly_resolved.items():
             if not isinstance(ids, list):
                 ids = [ids]
 
             for _id in ids:
-                # phase 20 - Role-Aware Multi-Entity Planning and Execution
                 if key == "person_id":
-                    for _id in ids:
-                        role = "actor"  # default
-                        for entity in query_entities:
-                            if entity.get("resolved_id") == _id and entity.get("type") == "person":
-                                role = entity.get("role", "actor")
+                    role = "actor"  # default
+                    for entity in query_entities:
+                        if entity.get("resolved_id") == _id and entity.get("type") == "person":
+                            role = entity.get("role", "actor")
 
-                        role_tag = role.lower()
-                        endpoint = f"/person/{_id}/movie_credits"  # 🔁 can be enhanced for TV later
-                        step_id = f"step_{role_tag}_{_id}"
+                    role_tag = role.lower()
+                    # can extend for /tv later
+                    endpoint = f"/person/{_id}/movie_credits"
+                    step_id = f"step_{role_tag}_{_id}"
 
-                        new_steps.append({
-                            "step_id": step_id,
-                            "endpoint": endpoint,
-                            "produces": ["movie_id"],
-                            "requires": ["person_id"],
-                            "role": role_tag,
-                        })
-                if key == "tv_id":
+                    new_steps.append({
+                        "step_id": step_id,
+                        "endpoint": endpoint,
+                        "produces": ["movie_id"],
+                        "requires": ["person_id"],
+                        "role": role_tag,
+                    })
+
+                elif key == "tv_id":
                     new_steps.append({
                         "step_id": f"step_tv_{_id}",
                         "endpoint": f"/tv/{_id}/credits",
                         "produces": ["cast", "crew"],
                         "requires": ["tv_id"]
                     })
+
                 elif key == "collection_id":
                     new_steps.append({
                         "step_id": f"step_collection_{_id}",
@@ -80,46 +95,34 @@ class DependencyManager:
                         "produces": ["movie_id"],
                         "requires": ["collection_id"]
                     })
-                elif key == "company_id":
-                    new_steps.append({
-                        "step_id": f"step_company_{_id}",
-                        "endpoint": f"/company/{_id}/movies",
-                        "produces": ["movie_id"],
-                        "requires": ["company_id"]
-                    })
-                elif key == "network_id":
-                    new_steps.append({
-                        "step_id": f"step_network_{_id}",
-                        "endpoint": f"/network/{_id}/tv",
-                        "produces": ["tv_id"],
-                        "requires": ["network_id"]
-                    })
-                elif key in {"company_id", "network_id"}:
-                    # 🔁 Inject enriched discovery step instead of raw lookup
-                    media_type = getattr(state, "intended_media_type", "movie")
 
-                    step_id = f"step_discover_{media_type}_joined"
-                    endpoint = f"/discover/{media_type}"
-                    parameters = {}
+        # Phase 21.1: Symbolic discover fallback injection with company/network
+        media_type = getattr(state, "intended_media_type", "movie")
+        if media_type not in {"movie", "tv"}:
+            media_type = "movie"
 
-                    if "company_id" in newly_resolved:
-                        company_ids = newly_resolved["company_id"]
-                        parameters["with_companies"] = ",".join(map(str, company_ids)) if isinstance(company_ids, list) else str(company_ids)
+        parameters = {}
 
-                    if "network_id" in newly_resolved:
-                        network_ids = newly_resolved["network_id"]
-                        parameters["with_networks"] = ",".join(map(str, network_ids)) if isinstance(network_ids, list) else str(network_ids)
+        if "company_id" in newly_resolved:
+            company_ids = newly_resolved["company_id"]
+            parameters["with_companies"] = ",".join(map(str, company_ids)) if isinstance(
+                company_ids, list) else str(company_ids)
 
-                    discover_step = {
-                        "step_id": step_id,
-                        "endpoint": endpoint,
-                        "method": "GET",
-                        "parameters": parameters,
-                        "requires": list(parameters.keys()),  # ["with_companies"] or ["with_networks"]
-                        "produces": ["movie_id"] if media_type == "movie" else ["tv_id"]
-                    }
+        if media_type == "tv" and "network_id" in newly_resolved:
+            network_ids = newly_resolved["network_id"]
+            parameters["with_networks"] = ",".join(map(str, network_ids)) if isinstance(
+                network_ids, list) else str(network_ids)
 
-                    print(f"🎯 Phase 21.1: Injecting discovery step with company/network → {discover_step}")
-                    new_steps.append(discover_step)
+        if parameters:
+            discover_step = {
+                "step_id": f"step_discover_{media_type}_joined",
+                "endpoint": f"/discover/{media_type}",
+                "method": "GET",
+                "parameters": parameters,
+                "requires": list(parameters.keys()),
+                "produces": ["movie_id"] if media_type == "movie" else ["tv_id"],
+                "from_constraint": "company_network"
+            }
+            new_steps.append(discover_step)
 
         return new_steps
