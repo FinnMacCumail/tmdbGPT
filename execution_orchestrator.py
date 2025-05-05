@@ -205,27 +205,6 @@ class ExecutionOrchestrator:
                     # print(f"⏭️ Skipping step {step_id}: missing required core entities {missing_requires}")
                     continue  # Skip hard requirements
 
-            # print(f"\n[DEBUG] Executing Step: {step_id}")
-            # print(f"[DEBUG] Current question_type: {state.question_type}")
-            # print(f"[DEBUG] Current response_format: {state.response_format}")
-
-            # print(f"▶️ Popped step: {step_id}")
-            # print(f"🧾 Queue snapshot (after pop): {[s['step_id'] for s in state.plan_steps]}")
-            if not step.get("fallback_injected"):  # ✅ Avoid fallback looping
-                state = DependencyManager.analyze_dependencies(state)
-
-                # ✅ Dynamically compute which role steps (e.g., step_cast_31, step_director_488) should be completed
-                expected_role_steps = {
-                    f"step_{qe['role']}_{qe['resolved_id']}"
-                    for qe in state.extraction_result.get("query_entities", [])
-                    if qe.get("type") == "person" and qe.get("role")
-                }
-
-                # ✅ Trigger intersection logic only when all symbolic role-based steps are completed
-                if expected_role_steps.issubset(set(state.completed_steps)):
-                    state = self._inject_lookup_steps_from_role_intersection(
-                        state)
-
             if step_id in state.completed_steps:
                 # print(f"✅ Skipping already completed step: {step_id}")
                 continue
@@ -300,15 +279,33 @@ class ExecutionOrchestrator:
 
                         # 🧠 Handle step-specific logic
                         if step["endpoint"].startswith("/discover/movie"):
-                            # print(f"▶️ Dispatching step: {step['step_id']} to handler for endpoint: {step['endpoint']}")
-
                             self._handle_discover_movie_step(
                                 step, step_id, path, json_data, state, depth, seen_step_keys)
                         else:
-                            # print(f"▶️ Dispatching step: {step['step_id']} to handler for endpoint: {step['endpoint']}")
                             self._handle_generic_response(
                                 step, step_id, path, json_data, state)
+                        # ✅ Step now completed → safe to check for role intersection
 
+                        # 👇 Fallback credit step injection goes here — AFTER main response handling
+                        if step["endpoint"].startswith("/discover/movie") and not step.get("fallback_injected"):
+                            FallbackHandler.inject_credit_fallback_steps(
+                                state, step)
+                            step["fallback_injected"] = True
+
+                        if not step.get("fallback_injected"):
+                            expected_role_steps = {
+                                f"step_{qe['role']}_{qe['resolved_id']}"
+                                for qe in state.extraction_result.get("query_entities", [])
+                                if qe.get("type") == "person" and qe.get("role")
+                            }
+
+                            if expected_role_steps.issubset(set(state.completed_steps)):
+                                print(
+                                    "✅ All symbolic role steps complete → triggering intersection")
+                                state = DependencyManager.analyze_dependencies(
+                                    state)
+                                state = self._inject_lookup_steps_from_role_intersection(
+                                    state)
                         # Append new steps if needed
                         if new_entities:
                             new_steps = expand_plan_with_dependencies(
@@ -323,9 +320,10 @@ class ExecutionOrchestrator:
                     except Exception as ex:
                         print(f"⚠️ Could not parse JSON or update state: {ex}")
             except Exception as ex:
-                # print(f"🔥 Step {step_id} failed with exception: {ex}")
+                print(f"🔥 Step {step_id} failed with exception: {ex}")
                 ExecutionTraceLogger.log_step(
-                    step_id, path, f"Failed ({str(ex)})", state=state)
+                    step_id, path, f"Failed ({str(ex)})", state=state
+                )
                 state.error = str(ex)
 
         # 👇 Safely determine the format type from state
@@ -335,9 +333,6 @@ class ExecutionOrchestrator:
 
         # 👇 Generate final formatted output
         final_output = renderer(state)
-
-        # print("\n--- FINAL RESPONSE ---")
-        # print(final_output)
 
         # 👇 You can optionally assign it to state if needed
         state.formatted_response = final_output
@@ -374,35 +369,51 @@ class ExecutionOrchestrator:
         filtered = []
 
         for result in results:
-            # Assume match until proven otherwise
             match = True
 
-            # Person match (cast or crew)
             if "person_ids" in expected:
-                cast_ids = {m.get("id")
-                            for m in result.get("cast", []) if "id" in m}
-                crew_ids = {m.get("id")
-                            for m in result.get("crew", []) if "id" in m}
-                person_matches = cast_ids.union(crew_ids)
-                if not any(pid in person_matches for pid in expected["person_ids"]):
+                cast = result.get("cast", [])
+                crew = result.get("crew", [])
+
+                # Extract actual IDs
+                cast_ids = {m.get("id") for m in cast if m.get("id")}
+                director_ids = {
+                    m.get("id") for m in crew if m.get("job") == "Director" and m.get("id")
+                }
+
+                # Pull from preprocessed structure
+                person_by_role = expected.get("person_by_role", {})
+                expected_cast_ids = set(person_by_role.get("cast", []))
+                expected_director_ids = set(person_by_role.get("director", []))
+
+                # Role-specific matching
+                if not expected_cast_ids.issubset(cast_ids):
+                    match = False
+                if not expected_director_ids.issubset(director_ids):
                     match = False
 
             # Company match
             if match and "company_ids" in expected:
                 company_ids = {c.get("id") for c in result.get(
-                    "production_companies", []) if "id" in c}
+                    "production_companies", []) if c.get("id")}
                 if not any(cid in company_ids for cid in expected["company_ids"]):
                     match = False
 
-            # Network match (TV only)
+            # Network match
             if match and media_type == "tv" and "network_ids" in expected:
                 network_ids = {n.get("id") for n in result.get(
-                    "networks", []) if "id" in n}
+                    "networks", []) if n.get("id")}
                 if not any(nid in network_ids for nid in expected["network_ids"]):
                     match = False
 
             if match:
                 filtered.append(result)
+            print("🎯 Movie:", result.get("title"))
+            print("    Cast IDs:", sorted(cast_ids))
+            print("    Director IDs:", sorted(director_ids))
+            print("    Expect cast:", expected_cast_ids)
+            print("    Expect director:", expected_director_ids)
+            print("    Match?", match)
 
         return filtered
 
@@ -709,25 +720,47 @@ class ExecutionOrchestrator:
         print(f"🛑 Check path before rewrite →  {path}")
         path = PathRewriter.rewrite(step["endpoint"], state.resolved_entities)
         print(f"🛑 Check path after rewrite →  {path}")
-        summaries = ResultExtractor.extract(
-            path, json_data, state.resolved_entities
-        )
-        print(f"🧪 Does 'tv_credits' in path? → {'tv_credits' in path}")
-        filtered_summaries = summaries
-        # print(f"📊 Extracted summaries: {len(summaries)}")
+        summaries = []
+        filtered_summaries = []
 
-        applied_params = state.extraction_result.get("applied_parameters", {})
+        try:
+            print(f"🧪 ResultExtractor.extract called with endpoint: {path}")
+            summaries = ResultExtractor.extract(
+                path, json_data, state.resolved_entities)
+            print(f"🧪 Extracted {len(summaries)} summaries")
+        except Exception as e:
+            print(f"⚠️ Failed during extract(): {e}")
+            print(f"⚠️ Path: {path}")
 
-        if summaries and ResultExtractor.should_post_filter(step["endpoint"], applied_params):
-            filtered_summaries = ResultExtractor.post_filter_responses(
-                summaries,
-                query_entities=state.extraction_result.get(
-                    "query_entities", []),
-                extraction_result=state.extraction_result
-            )
-        else:
-            filtered_summaries = summaries
-            # print(f"📊 Post-filtered summaries: {len(filtered_summaries)}")
+        try:
+            applied_params = state.extraction_result.get(
+                "applied_parameters", {})
+            should_filter = ResultExtractor.should_post_filter(
+                step["endpoint"], applied_params)
+            print(f"🧪 Should post-filter? {should_filter}")
+
+            if summaries and should_filter:
+                filtered_summaries = ResultExtractor.post_filter_responses(
+                    summaries,
+                    query_entities=state.extraction_result.get(
+                        "query_entities", []),
+                    extraction_result=state.extraction_result
+                )
+                print(
+                    f"📊 Post-filtered to {len(filtered_summaries)} summaries")
+            else:
+                filtered_summaries = summaries
+                print(f"📊 Using unfiltered summaries")
+
+            state.responses.extend(filtered_summaries)
+
+        except Exception as e:
+            print(f"⚠️ Failed during post-filtering: {e}")
+
+            state.responses.extend(filtered_summaries)
+
+        except Exception as e:
+            print(f"⚠️ Could not parse JSON or update state: {e}")
 
         # 🧪 Optional: Run post-validation for /discover/tv with cast
         if step["endpoint"].startswith("/discover/tv") and "with_people" in step.get("parameters", {}):
@@ -826,6 +859,13 @@ class ExecutionOrchestrator:
                 expected["company_ids"].append(ent["resolved_id"])
             elif ent.get("type") == "network" and "resolved_id" in ent:
                 expected["network_ids"].append(ent["resolved_id"])
+
+        qe = state.extraction_result.get("query_entities", [])
+        expected["person_by_role"] = defaultdict(list)
+
+        for q in qe:
+            if q.get("type") == "person" and q.get("resolved_id") and q.get("role"):
+                expected["person_by_role"][q["role"]].append(q["resolved_id"])
 
         intersection = self._intersect_media_ids_across_constraints(
             state.responses, expected, intended_type)
