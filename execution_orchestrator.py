@@ -156,6 +156,21 @@ class ExecutionOrchestrator:
         print("🎯 Intended media type:", state.intended_media_type)
         while state.plan_steps:
             step = state.plan_steps.pop(0)  # process from front
+            # 🔁 Auto-expand step if path placeholders have multi-value entities (like person_id = [31, 488])
+            expanded = False
+            for k, v in step.get("parameters", {}).items():
+                if isinstance(v, list) and len(v) > 1 and f"{{{k}}}" in step.get("endpoint", ""):
+                    for single_val in v:
+                        new_step = step.copy()
+                        new_step["parameters"] = {
+                            **step["parameters"], k: single_val}
+                        new_step["step_id"] = f"{step['step_id']}_{k}_{single_val}"
+                        # prepend for immediate execution
+                        state.plan_steps.insert(0, new_step)
+                    expanded = True
+                    break  # Only expand one param per step
+            if expanded:
+                continue  # Skip original step (was expanded into N)
 
             # phase 19.9 - Media Type Enforcement Baseline
             endpoint = step.get("endpoint")
@@ -336,6 +351,12 @@ class ExecutionOrchestrator:
 
         # 👇 You can optionally assign it to state if needed
         state.formatted_response = final_output
+        final_validated = []
+        if getattr(state, "constraint_tree", None):
+            for item in state.responses:
+                if state.constraint_tree.is_satisfied_by(item):
+                    final_validated.append(item)
+            state.responses = final_validated
 
         state.explanation = QueryExplanationBuilder.build_final_explanation(
             extraction_result=state.extraction_result,
@@ -721,7 +742,7 @@ class ExecutionOrchestrator:
         try:
             print(f"🧪 ResultExtractor.extract called with endpoint: {path}")
             summaries = ResultExtractor.extract(
-                path, json_data, state.resolved_entities)
+                json_data, path, state.resolved_entities)
             print(f"🧪 Extracted {len(summaries)} summaries")
         except Exception as e:
             print(f"⚠️ Failed during extract(): {e}")
