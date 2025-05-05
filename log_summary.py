@@ -100,21 +100,21 @@ def log_summary(state, header=None):
     else:
         log("🗣️ Explanation: none")
 
-    # Role Matching Debug
-    expected_roles = {
-        (qe["role"], qe["resolved_id"])
-        for qe in ents
-        if qe.get("role") and qe.get("resolved_id")
-    }
-    log("🎭 Expected Roles: " + (str(expected_roles) if expected_roles else "none"))
+    # # Role Matching Debug
+    # expected_roles = {
+    #     (qe["role"], qe["resolved_id"])
+    #     for qe in ents
+    #     if qe.get("role") and qe.get("resolved_id")
+    # }
+    # log("🎭 Expected Roles: " + (str(expected_roles) if expected_roles else "none"))
 
-    if hasattr(state, "data_registry"):
-        for step_id, data in state.data_registry.items():
-            if isinstance(data, dict) and ("cast" in data or "crew" in data):
-                cast_ids = {p.get("id")
-                            for p in data.get("cast", []) if p.get("id")}
-                director_ids = {p.get("id") for p in data.get(
-                    "crew", []) if p.get("job") == "Director"}
-                log(f"   📌 Step {step_id}: Cast={sorted(cast_ids)}, Director={sorted(director_ids)}")
+    # if hasattr(state, "data_registry"):
+    #     for step_id, data in state.data_registry.items():
+    #         if isinstance(data, dict) and ("cast" in data or "crew" in data):
+    #             cast_ids = {p.get("id")
+    #                         for p in data.get("cast", []) if p.get("id")}
+    #             director_ids = {p.get("id") for p in data.get(
+    #                 "crew", []) if p.get("job") == "Director"}
+    #             log(f"   📌 Step {step_id}: Cast={sorted(cast_ids)}, Director={sorted(director_ids)}")
 
     log("=" * 70)
