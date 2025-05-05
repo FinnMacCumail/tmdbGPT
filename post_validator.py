@@ -200,26 +200,24 @@ class PostValidator:
         return round(score, 2)
 
     @staticmethod
-    def validate_company(result, query_entities) -> bool:
+    def validate_company(result: dict, expected_company_ids: list) -> bool:
+        """
+        Validate that the result includes at least one of the expected company IDs
+        in its production_companies field.
+        """
         companies = result.get("production_companies", [])
-        company_ids = [c.get("id") for c in companies if c.get("id")]
-
-        for entity in query_entities:
-            if entity.get("type") == "company" and entity.get("resolved_id") in company_ids:
-                return True
-
-        return False
+        result_ids = {c.get("id") for c in companies if "id" in c}
+        return any(cid in result_ids for cid in expected_company_ids)
 
     @staticmethod
-    def validate_network(result, query_entities) -> bool:
+    def validate_network(result: dict, expected_network_ids: list) -> bool:
+        """
+        Validate that the result includes at least one of the expected network IDs
+        in its networks field (TV only).
+        """
         networks = result.get("networks", [])
-        network_ids = [n.get("id") for n in networks if n.get("id")]
-
-        for entity in query_entities:
-            if entity.get("type") == "network" and entity.get("resolved_id") in network_ids:
-                return True
-
-        return False
+        result_ids = {n.get("id") for n in networks if "id" in n}
+        return any(nid in result_ids for nid in expected_network_ids)
 
     @staticmethod
     def validate_genre(result, query_entities):
