@@ -314,6 +314,10 @@ class ResultExtractor:
 
         print(f"🧪 ResultExtractor.extract called with endpoint: {endpoint}")
 
+        if "/credits" in endpoint:
+            summaries += ResultExtractor.extract_cast_and_crew_credits(
+                json_data, endpoint)
+
         # ✅ Credits endpoints: tv or movie
         if "tv_credits" in endpoint or "movie_credits" in endpoint:
             print("🎯 Routing to _extract_credits (tv/movie)")
@@ -643,3 +647,41 @@ class ResultExtractor:
                 filtered.append(r)
 
         return filtered
+
+    @staticmethod
+    def extract_cast_and_crew_credits(json_data, endpoint):
+        summaries = []
+
+        cast_list = json_data.get("cast", [])
+        crew_list = json_data.get("crew", [])
+
+        print(f"🎭 Extracting cast from {endpoint} → {len(cast_list)} entries")
+        for member in cast_list:
+            name = member.get("name") or "Unknown"
+            character = member.get("character") or "Unknown role"
+            print(f"    🎬 Cast: {name} as {character}")
+            summaries.append({
+                "type": "movie_summary",
+                "title": name,
+                "overview": character,
+                "source": endpoint,
+                "final_score": 0.0,
+                "release_date": None
+            })
+
+        print(f"🎞️ Extracting crew from {endpoint} → {len(crew_list)} entries")
+        for member in crew_list:
+            name = member.get("name") or "Unknown"
+            job = member.get("job") or "Crew"
+            print(f"    🛠️ Crew: {name} - {job}")
+            summaries.append({
+                "type": "movie_summary",
+                "title": name,
+                "overview": job,
+                "source": endpoint,
+                "final_score": 0.0,
+                "release_date": None
+            })
+
+        print(f"✅ Total summaries extracted from credits: {len(summaries)}")
+        return summaries
