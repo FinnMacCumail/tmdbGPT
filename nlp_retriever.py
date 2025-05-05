@@ -305,7 +305,7 @@ class RerankPlanning:
 
 class ResultExtractor:
     @staticmethod
-    def extract(endpoint: str, json_data: dict, resolved_entities: dict = None) -> list:
+    def extract(json_data: dict, endpoint: str, resolved_entities: dict = None) -> list:
         resolved_entities = resolved_entities or {}
 
         if not json_data:
@@ -408,7 +408,7 @@ class ResultExtractor:
         if "tv_credits" in endpoint:
             return ResultExtractor._extract_tv_credits(json_data)
         elif "movie_credits" in endpoint:
-            return ResultExtractor._extract_movie_credits(json_data)
+            return ResultExtractor._extract_movie_credits(json_data, endpoint)
         return []
 
     @staticmethod
@@ -462,43 +462,37 @@ class ResultExtractor:
         return summaries
 
     @staticmethod
-    def _extract_movie_credits(json_data: dict) -> list:
-        """
-        Extract summaries from /person/{id}/movie_credits
-        """
-        summaries = []
-        cast = json_data.get("cast", [])
-        crew = json_data.get("crew", [])
-        movie_crew_roles = {"director", "writer",
-                            "producer", "composer"}  # more inclusive
+    def _extract_movie_credits(json_data, endpoint, resolved_entities=None):
+        movie_id = extract_id_from_endpoint(endpoint)
+        results = []
 
-        for entry in cast:
-            summaries.append({
+        for cast in json_data.get("cast", []):
+            results.append({
+                "id": cast.get("id", movie_id),
+                "title": cast.get("title") or cast.get("original_title"),
+                "release_date": cast.get("release_date"),
+                "poster_path": cast.get("poster_path"),
+                "overview": cast.get("overview"),
                 "type": "movie_summary",
-                "title": entry.get("title") or entry.get("original_title") or "Untitled",
-                "overview": entry.get("overview") or entry.get("character") or "Cast",
-                "release_date": entry.get("release_date"),
-                "final_score": 1.0,
-                "source": "/movie_credits",
                 "job": "cast",
-                "id": entry.get("id")
+                "character": cast.get("character"),
+                "source": endpoint
             })
 
-        for entry in crew:
-            job = entry.get("job", "").lower()
-            if job in movie_crew_roles:
-                summaries.append({
-                    "type": "movie_summary",
-                    "title": entry.get("title") or entry.get("original_title") or "Untitled",
-                    "overview": entry.get("overview") or job.title(),
-                    "release_date": entry.get("release_date"),
-                    "final_score": 1.0,
-                    "source": "/movie_credits",
-                    "job": job,
-                    "id": entry.get("id")
-                })
+        for crew in json_data.get("crew", []):
+            results.append({
+                "id": crew.get("id", movie_id),
+                "title": crew.get("title") or crew.get("original_title"),
+                "release_date": crew.get("release_date"),
+                "poster_path": crew.get("poster_path"),
+                "overview": crew.get("overview"),
+                "type": "movie_summary",
+                "job": crew.get("job"),  # e.g., Director
+                "department": crew.get("department"),
+                "source": endpoint
+            })
 
-        return summaries
+        return results
 
     @staticmethod
     def _extract_person_profile(json_data):
@@ -685,3 +679,14 @@ class ResultExtractor:
 
         print(f"✅ Total summaries extracted from credits: {len(summaries)}")
         return summaries
+
+
+def extract_id_from_endpoint(endpoint):
+    """
+    Extracts numeric ID from an endpoint like /movie/594/credits.
+    """
+    print(f"endpoint in xtract_id_from_endpoint: {endpoint}")
+    match = re.search(r"/movie/(\d+)", endpoint)
+    if match:
+        return int(match.group(1))
+    return None
