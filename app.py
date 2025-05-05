@@ -326,4 +326,4 @@ if __name__ == "__main__":
         # print("Initial input state:", {"input": user_input})
         result = graph.invoke({"input": user_input})
         print("\n--- RESPONSE ---")
-        print(result["responses"])
+        # print(result["responses"])
