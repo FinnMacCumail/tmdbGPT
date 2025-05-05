@@ -408,12 +408,6 @@ class ExecutionOrchestrator:
 
             if match:
                 filtered.append(result)
-            print("🎯 Movie:", result.get("title"))
-            print("    Cast IDs:", sorted(cast_ids))
-            print("    Director IDs:", sorted(director_ids))
-            print("    Expect cast:", expected_cast_ids)
-            print("    Expect director:", expected_director_ids)
-            print("    Match?", match)
 
         return filtered
 
@@ -675,7 +669,8 @@ class ExecutionOrchestrator:
                 "post_validations": validated
             }
             update_symbolic_registry(movie, state.data_registry)
-            # print(f"📦 [Registry Updated] ID {movie.get('id')} → genres {movie.get('genre_ids', [])}")
+            print(
+                f"🧠 Appending validated movie: {movie.get('title')} with score {movie.get('final_score')}")
             state.responses.append(movie)
 
         # Phase 4: Save validated results
@@ -799,6 +794,29 @@ class ExecutionOrchestrator:
                 state.responses.extend(filtered_summaries)
         else:
             state.responses.extend(filtered_summaries)
+
+        # ✅ NEW: Handle post-validation producers (e.g., /movie/{id}/credits)
+        validated = state.data_registry.get(step_id, {}).get("validated")
+        if validated:
+            print(
+                f"🧠 Appending {len(validated)} validated fallback movie(s) from {step_id}")
+            query_entities = state.extraction_result.get("query_entities", [])
+            reranked = EntityAwareReranker.boost_by_entity_mentions(
+                validated, query_entities)
+
+            # 🧹 Deduplicate by TMDB movie ID
+            seen_ids = {resp["id"] for resp in state.responses if "id" in resp}
+            reranked = [movie for movie in reranked if movie.get(
+                "id") not in seen_ids]
+
+            for movie in reranked:
+                movie["final_score"] = movie.get("final_score", 1.0)
+                movie["type"] = "movie_summary"
+                movie["_provenance"] = {
+                    "source": "post_validation",
+                    "via": step_id
+                }
+                state.responses.append(movie)
 
         ExecutionTraceLogger.log_step(
             step_id, path, "Handled", filtered_summaries[:1], state=state
