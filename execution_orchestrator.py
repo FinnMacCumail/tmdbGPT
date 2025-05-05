@@ -10,7 +10,7 @@ from plan_validator import PlanValidator
 import json
 from response_formatter import RESPONSE_RENDERERS, format_fallback
 from fallback_handler import FallbackHandler, FallbackSemanticBuilder
-from post_validator import validate_company, validate_network
+from post_validator import PostValidator
 from response_formatter import QueryExplanationBuilder
 from plan_validator import SymbolicConstraintFilter
 from constraint_model import evaluate_constraint_tree, relax_constraint_tree
@@ -426,7 +426,7 @@ class ExecutionOrchestrator:
 
         for constraint in state.constraint_tree.flatten():
             if constraint.type == "company":
-                if not validate_company(movie, [constraint.value]):
+                if not PostValidator.validate_company(movie, [constraint.value]):
                     return 0, []
                 matched_constraints.append(
                     f"{constraint.key}={constraint.value}")
@@ -435,7 +435,7 @@ class ExecutionOrchestrator:
             if movie.get("media_type") == "tv":
                 for constraint in state.constraint_tree.flatten():
                     if constraint.type == "network":
-                        if not validate_network(movie, [constraint.value]):
+                        if not PostValidator.validate_network(movie, [constraint.value]):
                             return 0, []
                         matched_constraints.append(
                             f"{constraint.key}={constraint.value}")
