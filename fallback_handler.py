@@ -116,54 +116,45 @@ class FallbackHandler:
         return relaxed_steps
 
     @staticmethod
-    def enrich_fallback_step(original_step, extraction_result, resolved_entities):
+    def build_discover_fallback_step(media_type: str, resolved_entities: dict) -> dict:
         """
-        Create a smart fallback step with semantic enrichment: genres, years, companies/networks.
+        Builds a fallback /discover/movie or /discover/tv step with enriched parameters.
+        Adds with_people, with_genres, with_companies, with_networks, etc.
         """
-        intents = extraction_result.get("intents", [])
+        assert media_type in {"movie", "tv"}
 
-        # Decide if TV or Movie fallback
-        if any("tv" in intent.lower() for intent in intents):
-            fallback_endpoint = "/discover/tv"
-            year_param = "first_air_date_year"
-        else:
-            fallback_endpoint = "/discover/movie"
-            year_param = "primary_release_year"
+        endpoint = f"/discover/{media_type}"
+        params = {}
 
-        fallback_step = {
-            "step_id": f"fallback_{fallback_endpoint.strip('/').replace('/', '_')}",
-            "endpoint": fallback_endpoint,
-            "parameters": {},
-            "fallback_injected": True,
-        }
+        # Add cast/person fallback support
+        people_ids = [e["id"]
+                      for e in resolved_entities.get("person", []) if "id" in e]
+        if people_ids:
+            params["with_people"] = ",".join(map(str, people_ids))
 
-        query_entities = extraction_result.get("query_entities", []) or []
-
-        # Inject genres if available
-        genre_ids = [
-            str(e.get("resolved_id"))
-            for e in query_entities
-            if e.get("type") == "genre" and e.get("resolved_id")
-        ]
+        # Add genre fallback support
+        genre_ids = [e["id"]
+                     for e in resolved_entities.get("genre", []) if "id" in e]
         if genre_ids:
-            fallback_step["parameters"]["with_genres"] = ",".join(genre_ids)
+            params["with_genres"] = ",".join(map(str, genre_ids))
 
-        # Inject year if available
-        date_entities = [e for e in query_entities if e.get(
-            "type") == "date" and e.get("name")]
-        if date_entities:
-            fallback_step["parameters"][year_param] = date_entities[0]["name"]
+        # ✅ Phase 21.1: Add company support
+        company_ids = [e["id"]
+                       for e in resolved_entities.get("company", []) if "id" in e]
+        if company_ids:
+            params["with_companies"] = ",".join(map(str, company_ids))
 
-        # Inject company or network if available
-        if resolved_entities.get("company_id"):
-            fallback_step["parameters"]["with_companies"] = ",".join(
-                str(cid) for cid in resolved_entities["company_id"])
-        elif resolved_entities.get("network_id"):
-            fallback_step["parameters"]["with_networks"] = ",".join(
-                str(nid) for nid in resolved_entities["network_id"])
+        # ✅ Phase 21.1: Add network support (TV only)
+        if media_type == "tv":
+            network_ids = [e["id"]
+                           for e in resolved_entities.get("network", []) if "id" in e]
+            if network_ids:
+                params["with_networks"] = ",".join(map(str, network_ids))
 
-        # Safety warning if no enrichment at all
-        # if not fallback_step["parameters"]:
-        #     print(f"⚠️ Warning: Fallback step for {fallback_step['endpoint']} has no enrichment injected!")
-
-        return fallback_step
+        return {
+            "step_id": f"fallback_discover_{media_type}",
+            "endpoint": endpoint,
+            "parameters": params,
+            "type": "fallback",
+            "from_constraint": "fallback_handler.build_discover_fallback_step"
+        }
