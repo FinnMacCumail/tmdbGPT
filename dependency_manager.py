@@ -40,10 +40,6 @@ class DependencyManager:
         state.plan_steps = validation_steps + state.plan_steps
         return state
 
-    from typing import List
-
-
-class DependencyManager:
     @staticmethod
     def expand_plan_with_dependencies(state, newly_resolved: dict) -> List[dict]:
         """
