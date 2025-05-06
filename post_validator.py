@@ -183,6 +183,19 @@ class PostValidator:
             key = f"{role}_{person_id}"
             role_results[key] = passed
 
+        # 🧠 Debugging: Compare expected vs. satisfied roles
+        expected_roles = {
+            f"{entity.get('role', 'actor')}_{entity.get('resolved_id')}" for entity in query_entities if entity.get("type") == "person"}
+        satisfied_roles = {role_key for role_key,
+                           passed in role_results.items() if passed}
+
+        if satisfied_roles == expected_roles:
+            print(f"✅ Role validation succeeded: {satisfied_roles}")
+        else:
+            print("⚠️ Role validation failed")
+            print(f"    ➤ Expected roles: {expected_roles}")
+            print(f"    ➤ Satisfied roles: {satisfied_roles}")
+
         return role_results
 
     @staticmethod
