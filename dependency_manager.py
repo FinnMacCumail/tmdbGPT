@@ -64,7 +64,18 @@ class DependencyManager:
                             role = entity.get("role", "actor")
 
                     role_tag = role.lower()
+                    # 🔍 DEBUG: Check current role and satisfaction state
+                    print(
+                        f"🔍 Checking role step for person_id={_id}, role={role_tag}")
+                    print("   Already satisfied roles:", getattr(
+                        state, "satisfied_roles", set()))
                     # can extend for /tv later
+
+                    if role_tag in getattr(state, "satisfied_roles", set()):
+                        print(
+                            f"🛑 Skipped /person/{_id}/movie_credits because {role_tag} is already satisfied.")
+                        continue
+
                     endpoint = f"/person/{_id}/movie_credits"
                     step_id = f"step_{role_tag}_{_id}"
 
