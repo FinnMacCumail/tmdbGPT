@@ -71,6 +71,7 @@ class AppState(BaseModel):
     constraint_tree_evaluated: bool = False
     last_dropped_constraints: Optional[List[Constraint]] = []
     query: Optional[str] = None
+    satisfied_roles: Set[str] = Field(default_factory=set)
 
     class Config:
         arbitrary_types_allowed = True
