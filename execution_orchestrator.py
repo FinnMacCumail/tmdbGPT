@@ -358,11 +358,23 @@ class ExecutionOrchestrator:
                     final_validated.append(item)
             state.responses = final_validated
 
-        state.explanation = QueryExplanationBuilder.build_final_explanation(
-            extraction_result=state.extraction_result,
-            relaxed_parameters=state.relaxed_parameters,
-            fallback_used=any(step.get("fallback_injected")
-                              for step in state.plan_steps)
+        if getattr(state, "satisfied_roles", None):
+            roles_text = ", ".join(sorted(state.satisfied_roles))
+            explanation_lines = [
+                f"✅ Roles satisfied via intersection: {roles_text}."]
+        else:
+            explanation_lines = []
+
+        state.explanation = "\n".join(
+            explanation_lines + [
+                QueryExplanationBuilder.build_final_explanation(
+                    extraction_result=state.extraction_result,
+                    relaxed_parameters=state.relaxed_parameters,
+                    fallback_used=any(
+                        step.get("fallback_injected") for step in state.plan_steps
+                    )
+                )
+            ]
         )
 
         # print("[DEBUG] Orchestrator execution completed.")
@@ -433,22 +445,45 @@ class ExecutionOrchestrator:
         return filtered
 
     def _score_movie_against_query(self, movie, state, credits=None, **kwargs):
+        satisfied_roles = set()
         matched_constraints = []
         relaxed = getattr(state, "last_dropped_constraints", [])
 
-        # Check person role (e.g., director) constraints
+        # Check person role (e.g., cast, director, writer) constraints
         for constraint in state.constraint_tree.flatten():
-            if constraint.type == "person" and constraint.subtype == "director":
-                if credits:
-                    directors = [p for p in credits.get(
-                        "crew", []) if p.get("job") == "Director"]
-                    if any(str(p["id"]) == str(constraint.value) for p in directors):
-                        matched_constraints.append(
-                            f"{constraint.key}={constraint.value}")
+            if constraint.type == "person":
+                role = constraint.subtype or "cast"  # default to cast if missing
+
+                # Check cast
+                if role == "cast":
+                    if credits:
+                        cast_ids = {str(p["id"])
+                                    for p in credits.get("cast", [])}
+                        if str(constraint.value) in cast_ids:
+                            matched_constraints.append(
+                                f"{constraint.key}={constraint.value}")
+                            satisfied_roles.add("cast")
+                        else:
+                            return 0, []  # No match
                     else:
-                        return 0, []  # No match
-                else:
-                    return 0, []  # No credits to check against
+                        return 0, []
+
+                # Check director
+                elif role == "director":
+                    if credits:
+                        directors = [p for p in credits.get(
+                            "crew", []) if p.get("job") == "Director"]
+                        if any(str(p["id"]) == str(constraint.value) for p in directors):
+                            matched_constraints.append(
+                                f"{constraint.key}={constraint.value}")
+                            satisfied_roles.add("director")
+                        else:
+                            return 0, []
+                    else:
+                        return 0, []
+
+        print("✅ Role satisfaction from validation:", satisfied_roles)
+        print("✅ Matched constraint keys:", matched_constraints)
 
         # Check genre constraints
         if "genre_ids" in movie:
@@ -484,8 +519,8 @@ class ExecutionOrchestrator:
 
         # Begin post-validation tracking
         post_validations = []
+        satisfied_roles = set()
         if credits:
-            # Add role-based validation
             cast_ids = {m.get("id") for m in credits.get("cast", [])}
             crew = credits.get("crew", [])
             director_ids = {p.get("id")
@@ -495,9 +530,11 @@ class ExecutionOrchestrator:
                 if constraint.type == "person" and constraint.subtype == "actor":
                     if int(constraint.value) in cast_ids:
                         post_validations.append("has_all_cast")
+                        satisfied_roles.add("cast")
                 if constraint.type == "person" and constraint.subtype == "director":
                     if int(constraint.value) in director_ids:
                         post_validations.append("has_director")
+                        satisfied_roles.add("director")
 
         # Add company/network matches
         for constraint in state.constraint_tree.flatten():
@@ -507,6 +544,10 @@ class ExecutionOrchestrator:
                 post_validations.append("network_matched")
 
         movie["_provenance"]["post_validations"] = post_validations
+        movie["_provenance"]["satisfied_roles"] = list(satisfied_roles)
+        print("✅ Role match summary for movie ID", movie.get("id"))
+        print("   Satisfied roles in this movie:", satisfied_roles)
+        print("   Matched constraints:", matched_constraints)
 
         return len(matched_constraints), matched_constraints
 
@@ -681,6 +722,13 @@ class ExecutionOrchestrator:
         relaxed = list(state.relaxation_log)
         validated = list(state.post_validation_log)
 
+        if not hasattr(state, "satisfied_roles"):
+            state.satisfied_roles = set()
+
+        for movie in ranked:
+            satisfied = movie.get("_provenance", {}).get("satisfied_roles", [])
+            state.satisfied_roles.update(satisfied)
+
         for movie in ranked:
             movie["final_score"] = movie.get("final_score", 1.0)
             movie["type"] = "movie_summary"
@@ -786,6 +834,12 @@ class ExecutionOrchestrator:
                     step, {"results": filtered_summaries}, state
                 )
 
+                print("🔬 After validation — checking for satisfied roles...")
+                print("   state.satisfied_roles so far:",
+                      getattr(state, "satisfied_roles", set()))
+                print("   Movies in state.responses:", [
+                      m.get("title") for m in state.responses])
+
                 if not validated_summaries:
                     # print("🛑 No validated results after cast-check — injecting fallback...")
                     fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
@@ -837,6 +891,8 @@ class ExecutionOrchestrator:
                     "source": "post_validation",
                     "via": step_id
                 }
+                print(
+                    f"🧠 Appending validated summary: {movie.get('title')} with score {movie.get('final_score')} and roles={movie.get('roles')}")
                 state.responses.append(movie)
 
         ExecutionTraceLogger.log_step(
