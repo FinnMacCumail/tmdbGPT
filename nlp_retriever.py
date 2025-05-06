@@ -313,11 +313,13 @@ class ResultExtractor:
             return []
 
         print(f"🧪 ResultExtractor.extract called with endpoint: {endpoint}")
-
+        summaries = []
         if "/credits" in endpoint:
             summaries += ResultExtractor.extract_cast_and_crew_credits(
                 json_data, endpoint)
-
+            print(
+                f"✅ Total summaries extracted from credits: {len(summaries)}")
+            return summaries  # ← THIS is critical
         # ✅ Credits endpoints: tv or movie
         if "tv_credits" in endpoint or "movie_credits" in endpoint:
             print("🎯 Routing to _extract_credits (tv/movie)")
