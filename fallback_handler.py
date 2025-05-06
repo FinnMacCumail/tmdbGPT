@@ -169,6 +169,16 @@ class FallbackHandler:
             discover_step["step_id"], {}).get("results", [])
         new_steps = []
 
+        print("🔎 Checking whether to skip credit fallback:")
+        print("   Current satisfied_roles:", getattr(
+            state, "satisfied_roles", set()))
+        # ✅ Skip if roles already satisfied via discovery
+        if getattr(state, "satisfied_roles", set()) >= {"cast", "director"}:
+            print("✅ Skipping credit fallback injection — all roles satisfied.")
+            print("🛑 Credit validation steps skipped. Roles already satisfied:",
+                  state.satisfied_roles)
+            return
+
         for movie in movie_results:
             movie_id = movie.get("id")
             if not movie_id:
@@ -188,6 +198,8 @@ class FallbackHandler:
             state.plan_steps.extend(new_steps)
             print(
                 f"🔁 Injected {len(new_steps)} fallback credit steps after {discover_step['step_id']}")
+
+        print("🛑 Credit fallback injection skipped completely.")
 
     @staticmethod
     def generate_steps(resolved_entities, intents=None):
