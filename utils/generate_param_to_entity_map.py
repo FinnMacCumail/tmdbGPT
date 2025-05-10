@@ -3,9 +3,10 @@
 import json
 import os
 
+
 def generate_param_to_entity_map():
-    tmdb_parameters_path = os.path.join("data", "tmdb_parameters.json")
-    output_path = os.path.join("data", "param_to_entity_map.json")
+    tmdb_parameters_path = os.path.join(".../data", "tmdb_parameters.json")
+    output_path = os.path.join(".../data", "param_to_entity_map.json")
 
     with open(tmdb_parameters_path, "r", encoding="utf-8") as f:
         tmdb_parameters = json.load(f)
@@ -44,7 +45,7 @@ def generate_param_to_entity_map():
         "credit_id": "credit",
         "season_number": "season",
         "episode_number": "episode",
-        
+
         # Important symbolic entity fields (correct classification)
         "with_people": "person",
         "with_cast": "person",
@@ -63,7 +64,9 @@ def generate_param_to_entity_map():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(param_to_entity, f, indent=2, ensure_ascii=False)
 
-    print(f"✅ Successfully wrote {len(param_to_entity)} parameter mappings to {output_path}")
+    print(
+        f"✅ Successfully wrote {len(param_to_entity)} parameter mappings to {output_path}")
+
 
 if __name__ == "__main__":
     generate_param_to_entity_map()

@@ -1,8 +1,15 @@
 import json
 from chromadb import PersistentClient
-from param_utils import ParameterMapper
-from llm_client import OpenAILLMClient
+from modules.resolution.param_utils import ParameterMapper
+from nlp.llm_client import OpenAILLMClient
 from sentence_transformers import SentenceTransformer
+
+from pathlib import Path
+# planning → modules → root
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+CHROMA_PATH = PROJECT_ROOT / "chroma_db"
+print("✅ plan_validator.py - CHROMA_PATH:", CHROMA_PATH)
+
 
 QUESTION_TYPE_ROUTING = {
     "count": {
@@ -47,7 +54,8 @@ QUESTION_TYPE_ROUTING = {
 
 class PlanValidator:
     def __init__(self):
-        self.client = PersistentClient(path="./chroma_db")
+
+        self.client = PersistentClient(path=str(CHROMA_PATH))
         self.param_collection = self.client.get_or_create_collection(
             "tmdb_parameters")
         self.PARAM_USED_IN = {}
@@ -193,7 +201,7 @@ class PlanValidator:
         Dynamically inject missing parameters into a plan step based on extracted query entities.
         Example: If the user mentions Crime genre, inject with_genres automatically.
         """
-        from param_utils import resolve_parameter_for_entity
+        from resolution.param_utils import resolve_parameter_for_entity
 
         if "parameters" not in step:
             step["parameters"] = {}

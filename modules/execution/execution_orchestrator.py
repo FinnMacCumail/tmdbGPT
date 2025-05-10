@@ -1,26 +1,31 @@
 from typing import TYPE_CHECKING, Dict, Set, List
 from collections import defaultdict
-from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
+
+# from nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
+from nlp.nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, expand_plan_with_dependencies
+
 import requests
 from copy import deepcopy
 from hashlib import sha256
-from post_validator import PostValidator
-from entity_reranker import EntityAwareReranker
-from plan_validator import PlanValidator
+from modules.execution.post_validator import PostValidator
+
+from modules.planning.entity_reranker import EntityAwareReranker
+
 import json
-from response_formatter import RESPONSE_RENDERERS, format_fallback
-from fallback_handler import FallbackHandler, FallbackSemanticBuilder
-from post_validator import PostValidator
-from response_formatter import QueryExplanationBuilder
-from plan_validator import SymbolicConstraintFilter
-from constraint_model import evaluate_constraint_tree, relax_constraint_tree
+from modules.execution.response_formatter import RESPONSE_RENDERERS, format_fallback
+from modules.fallback.fallback_handler import FallbackHandler
+
+from modules.execution.response_formatter import QueryExplanationBuilder
+from modules.planning.plan_validator import PlanValidator
 from typing import TYPE_CHECKING
-from dependency_manager import DependencyManager
-from constraint_model import Constraint, ConstraintGroup
+from modules.execution.dependency_manager import DependencyManager
+from core.constraint_model import Constraint, ConstraintGroup
+from core.constraint_model import evaluate_constraint_tree, relax_constraint_tree
 import hashlib
 from pydantic import BaseModel
-from param_utils import update_symbolic_registry
-from log_summary import log_summary
+
+from modules.resolution.param_utils import update_symbolic_registry
+from response.log_summary import log_summary
 
 
 class ExecutionOrchestrator:
@@ -66,7 +71,7 @@ class ExecutionOrchestrator:
     ]
 
     def __init__(self, base_url, headers):
-        from dependency_manager import DependencyManager
+
         self.dependency_manager = DependencyManager()
         self.base_url = base_url
         self.headers = headers

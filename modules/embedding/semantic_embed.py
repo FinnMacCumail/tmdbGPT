@@ -1,21 +1,28 @@
 import json
 import os
+from pathlib import Path
 from tqdm import tqdm
 from chromadb import PersistentClient
 from sentence_transformers import SentenceTransformer
 
+# 📦 Path-safe project root reference
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+CHROMA_DB_DIR = PROJECT_ROOT / "chroma_db"
+
 # Initialize ChromaDB and SentenceTransformer
-client = PersistentClient(path="./chroma_db")
+
+client = PersistentClient(path=str(CHROMA_DB_DIR))
 collection = client.get_or_create_collection("tmdb_endpoints")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Load TMDB endpoints
-with open("data/tmdb.json") as f:
+# ✅ Load TMDB endpoints
+with (DATA_DIR / "tmdb.json").open("r", encoding="utf-8") as f:
     raw = json.load(f)
     index = raw.get("paths", {})
 
-# Load dynamically built parameter-to-entity mapping
-with open("data/param_to_entity_map.json") as f:
+# ✅ Load parameter-to-entity mapping
+with (DATA_DIR / "param_to_entity_map.json").open("r", encoding="utf-8") as f:
     PARAM_TO_ENTITY_MAP = json.load(f)
 
 
@@ -25,7 +32,8 @@ def _detect_intents(path: str, description: str) -> list:
     description_lower = description.lower()
 
     if "/discover/" in path_lower:
-        intents += ["discovery.filtered", "discovery.advanced", "discovery.genre_based", "discovery.temporal"]
+        intents += ["discovery.filtered", "discovery.advanced",
+                    "discovery.genre_based", "discovery.temporal"]
     elif "/search/" in path_lower:
         if "/person" in path_lower:
             intents.append("search.person")
@@ -80,6 +88,7 @@ def _detect_intents(path: str, description: str) -> list:
         intents.append("miscellaneous")
 
     return intents
+
 
 def _detect_entities(endpoint: str, parameters: list) -> list:
     entities = set()
@@ -163,7 +172,8 @@ def _create_metadata(endpoint_path, obj):
     return {
         "path": endpoint_path,
         "description": description,
-        "intents": json.dumps([{ "intent": i } for i in intents_detected]),  # <-- USE intents_detected
+        # <-- USE intents_detected
+        "intents": json.dumps([{"intent": i} for i in intents_detected]),
         "supported_intents": json.dumps(intents_detected),
         "media_type": "tv" if "/tv" in endpoint_path else "movie" if "/movie" in endpoint_path else "any",
         "consumes_entities": json.dumps(_detect_entities(endpoint_path, parameters.keys())),
@@ -171,11 +181,13 @@ def _create_metadata(endpoint_path, obj):
         "supports_parameters": json.dumps(list(parameters))  # already fine
     }
 
+
 def process_endpoints():
     ids, docs, metas, embs = [], [], [], []
 
     for path, obj in tqdm(index.items()):
-        embedding_text = _create_embedding_text(path, obj.get("description", ""))
+        embedding_text = _create_embedding_text(
+            path, obj.get("description", ""))
         metadata = _create_metadata(path, obj)
         embedding = embedder.encode(embedding_text).tolist()
 
@@ -184,7 +196,8 @@ def process_endpoints():
         embs.append(embedding)
         metas.append(metadata)
 
-    print(f"📦 Upserting {len(ids)} endpoints into ChromaDB (tmdb_endpoints)...")
+    print(
+        f"📦 Upserting {len(ids)} endpoints into ChromaDB (tmdb_endpoints)...")
     collection.upsert(
         ids=ids,
         documents=docs,
@@ -196,4 +209,3 @@ def process_endpoints():
 
 if __name__ == "__main__":
     process_endpoints()
-

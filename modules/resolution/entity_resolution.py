@@ -3,7 +3,7 @@
 import requests
 from datetime import datetime, timedelta
 import os
-from param_utils import GenreNormalizer
+from resolution.param_utils import GenreNormalizer
 import json
 
 

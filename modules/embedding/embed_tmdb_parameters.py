@@ -1,21 +1,28 @@
 import json
 from sentence_transformers import SentenceTransformer
 import chromadb
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CHROMA_PATH = PROJECT_ROOT / "chroma_db"
+PARAMETERS_PATH = PROJECT_ROOT / "data" / "tmdb_parameters.json"
 
 # Load parameter data
-with open("data/tmdb_parameters.json") as f:
+with PARAMETERS_PATH.open("r", encoding="utf-8") as f:
     parameters = json.load(f)
 
 # Initialize embedding model and ChromaDB collection
 model = SentenceTransformer("all-MiniLM-L6-v2")
-client = chromadb.PersistentClient(path="./chroma_db")
+client = chromadb.PersistentClient(path=str(CHROMA_PATH))
+
 collection = client.get_or_create_collection("tmdb_parameters")
 
 # Build embeddings for parameter search
 ids = []
 documents = []
 metadatas = []
-param_to_entity = {}  # New dictionary to generate param_to_entity_map_generated.json safely
+# New dictionary to generate param_to_entity_map_generated.json safely
+param_to_entity = {}
 
 for param in parameters:
     ids.append(param["name"])

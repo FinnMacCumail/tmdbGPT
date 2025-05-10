@@ -6,14 +6,10 @@ from dotenv import load_dotenv
 import re
 from typing import Dict, List, Optional, Set, Any
 
+from modules.embedding.hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
-from fallback_handler import FallbackHandler
-from llm_client import OpenAILLMClient
-
-from json import JSONDecodeError
-from hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
-
-from plan_validator import PlanValidator, SymbolicConstraintFilter
+from modules.planning.plan_validator import PlanValidator, SymbolicConstraintFilter
+from pathlib import Path
 
 # Load API keys
 dotenv_path = os.path.join(os.getcwd(), ".env")
@@ -22,12 +18,18 @@ load_dotenv(dotenv_path, override=True)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CHROMA_PATH = PROJECT_ROOT / "chroma_db"
+
 # Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
+
+chroma_client = chromadb.PersistentClient(path=str(CHROMA_PATH))
 collection = chroma_client.get_or_create_collection(
     name="tmdb_endpoints",
     metadata={"hnsw:space": "cosine"}
 )
+
+print("✅ nlp- retriever.py - CHROMA_PATH:", CHROMA_PATH)
 
 # Load NLP and embedding models
 nlp = spacy.load("en_core_web_trf")

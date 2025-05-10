@@ -1,23 +1,27 @@
-from entity_reranker import RoleAwareReranker  # ✅ Add at the top of app.py
-from execution_orchestrator import ExecutionOrchestrator
-from dependency_manager import DependencyManager
-from hybrid_retrieval_test import semantic_retrieval, convert_matches_to_execution_steps
-from llm_client import OpenAILLMClient
-from fallback_handler import FallbackHandler
-from entity_resolution import TMDBEntityResolver
+# ✅ Add at the top of app.py
+from modules.planning.entity_reranker import RoleAwareReranker
+from modules.execution.execution_orchestrator import ExecutionOrchestrator
+from modules.execution.dependency_manager import DependencyManager
+from modules.embedding.hybrid_retrieval_test import semantic_retrieval, convert_matches_to_execution_steps
+from nlp.llm_client import OpenAILLMClient
+from modules.fallback.fallback_handler import FallbackHandler
+from modules.resolution.entity_resolution import TMDBEntityResolver
 from langgraph.graph import StateGraph, END
 import os
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any, Set
+
+
 import time
-from nlp_retriever import RerankPlanning
-from plan_validator import SymbolicConstraintFilter
-from response_formatter import ResponseFormatter, format_fallback
-from response_formatter import format_ranked_list
-from plan_validator import PlanValidator
-from constraint_model import ConstraintBuilder, ConstraintGroup, Constraint
-from entity_reranker import RoleAwareReranker
+from nlp.nlp_retriever import RerankPlanning
+from modules.planning.plan_validator import SymbolicConstraintFilter
+from modules.execution.response_formatter import ResponseFormatter, format_fallback
+from modules.execution.response_formatter import format_ranked_list
+from modules.planning.plan_validator import PlanValidator
+
+from modules.planning.entity_reranker import RoleAwareReranker
+
+from core.constraint_model import ConstraintBuilder
+from core.execution_state import AppState
 
 load_dotenv()
 
@@ -39,42 +43,6 @@ SAFE_OPTIONAL_PARAMS = {
     "with_original_language",
     "region"
 }
-
-
-class AppState(BaseModel):
-    input: str
-    status: Optional[str] = None
-    step: Optional[str] = None
-    extraction_result: Optional[Dict] = Field(default_factory=dict)
-    resolved_entities: Optional[Dict] = Field(default_factory=dict)
-    retrieved_matches: Optional[List] = Field(default_factory=list)
-    plan_steps: Optional[List] = Field(default_factory=list)
-    responses: Optional[List] = Field(default_factory=list)
-    error: Optional[str] = None  # allows setting error message
-    data_registry: Optional[Dict] = Field(
-        default_factory=dict)  # for orchestrator context
-    completed_steps: Optional[List[str]] = Field(default_factory=list)
-    pending_steps: Optional[List[Dict]] = Field(default_factory=list)
-    formatted_response: Optional[Any] = None
-    # ✅ Add these for Phase 17.2 support
-    question_type: Optional[str] = None
-    response_format: Optional[str] = None
-    execution_trace: Optional[List[dict]] = Field(default_factory=list)
-    relaxed_parameters: Optional[List[str]] = Field(default_factory=list)
-    explanation: Optional[str] = None
-    intended_media_type: Optional[str] = None
-    constraint_tree: Optional[ConstraintGroup] = None
-    relaxation_log: List[str] = Field(default_factory=list)
-    debug: Optional[bool] = True
-    visited_fingerprints: Set[str] = Field(default_factory=set)
-    post_validation_log: Optional[List[str]] = Field(default_factory=list)
-    constraint_tree_evaluated: bool = False
-    last_dropped_constraints: Optional[List[Constraint]] = []
-    query: Optional[str] = None
-    satisfied_roles: Set[str] = Field(default_factory=set)
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 def parse(state: AppState) -> AppState:

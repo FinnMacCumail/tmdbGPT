@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from app import build_app_graph
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from app import AppState
+from core.execution_state import AppState
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

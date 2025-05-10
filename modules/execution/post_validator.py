@@ -1,5 +1,5 @@
 from typing import List, Dict
-from constraint_model import evaluate_constraint_tree, relax_constraint_tree
+from core.constraint_model import evaluate_constraint_tree, relax_constraint_tree
 
 
 class PostValidator:

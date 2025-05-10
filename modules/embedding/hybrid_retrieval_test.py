@@ -1,12 +1,13 @@
 import json
 import os
+from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import chromadb
-from llm_client import OpenAILLMClient
-from entity_reranker import EntityAwareReranker
-from param_utils import normalize_parameters
-from plan_validator import PlanValidator
+from nlp.llm_client import OpenAILLMClient
+from modules.planning.entity_reranker import EntityAwareReranker
+from modules.resolution.param_utils import normalize_parameters
+from modules.planning.plan_validator import PlanValidator
 import logging
 
 load_dotenv()
@@ -14,9 +15,14 @@ load_dotenv()
 # Suppress SentenceTransformer logs before instantiation
 logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
 
+# 📦 Path-safe project root reference
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CHROMA_DB_DIR = PROJECT_ROOT / "chroma_db"
+
 # Init clients
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
+
+chroma_client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
 openai_client = OpenAILLMClient()
 
@@ -63,7 +69,7 @@ class ParameterAwareReranker:
         """
         Boost final_score if endpoint supports parameters matching query entity types.
         """
-        from param_utils import resolve_parameter_for_entity
+        from resolution.param_utils import resolve_parameter_for_entity
 
         for m in matches:
             try:

@@ -1,5 +1,5 @@
 
-from param_utils import get_param_key_for_type
+from modules.resolution.param_utils import get_param_key_for_type
 from typing import List, Union, Dict, Set, Tuple, Optional
 from collections import defaultdict
 from copy import deepcopy
