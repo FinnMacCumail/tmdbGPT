@@ -1,11 +1,11 @@
 # ✅ Add at the top of app.py
-from modules.planning.entity_reranker import RoleAwareReranker
-from modules.execution.execution_orchestrator import ExecutionOrchestrator
-from modules.execution.dependency_manager import DependencyManager
-from modules.embedding.hybrid_retrieval_test import semantic_retrieval, convert_matches_to_execution_steps
+from core.planner.entity_reranker import RoleAwareReranker
+from core.execution.execution_orchestrator import ExecutionOrchestrator
+from core.execution.dependency_manager import DependencyManager
+from core.planner.hybrid_retrieval_test import semantic_retrieval, convert_matches_to_execution_steps
 from nlp.llm_client import OpenAILLMClient
-from modules.fallback.fallback_handler import FallbackHandler
-from modules.resolution.entity_resolution import TMDBEntityResolver
+from core.execution.fallback import FallbackHandler
+from core.entity.entity_resolution import TMDBEntityResolver
 from langgraph.graph import StateGraph, END
 import os
 from dotenv import load_dotenv
@@ -13,12 +13,12 @@ from dotenv import load_dotenv
 
 import time
 from nlp.nlp_retriever import RerankPlanning
-from modules.planning.plan_validator import SymbolicConstraintFilter
-from modules.execution.response_formatter import ResponseFormatter, format_fallback
-from modules.execution.response_formatter import format_ranked_list
-from modules.planning.plan_validator import PlanValidator
+from core.planner.plan_validator import SymbolicConstraintFilter
+from core.execution.response_formatter import ResponseFormatter, format_fallback
+from core.execution.response_formatter import format_ranked_list
+from core.planner.plan_validator import PlanValidator
 
-from modules.planning.entity_reranker import RoleAwareReranker
+from core.planner.entity_reranker import RoleAwareReranker
 
 from core.constraint_model import ConstraintBuilder
 from core.execution_state import AppState
@@ -127,7 +127,7 @@ def plan(state: AppState) -> AppState:
         state.resolved_entities["__query"] = state.input
 
     # Phase 2: Rerank semantic matches using resolved entities
-    ranked_matches = RerankPlanning.rerank_matches(
+    ranked_matches = Rerankplanner.rerank_matches(
         state.retrieved_matches, state.resolved_entities
     )
 
@@ -153,7 +153,7 @@ def plan(state: AppState) -> AppState:
     )
 
     # Phase 4: Filter to executable steps
-    feasible, deferred = RerankPlanning.filter_feasible_steps(
+    feasible, deferred = Rerankplanner.filter_feasible_steps(
         ranked_matches,
         state.resolved_entities,
         extraction_result=state.extraction_result

@@ -5,9 +5,9 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import chromadb
 from nlp.llm_client import OpenAILLMClient
-from modules.planning.entity_reranker import EntityAwareReranker
-from modules.resolution.param_utils import normalize_parameters
-from modules.planning.plan_validator import PlanValidator
+from core.planner.entity_reranker import EntityAwareReranker
+from core.entity.param_utils import normalize_parameters
+from core.planner.plan_validator import PlanValidator
 import logging
 
 load_dotenv()

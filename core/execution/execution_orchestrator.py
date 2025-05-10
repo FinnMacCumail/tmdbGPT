@@ -7,24 +7,24 @@ from nlp.nlp_retriever import PostStepUpdater, PathRewriter, ResultExtractor, ex
 import requests
 from copy import deepcopy
 from hashlib import sha256
-from modules.execution.post_validator import PostValidator
+from core.execution.post_validator import PostValidator
 
-from modules.planning.entity_reranker import EntityAwareReranker
+from core.planner.entity_reranker import EntityAwareReranker
 
 import json
-from modules.execution.response_formatter import RESPONSE_RENDERERS, format_fallback
-from modules.fallback.fallback_handler import FallbackHandler
+from core.execution.response_formatter import RESPONSE_RENDERERS, format_fallback
+from core.execution.fallback import FallbackHandler
 
-from modules.execution.response_formatter import QueryExplanationBuilder
-from modules.planning.plan_validator import PlanValidator
+from core.execution.response_formatter import QueryExplanationBuilder
+from core.planner.plan_validator import PlanValidator
 from typing import TYPE_CHECKING
-from modules.execution.dependency_manager import DependencyManager
+from core.execution.dependency_manager import DependencyManager
 from core.constraint_model import Constraint, ConstraintGroup
 from core.constraint_model import evaluate_constraint_tree, relax_constraint_tree
 import hashlib
 from pydantic import BaseModel
 
-from modules.resolution.param_utils import update_symbolic_registry
+from core.entity.param_utils import update_symbolic_registry
 from response.log_summary import log_summary
 
 

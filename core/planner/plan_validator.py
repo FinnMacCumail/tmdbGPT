@@ -1,6 +1,6 @@
 import json
 from chromadb import PersistentClient
-from modules.resolution.param_utils import ParameterMapper
+from core.entity.param_utils import ParameterMapper
 from nlp.llm_client import OpenAILLMClient
 from sentence_transformers import SentenceTransformer
 

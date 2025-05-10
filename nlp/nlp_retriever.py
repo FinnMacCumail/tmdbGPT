@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 import re
 from typing import Dict, List, Optional, Set, Any
 
-from modules.embedding.hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
+from core.planner.hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 
-from modules.planning.plan_validator import PlanValidator, SymbolicConstraintFilter
+from core.planner.plan_validator import PlanValidator, SymbolicConstraintFilter
 from pathlib import Path
 
 # Load API keys
@@ -279,7 +279,7 @@ class RerankPlanning:
             endpoint_path = match.get("endpoint") or match.get("path", "")
             # print(f"🔍 Evaluating: {endpoint_path}")
             # 🔐 Standard validation: do we have required parameters?
-            is_valid = RerankPlanning.validate_parameters(
+            is_valid = Rerankplanner.validate_parameters(
                 endpoint_path, resolved_entities)
             # print(f"🔎 validate_parameters = {is_valid} for {endpoint_path}")
             # phase 19.7 ✅ Strategic override: allow /person/{id}/movie_credits or tv_credits if role + count query
