@@ -167,6 +167,8 @@ def execute(state: AppState) -> AppState:
         "pending_steps": state.plan_steps,
         "question_type": state.extraction_result.get("question_type"),
         "response_format": state.extraction_result.get("response_format"),
+        "base_url": BASE_URL,
+        "headers": HEADERS
     }))
     return updated_state.model_copy(update={"plan_steps": []})
 
