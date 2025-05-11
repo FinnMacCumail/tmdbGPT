@@ -6,13 +6,12 @@ __pycache__/
 venv/
 
 # Ignore database folder
-embeddings/
 #logs/
 .vscode/
 chroma_db/
-semantic_chroma_db/
+
 model_cache/
-sec_intent_chroma_db/
+
 
 logs/
 unit_test.py
