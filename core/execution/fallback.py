@@ -2,6 +2,8 @@
 from typing import Dict, List
 from copy import deepcopy
 from datetime import datetime
+from core.execution.trace_logger import ExecutionTraceLogger
+from core.planner.constraint_planner import intersect_media_ids_across_constraints
 
 
 class FallbackSemanticBuilder:
@@ -102,7 +104,7 @@ class FallbackHandler:
                     # print(f"📝 Relaxation tracked: {label}")
 
                     # ➡️ Log in execution trace
-                    from execution_orchestrator import ExecutionTraceLogger
+
                     ExecutionTraceLogger.log_step(
                         relaxed_step["step_id"],
                         path=relaxed_step["endpoint"],
@@ -281,3 +283,78 @@ class FallbackHandler:
                 })
 
         return steps
+
+
+def relax_roles_and_retry_intersection(state):
+    """
+    Phase 21.4: Relax strict crew roles first, then actor roles if necessary.
+    Retries symbolic intersection after each relaxation.
+    """
+    from core.execution.trace_logger import ExecutionTraceLogger
+    from collections import defaultdict
+
+    if not hasattr(state, "relaxed_parameters"):
+        state.relaxed_parameters = []
+
+    # 1️⃣ Drop strict crew roles
+    for role_prefix in ["step_director_", "step_writer_", "step_producer_", "step_composer_"]:
+        for step_id in list(state.completed_steps):
+            if step_id.startswith(role_prefix):
+                state.completed_steps.remove(step_id)
+                state.data_registry.pop(step_id, None)
+
+                role_name = role_prefix.replace("step_", "").replace("_", "")
+                if role_name not in state.relaxed_parameters:
+                    state.relaxed_parameters.append(role_name)
+
+                ExecutionTraceLogger.log_step(
+                    step_id=step_id,
+                    path="(internal)",
+                    status="Role Relaxed",
+                    summary=f"Dropped strict crew role: {role_name}",
+                    state=state
+                )
+
+    # 2️⃣ Retry intersection
+    intended_type = getattr(state, "intended_media_type", "movie")
+
+    expected = {
+        "person_ids": [
+            e["resolved_id"]
+            for e in state.extraction_result.get("query_entities", [])
+            if e.get("type") == "person"
+        ],
+        "company_ids": state.resolved_entities.get("company_id", []),
+        "network_ids": state.resolved_entities.get("network_id", []),
+        "person_by_role": defaultdict(list)
+    }
+
+    for q in state.extraction_result.get("query_entities", []):
+        if q.get("type") == "person" and q.get("role") and "resolved_id" in q:
+            expected["person_by_role"][q["role"]].append(q["resolved_id"])
+
+    intersection = intersect_media_ids_across_constraints(
+        state.responses, expected, intended_type
+    )
+
+    if intersection:
+        return state  # Success after crew-role relaxation
+
+    # 3️⃣ Drop actor (cast) roles if still no match
+    for step_id in list(state.completed_steps):
+        if step_id.startswith("step_cast_"):
+            state.completed_steps.remove(step_id)
+            state.data_registry.pop(step_id, None)
+
+            if "cast" not in state.relaxed_parameters:
+                state.relaxed_parameters.append("cast")
+
+            ExecutionTraceLogger.log_step(
+                step_id=step_id,
+                path="(internal)",
+                status="Role Relaxed (Cast)",
+                summary="Dropped actor role: step_cast",
+                state=state
+            )
+
+    return state

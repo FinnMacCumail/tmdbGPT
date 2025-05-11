@@ -6,8 +6,7 @@ from dotenv import load_dotenv
 import re
 from typing import Dict, List, Optional, Set, Any
 
-from core.planner.hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
-
+from core.embeddings.hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
 from core.planner.plan_validator import PlanValidator, SymbolicConstraintFilter
 from pathlib import Path
 
@@ -279,7 +278,7 @@ class RerankPlanning:
             endpoint_path = match.get("endpoint") or match.get("path", "")
             # print(f"🔍 Evaluating: {endpoint_path}")
             # 🔐 Standard validation: do we have required parameters?
-            is_valid = Rerankplanner.validate_parameters(
+            is_valid = RerankPlanning.validate_parameters(
                 endpoint_path, resolved_entities)
             # print(f"🔎 validate_parameters = {is_valid} for {endpoint_path}")
             # phase 19.7 ✅ Strategic override: allow /person/{id}/movie_credits or tv_credits if role + count query
@@ -657,7 +656,7 @@ class ResultExtractor:
         for member in cast_list:
             name = member.get("name") or "Unknown"
             character = member.get("character") or "Unknown role"
-            print(f"    🎬 Cast: {name} as {character}")
+            # print(f"    🎬 Cast: {name} as {character}")
             summaries.append({
                 "type": "movie_summary",
                 "title": name,
@@ -671,7 +670,7 @@ class ResultExtractor:
         for member in crew_list:
             name = member.get("name") or "Unknown"
             job = member.get("job") or "Crew"
-            print(f"    🛠️ Crew: {name} - {job}")
+            # print(f"    🛠️ Crew: {name} - {job}")
             summaries.append({
                 "type": "movie_summary",
                 "title": name,

@@ -1,5 +1,88 @@
 # dependency_manager.py
 from typing import Any, List
+from collections import defaultdict
+from core.execution.fallback import FallbackHandler
+from core.execution.trace_logger import ExecutionTraceLogger
+
+from core.execution.fallback import relax_roles_and_retry_intersection
+from core.planner.constraint_planner import intersect_media_ids_across_constraints
+
+
+def inject_lookup_steps_from_role_intersection(state):
+    """
+    Refactored for Phase 21.3:
+    - Intersects symbolic results across person, company, network
+    - Injects /movie/{id} or /tv/{id} lookup steps based on matched entries
+    - Applies fallback if no match after relaxing constraints
+    """
+    intended_type = getattr(state, "intended_media_type", "both") or "both"
+    expected = {
+        "person_ids": [],
+        "company_ids": [],
+        "network_ids": []
+    }
+    for ent in state.extraction_result.get("query_entities", []):
+        if ent.get("type") == "person" and "resolved_id" in ent:
+            expected["person_ids"].append(ent["resolved_id"])
+        elif ent.get("type") == "company" and "resolved_id" in ent:
+            expected["company_ids"].append(ent["resolved_id"])
+        elif ent.get("type") == "network" and "resolved_id" in ent:
+            expected["network_ids"].append(ent["resolved_id"])
+
+    intersection = intersect_media_ids_across_constraints(
+        state.responses, expected, intended_type)
+
+    if not intersection:
+        relaxed_state = relax_roles_and_retry_intersection(state)
+        relaxed_intersection = intersect_media_ids_across_constraints(
+            relaxed_state.responses, expected, intended_type)
+
+        if not relaxed_intersection:
+            fallback_step = FallbackHandler.generate_steps(
+                state.resolved_entities,
+                intents=state.extraction_result
+            )
+            if isinstance(fallback_step, dict):
+                fallback_step = [fallback_step]
+
+            for fs in reversed(fallback_step):
+                state.plan_steps.insert(0, fs)
+
+            ExecutionTraceLogger.log_step(
+                step_id="fallback_injected_after_role_relaxation",
+                path="(internal)",
+                status="Fallback Injected",
+                summary="No matches after relaxing roles. Fallback discovery triggered.",
+                state=state
+            )
+            return state
+        else:
+            intersection = relaxed_intersection
+
+    # 🚀 Inject lookup steps
+    for item in intersection:
+        if intended_type == "movie" or (intended_type == "both" and "title" in item):
+            movie_id = item.get("id")
+            if movie_id:
+                state.plan_steps.insert(0, {
+                    "step_id": f"step_lookup_movie_{movie_id}",
+                    "endpoint": f"/movie/{movie_id}",
+                    "method": "GET",
+                    "produces": [],
+                    "requires": ["movie_id"]
+                })
+        elif intended_type == "tv" or (intended_type == "both" and "name" in item):
+            tv_id = item.get("id")
+            if tv_id:
+                state.plan_steps.insert(0, {
+                    "step_id": f"step_lookup_tv_{tv_id}",
+                    "endpoint": f"/tv/{tv_id}",
+                    "method": "GET",
+                    "produces": [],
+                    "requires": ["tv_id"]
+                })
+
+    return state
 
 
 class DependencyManager:
