@@ -44,5 +44,13 @@ class AppState(BaseModel):
     explanation: Optional[str] = None
     debug: Optional[bool] = True
 
+    base_url: Optional[str] = None
+    headers: Optional[Dict[str, str]] = Field(default_factory=dict)
+
+    # 🧠 Optional (but useful for introspection or trace explanation)
+    raw_query: Optional[str] = None
+    steps: Optional[List[Dict]] = Field(
+        default_factory=list)  # tracked injected steps
+
     class Config:
         arbitrary_types_allowed = True
