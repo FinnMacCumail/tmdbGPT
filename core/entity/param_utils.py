@@ -299,3 +299,41 @@ def update_symbolic_registry(entity: dict, registry: dict, credits: dict = None,
     if "first_air_date" in entity:
         registry.setdefault("first_air_date", {})[
             entity_id] = entity["first_air_date"]
+
+# core/entity/symbolic_indexer.py
+
+
+def enrich_symbolic_registry(
+    movie: dict,
+    registry: dict,
+    *,
+    credits: dict = None,
+    keywords: list = None,
+    release_info: dict = None,
+    watch_providers: dict = None
+) -> None:
+    """
+    Robust wrapper to symbolically index a movie into the constraint registry.
+    Supports full enrichment from credits, keywords, release dates, and providers.
+
+    Args:
+        movie (dict): The movie or TV entity dictionary.
+        registry (dict): The symbolic constraint registry (e.g., state.data_registry).
+        credits (dict, optional): Result of /movie/{id}/credits or /tv/{id}/credits.
+        keywords (list, optional): List of keyword objects from /keywords endpoint.
+        release_info (dict, optional): Certification data from /release_dates.
+        watch_providers (dict, optional): Data from /watch/providers.
+    """
+
+    try:
+        update_symbolic_registry(
+            entity=movie,
+            registry=registry,
+            credits=credits,
+            keywords=keywords,
+            release_info=release_info,
+            watch_providers=watch_providers
+        )
+    except Exception as e:
+        print(
+            f"⚠️ Failed symbolic indexing for movie ID {movie.get('id')}: {e}")
