@@ -16,6 +16,7 @@ from response.log_summary import log_summary
 from nlp.nlp_retriever import PostStepUpdater, PathRewriter, expand_plan_with_dependencies
 from core.model.evaluator import evaluate_constraint_tree
 from core.planner.constraint_planner import inject_validation_steps_from_ids
+from core.entity.param_utils import enrich_symbolic_registry
 
 
 class ExecutionOrchestrator:
@@ -305,7 +306,8 @@ class ExecutionOrchestrator:
                 "relaxed_constraints": relaxed,
                 "post_validations": validated
             }
-            update_symbolic_registry(movie, state.data_registry)
+            enrich_symbolic_registry(
+                movie, state.data_registry, credits=credits)
             print(
                 f"🧠 Appending validated movie: {movie.get('title')} with score {movie.get('final_score')}")
             state.responses.append(movie)
