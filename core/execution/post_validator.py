@@ -1,5 +1,7 @@
 from typing import List, Dict
 from core.model.evaluator import evaluate_constraint_tree, relax_constraint_tree
+# avoid circular ref if static
+from core.entity.param_utils import enrich_symbolic_registry
 
 
 class PostValidator:
@@ -349,9 +351,6 @@ class PostValidator:
         results = data.get("results", [])
         query_entities = state.extraction_result.get("query_entities", [])
 
-        # avoid circular ref if static
-        from core.execution.execution_orchestrator import ExecutionOrchestrator
-
         for rule in PostValidator.POST_VALIDATION_RULES:
             if rule["endpoint"] in step["endpoint"] and rule["trigger_param"] in step.get("parameters", {}):
                 validator = rule["validator"]
@@ -394,6 +393,13 @@ class PostValidator:
                                 post_validations.append("has_all_cast")
                             elif rule["validator"].__name__ == "has_director":
                                 post_validations.append("has_director")
+
+                            # ✅ Symbolic enrichment before adding to validated
+                            enrich_symbolic_registry(
+                                movie=item,
+                                registry=state.data_registry,
+                                credits=result_data
+                            )
 
                             validated.append(item)
 

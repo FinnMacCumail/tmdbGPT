@@ -10,6 +10,7 @@ from core.entity.param_utils import update_symbolic_registry
 from core.execution.post_execution_validator import PostExecutionValidator
 from core.execution.post_validator import PostValidator
 from nlp.nlp_retriever import ResultExtractor
+from core.entity.param_utils import enrich_symbolic_registry
 
 
 class DiscoveryHandler:
@@ -64,7 +65,8 @@ class DiscoveryHandler:
         for movie in ranked:
             movie["type"] = "movie_summary"
             movie["final_score"] = movie.get("final_score", 1.0)
-            update_symbolic_registry(movie, state.data_registry)
+            enrich_symbolic_registry(
+                movie, state.data_registry, credits=credits)
             state.responses.append(movie)
 
         state.data_registry[step_id]["validated"] = ranked
