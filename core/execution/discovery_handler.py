@@ -4,7 +4,7 @@ from core.execution.trace_logger import ExecutionTraceLogger
 
 from core.planner.entity_reranker import EntityAwareReranker
 from core.constraint_model import evaluate_constraint_tree
-from core.execution.fallback import FallbackHandler
+from core.execution.fallback import FallbackHandler, FallbackSemanticBuilder
 from core.entity.param_utils import update_symbolic_registry
 
 from core.execution.post_execution_validator import PostExecutionValidator
@@ -41,7 +41,7 @@ class DiscoveryHandler:
                 return
 
             # Last resort: fallback
-            fallback_step = FallbackHandler.enrich_fallback_step(
+            fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
                 original_step=step,
                 extraction_result=state.extraction_result,
                 resolved_entities=state.resolved_entities
