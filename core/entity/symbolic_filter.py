@@ -1,4 +1,4 @@
-from core.model.constraint import evaluate_constraint_tree
+from core.model.evaluator import evaluate_constraint_tree
 
 
 def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> bool:
