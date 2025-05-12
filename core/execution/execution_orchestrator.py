@@ -17,6 +17,7 @@ from nlp.nlp_retriever import PostStepUpdater, PathRewriter, expand_plan_with_de
 from core.model.evaluator import evaluate_constraint_tree
 from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.entity.param_utils import enrich_symbolic_registry
+from core.entity.symbolic_filter import filter_valid_movies
 
 
 class ExecutionOrchestrator:
@@ -283,45 +284,45 @@ class ExecutionOrchestrator:
         ranked = EntityAwareReranker.boost_by_entity_mentions(
             filtered_movies, query_entities)
 
-        ids = evaluate_constraint_tree(
-            state.constraint_tree, state.data_registry)
+        # 🔍 Filter only symbolically valid movies
+        valid_movies = filter_valid_movies(
+            ranked,
+            constraint_tree=state.constraint_tree,
+            registry=state.data_registry
+        )
 
-        # 🔍 Extract valid movie IDs from evaluated constraints
-        valid_movie_ids = set()
-        for id_group in ids.get("movie", {}).values():
-            valid_movie_ids |= id_group
-
-        matched_keys = set(ids.keys())
+        # 📌 Track matched constraints for explanation
+        matched_keys = set(
+            e.key for e in state.constraint_tree if isinstance(e, Constraint))
         matched = [f"{c.key}={c.value}" for c in state.constraint_tree if isinstance(
             c, Constraint) and c.key in matched_keys]
         relaxed = list(state.relaxation_log)
         validated = list(state.post_validation_log)
 
+        # 🧠 Initialize role tracker if needed
         if not hasattr(state, "satisfied_roles"):
             state.satisfied_roles = set()
 
-        for movie in ranked:
-            satisfied = movie.get("_provenance", {}).get("satisfied_roles", [])
-            state.satisfied_roles.update(satisfied)
-
-        for movie in ranked:
+        # 🧪 Process filtered results
+        for movie in valid_movies:
             movie_id = movie.get("id")
-            if movie_id not in valid_movie_ids:
-                continue  # 🔍 Skip movies that don't match constraints
+            if not movie_id:
+                continue
 
+            # Enrich with TMDB /credits if available
             credits = None
-            if movie_id:
-                try:
-                    res = requests.get(
-                        f"{state.base_url}/movie/{movie_id}/credits",
-                        headers=state.headers
-                    )
-                    if res.status_code == 200:
-                        credits = res.json()
-                except Exception as e:
-                    print(
-                        f"⚠️ Could not fetch credits for movie ID {movie_id}: {e}")
+            try:
+                res = requests.get(
+                    f"{state.base_url}/movie/{movie_id}/credits",
+                    headers=state.headers
+                )
+                if res.status_code == 200:
+                    credits = res.json()
+            except Exception as e:
+                print(
+                    f"⚠️ Could not fetch credits for movie ID {movie_id}: {e}")
 
+            # ✅ Inject provenance and enrich registry
             movie["final_score"] = movie.get("final_score", 1.0)
             movie["type"] = "movie_summary"
             movie["_provenance"] = {
@@ -332,6 +333,10 @@ class ExecutionOrchestrator:
 
             enrich_symbolic_registry(
                 movie, state.data_registry, credits=credits)
+
+            satisfied = movie["_provenance"].get("satisfied_roles", [])
+            state.satisfied_roles.update(satisfied)
+
             print(
                 f"🧠 Appending validated movie: {movie.get('title')} with score {movie.get('final_score')}")
             state.responses.append(movie)
