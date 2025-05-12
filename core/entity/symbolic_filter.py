@@ -40,3 +40,37 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
             valid_ids &= match_set
 
     return bool(valid_ids) and entity_id in valid_ids
+
+
+def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list:
+    """
+    Filter a list of TMDB entities based on symbolic constraint satisfaction.
+
+    Args:
+        entities (list): List of TMDB media dicts (must include 'id').
+        constraint_tree: ConstraintGroup holding current query constraints.
+        registry (dict): Enriched symbolic registry (e.g. state.data_registry).
+
+    Returns:
+        list: Entities that pass the symbolic filter.
+    """
+    ids = evaluate_constraint_tree(constraint_tree, registry)
+    movie_constraints = ids.get("movie", {})
+    if not movie_constraints:
+        return []
+
+    logic = getattr(constraint_tree, "logic", "AND").upper()
+
+    if logic == "OR":
+        valid_ids = set()
+        for match_set in movie_constraints.values():
+            valid_ids |= match_set
+    else:
+        valid_ids = None
+        for match_set in movie_constraints.values():
+            if valid_ids is None:
+                valid_ids = set(match_set)
+            else:
+                valid_ids &= match_set
+
+    return [m for m in entities if m.get("id") in valid_ids]
