@@ -11,6 +11,7 @@ from core.execution.post_execution_validator import PostExecutionValidator
 from core.execution.post_validator import PostValidator
 from nlp.nlp_retriever import ResultExtractor
 from core.entity.param_utils import enrich_symbolic_registry
+from core.entity.symbolic_filter import passes_symbolic_filter
 
 
 class DiscoveryHandler:
@@ -67,7 +68,8 @@ class DiscoveryHandler:
             movie["final_score"] = movie.get("final_score", 1.0)
             enrich_symbolic_registry(
                 movie, state.data_registry, credits=credits)
-            state.responses.append(movie)
+            if passes_symbolic_filter(movie, state.constraint_tree, state.data_registry):
+                state.responses.append(movie)
 
         state.data_registry[step_id]["validated"] = ranked
         ExecutionTraceLogger.log_step(
@@ -126,7 +128,11 @@ class DiscoveryHandler:
             if summaries:
                 for summary in summaries:
                     summary["source"] = path
-                state.responses.extend(summaries)
+                filtered = [
+                    m for m in summaries
+                    if passes_symbolic_filter(m, state.constraint_tree, state.data_registry)
+                ]
+                state.responses.extend(filtered)
 
                 ExecutionTraceLogger.log_step(
                     step["step_id"], path,
