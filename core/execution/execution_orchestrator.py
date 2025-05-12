@@ -285,6 +285,12 @@ class ExecutionOrchestrator:
 
         ids = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
+
+        # 🔍 Extract valid movie IDs from evaluated constraints
+        valid_movie_ids = set()
+        for id_group in ids.get("movie", {}).values():
+            valid_movie_ids |= id_group
+
         matched_keys = set(ids.keys())
         matched = [f"{c.key}={c.value}" for c in state.constraint_tree if isinstance(
             c, Constraint) and c.key in matched_keys]
@@ -299,6 +305,23 @@ class ExecutionOrchestrator:
             state.satisfied_roles.update(satisfied)
 
         for movie in ranked:
+            movie_id = movie.get("id")
+            if movie_id not in valid_movie_ids:
+                continue  # 🔍 Skip movies that don't match constraints
+
+            credits = None
+            if movie_id:
+                try:
+                    res = requests.get(
+                        f"{state.base_url}/movie/{movie_id}/credits",
+                        headers=state.headers
+                    )
+                    if res.status_code == 200:
+                        credits = res.json()
+                except Exception as e:
+                    print(
+                        f"⚠️ Could not fetch credits for movie ID {movie_id}: {e}")
+
             movie["final_score"] = movie.get("final_score", 1.0)
             movie["type"] = "movie_summary"
             movie["_provenance"] = {
@@ -306,6 +329,7 @@ class ExecutionOrchestrator:
                 "relaxed_constraints": relaxed,
                 "post_validations": validated
             }
+
             enrich_symbolic_registry(
                 movie, state.data_registry, credits=credits)
             print(
