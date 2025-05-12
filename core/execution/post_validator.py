@@ -2,6 +2,7 @@ from typing import List, Dict
 from core.model.evaluator import evaluate_constraint_tree, relax_constraint_tree
 # avoid circular ref if static
 from core.entity.param_utils import enrich_symbolic_registry
+from core.entity.symbolic_filter import passes_symbolic_filter
 
 
 class PostValidator:
@@ -386,6 +387,10 @@ class PostValidator:
                         score, matched = score_tuple
                         if score > 0:
                             item["final_score"] = min(score, 1.0)
+
+                            # 🧠 Filter against symbolic constraints before final append
+                            if passes_symbolic_filter(item, state.constraint_tree, state.data_registry):
+                                validated.append(item)
 
                             post_validations = item.setdefault(
                                 "_provenance", {}).setdefault("post_validations", [])
