@@ -16,6 +16,9 @@ from core.entity.symbolic_filter import passes_symbolic_filter
 from core.planner.plan_validator import should_apply_symbolic_filter
 from core.planner.plan_utils import is_symbol_free_query
 
+from nlp.nlp_retriever import PathRewriter
+from core.planner.plan_utils import is_symbolically_filterable
+
 
 class DiscoveryHandler:
 
@@ -25,11 +28,19 @@ class DiscoveryHandler:
         endpoint = step.get("endpoint")
         results = json_data.get("results", [])
 
-        # If the query is symbol-free, bypass post-validation and fallback injection
+        if not results:
+            ExecutionTraceLogger.log_step(
+                step_id, endpoint, "Empty", state=state)
+            return
+
+        # 🔁 Symbol-free: skip validation/fallback
         if is_symbol_free_query(state):
             for movie in results:
-                movie["_step"] = step  # embed step context
+                movie["_step"] = step  # ✅ always embed step
+                movie["type"] = "movie_summary"
+                movie["final_score"] = movie.get("vote_average", 0) / 10.0
                 state.responses.append(movie)
+
             ExecutionTraceLogger.log_step(
                 step_id, endpoint, "Handled (symbol-free)",
                 summary=f"{len(results)} result(s) extracted (no post-validation)",
@@ -37,16 +48,11 @@ class DiscoveryHandler:
             )
             return
 
-        if not results:
-            ExecutionTraceLogger.log_step(
-                step_id, endpoint, "Empty", state=state)
-            return
-
-        # Step 1: Validate and score
+        # 🔍 Step 1: Validate and score
         validated = DiscoveryHandler._run_post_validations(
             step, json_data, state)
         if not validated:
-            # No valid results → try relaxing
+            # 🔁 Try relaxing constraints
             relaxed_steps = FallbackHandler.relax_constraints(
                 step, state=state)
             if relaxed_steps:
@@ -55,7 +61,7 @@ class DiscoveryHandler:
                 state.completed_steps.append(step_id)
                 return
 
-            # Last resort: fallback
+            # 🔧 Inject semantic fallback
             fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
                 original_step=step,
                 extraction_result=state.extraction_result,
@@ -73,28 +79,52 @@ class DiscoveryHandler:
             state.completed_steps.append(step_id)
             return
 
-        # Step 2: Rank and append results
+        # 🧠 Step 2: Rank and append
         query_entities = state.extraction_result.get("query_entities", [])
         ranked = EntityAwareReranker.boost_by_entity_mentions(
             validated, query_entities)
 
+        print(f"📊 Ranked results count: {len(ranked)}")
+
         for movie in ranked:
             movie["type"] = "movie_summary"
             movie["final_score"] = movie.get("final_score", 1.0)
+            movie["_step"] = step  # ✅ always embed step context
 
-            enrich_symbolic_registry(
-                movie, state.data_registry, credits=credits)
+            enrich_symbolic_registry(movie, state.data_registry)
 
-            # 🔧 Embed step context for downstream filtering
-            movie["_step"] = step
-            if not should_apply_symbolic_filter(state, movie["_step"]):
+            step_context = movie["_step"]
+            title = movie.get("title") or movie.get("name", "Untitled")
+
+            # ✅ For non-filterable endpoints, accept as-is
+            if not should_apply_symbolic_filter(state, step_context):
+                print(
+                    f"✅ [NO FILTER] {title} → appended without symbolic filtering")
                 state.responses.append(movie)
-            elif passes_symbolic_filter(movie, state.constraint_tree, state.data_registry):
-                state.responses.append(movie)
+                continue
 
+            # ✅ Score movie against all constraints
+            score, matched_constraints = PostValidator.score_movie_against_query(
+                movie,
+                state.constraint_tree,
+                state.data_registry
+            )
+            movie["score"] = score
+            movie["_provenance"] = {"satisfied_roles": matched_constraints}
+
+            if score > 0:
+                print(
+                    f"✅ [MATCHED] {title} → score: {score} | roles: {matched_constraints}")
+                state.responses.append(movie)
+            else:
+                print(
+                    f"❌ [REJECTED] {title} → score: 0 | roles: {matched_constraints}")
+
+        # 🗃️ Store validated entries
         state.data_registry[step_id]["validated"] = ranked
         ExecutionTraceLogger.log_step(
-            step_id, endpoint, "Validated", summary=ranked[0], state=state)
+            step_id, endpoint, "Validated", summary=ranked[0], state=state
+        )
 
     @staticmethod
     def _run_post_validations(step, json_data, state):
@@ -157,12 +187,15 @@ class DiscoveryHandler:
                 summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
 
+            resolved_path = PathRewriter.rewrite(path, state.resolved_entities)
+
             # 🔁 If symbol-free, skip constraint filtering entirely
-            if is_symbol_free_query(state):
+            if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
+                print(f"✅ Skipping symbolic filtering for: {resolved_path}")
                 state.responses.extend(summaries)
                 ExecutionTraceLogger.log_step(
                     step["step_id"], path,
-                    "Handled (symbol-free generic)",
+                    "Handled (non-filtered endpoint)",
                     summary=f"{len(summaries)} result(s) used directly without filtering",
                     state=state
                 )
