@@ -181,3 +181,22 @@ def apply_llm_endpoint_filter(query: str, matches: list, question_type: str) -> 
         m for m in matches
         if (m.get("path") or m.get("endpoint")) in recommended_paths
     ]
+
+
+def should_apply_symbolic_filter(state, step) -> bool:
+    """
+    Return True if symbolic constraint filtering or post-validation should be applied.
+    """
+    if not getattr(state, "constraint_tree", None):
+        return False
+    if not list(state.constraint_tree.flatten()):
+        return False
+
+    if step.get("produces_final_output"):
+        return False
+
+    endpoint = step.get("endpoint", "")
+    if not endpoint.startswith("/discover/"):
+        return False
+
+    return True
