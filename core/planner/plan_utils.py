@@ -144,3 +144,43 @@ def route_symbol_free_intent(state):
         "plan_steps": plan_steps,
         "step": "plan"
     })
+
+
+def is_symbolically_filterable(endpoint: str) -> bool:
+    """
+    Returns True if symbolic filtering should apply to this endpoint.
+    Only discovery- and search-style endpoints are eligible.
+    """
+    if not endpoint:
+        return False
+
+    # These are the only categories where filtering is meaningful
+    filterable_prefixes = (
+        "/discover/",
+        "/search/",
+    )
+
+    # Non-filterable: entity detail endpoints
+    excluded_prefixes = (
+        "/person/",
+        "/company/",
+        "/network/",
+        "/collection/",
+        "/movie/",
+        "/tv/",
+    )
+
+    # If it's a discovery/search, allow filtering
+    for prefix in filterable_prefixes:
+        if endpoint.startswith(prefix):
+            return True
+
+    # Explicitly reject filtering on detail endpoints
+    for prefix in excluded_prefixes:
+        if endpoint.startswith(prefix):
+            if any(k in endpoint for k in ["/credits", "/tv", "/movie", "/external_ids"]):
+                continue  # sub-resource like /credits still may be filterable
+            return False
+
+    # Everything else is not filterable by default
+    return False
