@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import os
 from core.entity.param_utils import GenreNormalizer
 import json
+from typing import Optional
 
 
 class TMDBEntityResolver:
@@ -62,47 +63,78 @@ class TMDBEntityResolver:
         # print(f"⚠️ No genre ID found for '{canonical_name}' with media_type={intended_media_type}")
         return None
 
-    def resolve_entity(self, name: str, entity_type: str) -> int:
-        if entity_type in {"person", "movie", "tv", "collection", "company", "keyword"}:
-            try:
-                response = requests.get(
-                    f"{self.base_url}/search/{entity_type}",
-                    headers=self.headers,
-                    params={"query": name},
-                )
-                response.raise_for_status()
-                results = response.json().get("results", [])
+    def resolve_entity(self, name: str, entity_type: str) -> Optional[int]:
+        name_normalized = name.strip().lower()
+
+        # Special handling for networks using local cache
+        if entity_type == "network":
+            if hasattr(self, 'network_cache'):
+                if name_normalized in self.network_cache:
+                    network_id = self.network_cache[name_normalized]
+                    print(
+                        f"✅ Resolved network '{name}' → {network_id} (from local cache)")
+                    return network_id
+
+                for cached_name, nid in self.network_cache.items():
+                    if name_normalized in cached_name or cached_name in name_normalized:
+                        print(
+                            f"⚡ Fuzzy matched network '{name}' → '{cached_name}' → {nid}")
+                        return nid
+
+        try:
+            response = requests.get(
+                f"{self.base_url}/search/{entity_type}",
+                headers=self.headers,
+                params={"query": name},
+            )
+            response.raise_for_status()
+            results = response.json().get("results", [])
+
+            if entity_type == "company":
+                # Company-specific matching logic
+                for item in results:
+                    label = item.get("name", "").strip().lower()
+                    if label == name_normalized and item.get("origin_country") == "US":
+                        print(f"✅ Verified '{name}' → ID {item['id']}")
+                        return item["id"]
 
                 for item in results:
-                    label = item.get("name") or item.get("title")
-                    if label and label.lower() == name.lower():
-                        # print(f"✅ Resolved {entity_type} '{name}' → {item.get('id')}")
-                        return item.get("id")
+                    label = item.get("name", "").strip().lower()
+                    if name_normalized in label and item.get("origin_country") == "US":
+                        print(
+                            f"⚠️ Fuzzy fallback to US match '{label}' → ID {item['id']}")
+                        return item["id"]
 
-                if results:
-                    fallback_id = results[0].get("id")
-                    # print(f"⚠️ Fallback resolution for {entity_type} '{name}' → {fallback_id}")
-                    return fallback_id
+            # Generic exact match for all types
+            for item in results:
+                label = (item.get("name") or item.get(
+                    "title") or "").strip().lower()
+                if label == name_normalized:
+                    print(
+                        f"✅ Exact match for {entity_type} '{name}' → ID {item['id']}")
+                    return item["id"]
 
-                # print(f"❌ No results for {entity_type} '{name}'")
-            except Exception as e:
+            # Generic substring match for all types
+            for item in results:
+                label = (item.get("name") or item.get(
+                    "title") or "").strip().lower()
+                if name_normalized in label:
+                    print(
+                        f"⚠️ Substring match for {entity_type} '{name}' → ID {item['id']}")
+                    return item["id"]
+
+            # Fallback to first result
+            if results:
+                fallback = results[0]
                 print(
-                    f"❌ Failed to resolve entity '{name}' of type '{entity_type}': {e}")
+                    f"⚠️ Fallback to top result for {entity_type} '{name}' → ID {fallback['id']}")
+                return fallback["id"]
 
-        elif entity_type == "network":
-            lower_name = name.strip().lower()
+            print(f"❌ No results found for {entity_type} '{name}'")
+        except Exception as e:
+            print(f"❌ Error resolving {entity_type} '{name}': {e}")
 
-            # ✅ 1. Exact match from local cache
-            if lower_name in self.network_cache:
-                network_id = self.network_cache[lower_name]
-                # print(f"✅ Resolved network '{name}' → {network_id} (from local file)")
-                return network_id
-
-            # ✅ 2. Fuzzy match fallback
-            for cached_name, nid in self.network_cache.items():
-                if lower_name in cached_name or cached_name in lower_name:
-                    # print(f"⚡ Fuzzy matched network '{name}' → '{cached_name}' → {nid}")
-                    return nid
+        return None
 
     def resolve_entities(self, query_entities, intended_media_type="movie"):
 
