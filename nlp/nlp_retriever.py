@@ -598,52 +598,63 @@ class ResultExtractor:
 
         return endpoint.startswith("/discover") or endpoint.startswith("/search")
 
-    @staticmethod
-    def post_filter_responses(responses, query_entities, extraction_result):
-        """
-        Post-filter responses only if necessary.
-        If the API step already filtered by genre/person/company, skip aggressive filtering.
-        """
-        if not responses:
-            return []
+    # possible redundant code - Currently use -
+    # symbolic constraint filtering via passes_symbolic_filter(...)
+    # Post-validation rules (like POST_VALIDATION_RULES)
+    # Final response pruning in ExecutionOrchestrator
+    # may want it if
+    # A query is vague (e.g., “show me good action movies”), Symbolic constraints weren’t extractable or matched
+    # or working with /discover/* endpoints without applied parameters or want a soft filter (e.g., match genre names in overviews)
 
-        # ⚡ Check if original planning already injected strong filters (e.g., with_genres, with_people)
-        strong_filter_applied = False
-        applied_params = extraction_result.get("applied_parameters", {})
-        if applied_params:
-            strong_filter_applied = any(
-                key in applied_params
-                for key in ("with_genres", "with_people", "with_companies", "with_networks")
-            )
+    # @staticmethod
+    # def post_filter_responses(responses, query_entities, extraction_result, endpoint=None):
+    #     """
+    #     Post-filter responses only if necessary.
+    #     If the API step already filtered by genre/person/company, skip aggressive filtering.
+    #     """
+    #     if not responses:
+    #         return []
 
-        if strong_filter_applied:
-            # print("⚡ Strong filters already applied in plan — skipping aggressive post-filtering.")
-            # ✅ Skip aggressive filtering if strong param filtering was applied.
-            return responses
+    #     if not endpoint.startswith("/discover/"):
+    #         return responses  # Don't filter trending/search results
 
-        # ✅ Otherwise fallback to textual entity matching
-        genre_names = [e["name"].lower()
-                       for e in query_entities if e.get("type") == "genre"]
-        person_names = [e["name"].lower()
-                        for e in query_entities if e.get("type") == "person"]
+    #     # ⚡ Check if original planning already injected strong filters (e.g., with_genres, with_people)
+    #     strong_filter_applied = False
+    #     applied_params = extraction_result.get("applied_parameters", {})
+    #     if applied_params:
+    #         strong_filter_applied = any(
+    #             key in applied_params
+    #             for key in ("with_genres", "with_people", "with_companies", "with_networks")
+    #         )
 
-        filtered = []
-        for r in responses:
-            text = (r.get("title", "") + " " + r.get("overview", "")).lower()
-            keep = True
+    #     if strong_filter_applied:
+    #         # print("⚡ Strong filters already applied in plan — skipping aggressive post-filtering.")
+    #         # ✅ Skip aggressive filtering if strong param filtering was applied.
+    #         return responses
 
-            for genre in genre_names:
-                if genre not in text:
-                    keep = False
+    #     # ✅ Otherwise fallback to textual entity matching
+    #     genre_names = [e["name"].lower()
+    #                    for e in query_entities if e.get("type") == "genre"]
+    #     person_names = [e["name"].lower()
+    #                     for e in query_entities if e.get("type") == "person"]
 
-            for person in person_names:
-                if person not in text:
-                    keep = False
+    #     filtered = []
+    #     for r in responses:
+    #         text = (r.get("title", "") + " " + r.get("overview", "")).lower()
+    #         keep = True
 
-            if keep:
-                filtered.append(r)
+    #         for genre in genre_names:
+    #             if genre not in text:
+    #                 keep = False
 
-        return filtered
+    #         for person in person_names:
+    #             if person not in text:
+    #                 keep = False
+
+    #         if keep:
+    #             filtered.append(r)
+
+    #     return filtered
 
     @staticmethod
     def extract_cast_and_crew_credits(json_data, endpoint):
