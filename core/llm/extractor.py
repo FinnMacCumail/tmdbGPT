@@ -72,11 +72,26 @@ def extract_entities_and_intents(query: str) -> dict:
         result = json.loads(content)  # ✅ Safe JSON parsing
 
         # ✅ Safeguard extracted fields
+        # Ensure standard fields
         result.setdefault("query_entities", [])
         result.setdefault("intents", [])
         result.setdefault("entities", [])
         result.setdefault("question_type", "summary")
-        result.setdefault("response_format", "summary")
+        result.setdefault("response_format", "ranked_list")
+
+        # Inject fallback person query_entities from plural terms
+        if not result["query_entities"]:
+            for keyword in ["actors", "actresses", "directors", "writers", "producers", "composers", "celebrities"]:
+                if keyword in query.lower():
+                    inferred_role = infer_role_from_query(query)
+                    result["query_entities"].append({
+                        "name": keyword,
+                        "type": "person",
+                        "role": inferred_role
+                    })
+                    if "person" not in result["entities"]:
+                        result["entities"].append("person")
+                    break
 
         # phase 19.9 - Media Type Enforcement Baseline
         result["media_type"] = infer_media_type_from_query(query)
@@ -128,13 +143,6 @@ def extract_entities_and_intents(query: str) -> dict:
                         ent["type"] = corrected_type
                         if corrected_type not in result["entities"]:
                             result["entities"].append(corrected_type)
-
-        # ✅ Fallback: Ensure every person has a role, even if LLM missed it
-        for entity in result.get("query_entities", []):
-            if entity.get("type") == "person" and "role" not in entity:
-                inferred_role = infer_role_from_query(query)
-                entity["role"] = inferred_role
-                # print(f"🔎 Inferred missing role for '{entity['name']}': {inferred_role}")
 
         return result
 
