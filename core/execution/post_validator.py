@@ -3,6 +3,7 @@ from core.model.evaluator import evaluate_constraint_tree, relax_constraint_tree
 # avoid circular ref if static
 from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import passes_symbolic_filter
+from core.planner.plan_validator import should_apply_symbolic_filter
 
 
 class PostValidator:
@@ -318,6 +319,8 @@ class PostValidator:
 
     @staticmethod
     def run_post_validations(step, data, state):
+        if not should_apply_symbolic_filter(state, step):
+            return data.get("results", [])
         validated = []
         results = data.get("results", [])
         query_entities = state.extraction_result.get("query_entities", [])

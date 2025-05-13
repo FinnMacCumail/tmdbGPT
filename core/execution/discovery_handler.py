@@ -13,6 +13,8 @@ from nlp.nlp_retriever import ResultExtractor
 from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import passes_symbolic_filter
 
+from core.planner.plan_validator import should_apply_symbolic_filter
+
 
 class DiscoveryHandler:
 
@@ -68,7 +70,9 @@ class DiscoveryHandler:
             movie["final_score"] = movie.get("final_score", 1.0)
             enrich_symbolic_registry(
                 movie, state.data_registry, credits=credits)
-            if passes_symbolic_filter(movie, state.constraint_tree, state.data_registry):
+            if not should_apply_symbolic_filter(state, step):
+                state.responses.append(movie)
+            elif passes_symbolic_filter(movie, state.constraint_tree, state.data_registry):
                 state.responses.append(movie)
 
         state.data_registry[step_id]["validated"] = ranked

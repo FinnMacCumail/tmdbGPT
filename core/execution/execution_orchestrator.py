@@ -6,7 +6,7 @@ from core.execution.trace_logger import ExecutionTraceLogger
 from core.execution.fallback import FallbackHandler, FallbackSemanticBuilder
 from core.execution.discovery_handler import DiscoveryHandler
 from core.planner.entity_reranker import EntityAwareReranker
-from core.planner.plan_validator import PlanValidator, SymbolicConstraintFilter
+from core.planner.plan_validator import PlanValidator, SymbolicConstraintFilter, should_apply_symbolic_filter
 from core.planner.dependency_manager import DependencyManager, inject_lookup_steps_from_role_intersection
 from core.entity.param_utils import update_symbolic_registry
 from core.formatting.registry import RESPONSE_RENDERERS
@@ -219,7 +219,10 @@ class ExecutionOrchestrator:
         final_validated = []
         if getattr(state, "constraint_tree", None):
             for item in state.responses:
-                if state.constraint_tree.is_satisfied_by(item):
+                if should_apply_symbolic_filter(state, step=item.get("source", {})):
+                    if state.constraint_tree.is_satisfied_by(item):
+                        final_validated.append(item)
+                else:
                     final_validated.append(item)
             state.responses = final_validated
 
@@ -316,11 +319,14 @@ class ExecutionOrchestrator:
             filtered_movies, query_entities)
 
         # 🔍 Filter only symbolically valid movies
-        valid_movies = filter_valid_movies(
-            ranked,
-            constraint_tree=state.constraint_tree,
-            registry=state.data_registry
-        )
+        if should_apply_symbolic_filter(state, step):
+            valid_movies = filter_valid_movies(
+                ranked,
+                constraint_tree=state.constraint_tree,
+                registry=state.data_registry
+            )
+        else:
+            valid_movies = ranked  # skip filtering
 
         # 📌 Track matched constraints for explanation
         matched_keys = set(
