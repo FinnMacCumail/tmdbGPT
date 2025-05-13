@@ -1,3 +1,20 @@
+def is_symbol_free_query(state) -> bool:
+    """
+    Returns True if there are no symbolic query entities (like people, genres, companies),
+    and no entity types besides media_type hints like 'tv' or 'movie'.
+    """
+    extraction = state.extraction_result or {}
+    query_entities = extraction.get("query_entities") or []
+    entities = extraction.get("entities") or []
+
+    non_symbolic_entities = {"movie", "tv"}
+
+    # Check if any entity besides media hints remains
+    real_entities = [e for e in entities if e not in non_symbolic_entities]
+
+    return not query_entities and not real_entities
+
+
 def route_symbol_free_intent(state):
     """
     Handles intent-only queries without symbolic constraints.
