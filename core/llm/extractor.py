@@ -79,20 +79,6 @@ def extract_entities_and_intents(query: str) -> dict:
         result.setdefault("question_type", "summary")
         result.setdefault("response_format", "ranked_list")
 
-        # Inject fallback person query_entities from plural terms
-        if not result["query_entities"]:
-            for keyword in ["actors", "actresses", "directors", "writers", "producers", "composers", "celebrities"]:
-                if keyword in query.lower():
-                    inferred_role = infer_role_from_query(query)
-                    result["query_entities"].append({
-                        "name": keyword,
-                        "type": "person",
-                        "role": inferred_role
-                    })
-                    if "person" not in result["entities"]:
-                        result["entities"].append("person")
-                    break
-
         # phase 19.9 - Media Type Enforcement Baseline
         result["media_type"] = infer_media_type_from_query(query)
         # print(f"🎥 Inferred media type: {result['media_type']}")
