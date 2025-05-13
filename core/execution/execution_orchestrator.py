@@ -190,14 +190,14 @@ class ExecutionOrchestrator:
 
         # 🔁 Deduplicate final results by movie ID
         original_count = len(state.responses)
-        seen_ids = set()
+        seen = set()
         deduped = []
 
         for r in state.responses:
-            mid = r.get("id")
-            if mid and mid not in seen_ids:
+            dedup_key = r.get("id") or r.get("title") or r.get("name")
+            if dedup_key and dedup_key not in seen:
                 deduped.append(r)
-                seen_ids.add(mid)
+                seen.add(dedup_key)
 
         state.responses = deduped
         deduped_count = len(deduped)
@@ -217,16 +217,8 @@ class ExecutionOrchestrator:
         state.formatted_response = final_output
 
         final_validated = []
-        if getattr(state, "constraint_tree", None):
-
-            # Track original step context if not available
-            step_lookup = {
-                s["endpoint"]: s for s in state.plan_steps + state.completed_steps}
-
+        if getattr(state, "constraint_tree", None) and any(state.constraint_tree.flatten()):
             for item in state.responses:
-                source = item.get("source")
-                step_context = step_lookup.get(source, {"endpoint": source})
-                # 🔍 Safely extract step context for filtering
                 step_context = item.get("_step") or {
                     "endpoint": item.get("source", "")}
                 if should_apply_symbolic_filter(state, step_context):
@@ -235,6 +227,9 @@ class ExecutionOrchestrator:
                 else:
                     final_validated.append(item)
             state.responses = final_validated
+        else:
+            # 🔥 Symbol-free: skip all symbolic filtering
+            state.responses = state.responses
 
         if getattr(state, "satisfied_roles", None):
             roles_text = ", ".join(sorted(state.satisfied_roles))
