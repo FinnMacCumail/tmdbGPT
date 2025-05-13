@@ -218,8 +218,18 @@ class ExecutionOrchestrator:
 
         final_validated = []
         if getattr(state, "constraint_tree", None):
+
+            # Track original step context if not available
+            step_lookup = {
+                s["endpoint"]: s for s in state.plan_steps + state.completed_steps}
+
             for item in state.responses:
-                if should_apply_symbolic_filter(state, step=item.get("source", {})):
+                source = item.get("source")
+                step_context = step_lookup.get(source, {"endpoint": source})
+                # 🔍 Safely extract step context for filtering
+                step_context = item.get("_step") or {
+                    "endpoint": item.get("source", "")}
+                if should_apply_symbolic_filter(state, step_context):
                     if state.constraint_tree.is_satisfied_by(item):
                         final_validated.append(item)
                 else:
@@ -343,6 +353,7 @@ class ExecutionOrchestrator:
         # 🧪 Process filtered results
         for movie in valid_movies:
             movie_id = movie.get("id")
+            movie["_step"] = step  # 🔧 Embed step metadata
             if not movie_id:
                 continue
 

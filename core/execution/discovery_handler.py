@@ -68,9 +68,13 @@ class DiscoveryHandler:
         for movie in ranked:
             movie["type"] = "movie_summary"
             movie["final_score"] = movie.get("final_score", 1.0)
+
             enrich_symbolic_registry(
                 movie, state.data_registry, credits=credits)
-            if not should_apply_symbolic_filter(state, step):
+
+            # 🔧 Embed step context for downstream filtering
+            movie["_step"] = step
+            if not should_apply_symbolic_filter(state, movie["_step"]):
                 state.responses.append(movie)
             elif passes_symbolic_filter(movie, state.constraint_tree, state.data_registry):
                 state.responses.append(movie)
