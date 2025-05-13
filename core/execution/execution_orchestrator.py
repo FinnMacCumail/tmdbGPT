@@ -188,6 +188,29 @@ class ExecutionOrchestrator:
                     step_id, path, f"Failed ({str(ex)})", state=state)
                 state.error = str(ex)
 
+        # 🔁 Deduplicate final results by movie ID
+        original_count = len(state.responses)
+        seen_ids = set()
+        deduped = []
+
+        for r in state.responses:
+            mid = r.get("id")
+            if mid and mid not in seen_ids:
+                deduped.append(r)
+                seen_ids.add(mid)
+
+        state.responses = deduped
+        deduped_count = len(deduped)
+
+        # 🧠 Log to trace
+        ExecutionTraceLogger.log_step(
+            "deduplication",
+            path="(global)",
+            status="Deduplicated",
+            summary=f"Reduced results from {original_count} to {deduped_count}",
+            state=state
+        )
+
         format_type = state.response_format or "summary"
         renderer = RESPONSE_RENDERERS.get(format_type, format_fallback)
         final_output = renderer(state)
@@ -218,6 +241,10 @@ class ExecutionOrchestrator:
             ]
         )
 
+        # Enhance explanation with deduplication info
+        explanation_lines.append(
+            f"🧹 Deduplicated final results from {original_count} → {deduped_count}.")
+
         if getattr(state, "relaxed_parameters", []):
             relaxed_summary = ", ".join(sorted(set(state.relaxed_parameters)))
             ExecutionTraceLogger.log_step(
@@ -227,6 +254,10 @@ class ExecutionOrchestrator:
                 summary=f"Relaxed constraints attempted before fallback: {relaxed_summary}",
                 state=state
             )
+        # debu log
+        for r in state.responses:
+            print(
+                f"🧠 Final Result: {r['title']} — score: {r.get('final_score')} — constraints: {r.get('_provenance', {}).get('matched_constraints', [])}")
 
         log_summary(state)
         return state
