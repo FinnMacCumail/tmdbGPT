@@ -1,7 +1,7 @@
 from core.planner.entity_reranker import RoleAwareReranker
 from core.execution.execution_orchestrator import ExecutionOrchestrator
 from core.planner.dependency_manager import DependencyManager
-from core.planner.plan_utils import route_symbol_free_intent
+from core.planner.plan_utils import route_symbol_free_intent, is_symbol_free_query
 from core.embeddings.hybrid_retrieval import rank_and_score_matches, convert_matches_to_execution_steps
 from core.llm.extractor import extract_entities_and_intents
 from core.execution.fallback import FallbackHandler
@@ -84,9 +84,8 @@ def retrieve_context(state: AppState) -> AppState:
 
 
 def plan(state: AppState) -> AppState:
-
-    if not state.extraction_result.get("query_entities") and not state.extraction_result.get("entities"):
-        print("⚠️ No query entities or constraints — using symbol-free planner override")
+    if is_symbol_free_query(state):
+        print("⚠️ No symbolic entities — using symbol-free planner override")
         return route_symbol_free_intent(state)
 
     builder = ConstraintBuilder()
