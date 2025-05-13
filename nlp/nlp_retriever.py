@@ -504,6 +504,7 @@ class ResultExtractor:
 
         return [{
             "type": "person_profile",
+            "id": json_data.get("id"),
             "title": name,
             "overview": bio.strip(),
             "source": "/person/profile",
@@ -517,6 +518,7 @@ class ResultExtractor:
 
         return [{
             "type": "company_profile",
+            "id": json_data.get("id"),
             "title": name,
             "overview": description.strip(),
             "source": "/company_or_network/profile",
