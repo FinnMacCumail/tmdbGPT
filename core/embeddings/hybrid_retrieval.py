@@ -4,7 +4,7 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import chromadb
-from nlp.llm_client import OpenAILLMClient
+
 from core.planner.entity_reranker import EntityAwareReranker
 from core.entity.param_utils import normalize_parameters
 from core.planner.plan_validator import PlanValidator
@@ -26,7 +26,6 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 chroma_client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
 collection = chroma_client.get_or_create_collection("tmdb_endpoints")
-openai_client = OpenAILLMClient()
 
 
 class MediaTypeAwareReranker:
