@@ -1,7 +1,7 @@
 from core.planner.entity_reranker import RoleAwareReranker
 from core.execution.execution_orchestrator import ExecutionOrchestrator
 from core.planner.dependency_manager import DependencyManager
-from core.embeddings.hybrid_retrieval_test import semantic_retrieval, convert_matches_to_execution_steps
+from core.embeddings.hybrid_retrieval import rank_and_score_matches, convert_matches_to_execution_steps
 from core.llm.extractor import extract_entities_and_intents
 from core.execution.fallback import FallbackHandler
 from core.entity.entity_resolution import TMDBEntityResolver
@@ -78,7 +78,7 @@ def resolve_entities(state: AppState) -> AppState:
 
 
 def retrieve_context(state: AppState) -> AppState:
-    retrieved_matches = semantic_retrieval(state.extraction_result)
+    retrieved_matches = rank_and_score_matches(state.extraction_result)
     return state.model_copy(update={"retrieved_matches": retrieved_matches, "step": "retrieve_context"})
 
 

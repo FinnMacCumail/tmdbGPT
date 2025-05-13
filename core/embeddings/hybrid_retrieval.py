@@ -110,7 +110,7 @@ JOIN_PARAM_MAP = {
 }
 
 
-def hybrid_search(prompt: str, top_k: int = 10) -> list:
+def retrieve_semantic_matches(prompt: str, top_k: int = 10) -> list:
     """
     Interpret a natural language prompt to generate structured extraction,
     then perform hybrid semantic retrieval.
@@ -123,74 +123,10 @@ def hybrid_search(prompt: str, top_k: int = 10) -> list:
         list: retrieved endpoint matches
     """
     structured = extract_entities_and_intents(prompt)
-    return semantic_retrieval(structured, top_k=top_k)
-
-# This llm call not used directly in the application - it is for semantic embed testpurposes
+    return rank_and_score_matches(structured, top_k=top_k)
 
 
-def extract_intent_entities(openai, query):
-    prompt = f"""
-    Extract intents and entities from the user's query using this schema:
-
-    {{
-        "intents": ["recommendation.similarity", "recommendation.suggested", "discovery.filtered",
-                    "discovery.genre_based", "discovery.temporal", "discovery.advanced",
-                    "search.basic", "search.multi", "media_assets.image", "media_assets.video",
-                    "details.movie", "details.tv", "credits.movie", "credits.tv", "credits.person",
-                    "trending.popular", "trending.top_rated", "reviews.movie", "reviews.tv",
-                    "collections.movie", "companies.studio", "companies.network"],
-        "entities": ["movie", "tv", "person", "company", "network", "collection", "genre", "year", "keyword", "credit", "rating", "date"],
-        "query_entities": ["names, titles or specific things directly mentioned by the user"]
-    }}
-
-    User Query: \"{query}\"
-    Respond with ONLY valid JSON. No commentary:
-    """
-
-    response = openai.chat.completions.create(
-        model="gpt-4-turbo",
-        messages=[
-            {"role": "system", "content": "Extract intent and entity data as JSON."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0
-    )
-
-    content = response.choices[0].message.content.strip()
-
-    try:
-        result = json.loads(content)
-
-        # ✅ Fallback correction for known streaming services
-        streaming_services = {
-            "netflix": "company",
-            "amazon prime": "company",
-            "prime video": "company",
-            "hulu": "company",
-            "disney+": "company",
-            "apple tv": "company",
-            "peacock": "company",
-            "paramount+": "company",
-            "hbo": "network",     # TMDB treats HBO as network
-            "starz": "network"
-        }
-
-        for ent in result.get("query_entities", []):
-            name_lower = ent.get("name", "").strip().lower()
-            for keyword, corrected_type in streaming_services.items():
-                if keyword in name_lower and ent.get("type") != corrected_type:
-                    # print(f"🔁 Correcting '{ent['name']}' type: {ent['type']} → {corrected_type}")
-                    ent["type"] = corrected_type
-                    if corrected_type not in result["entities"]:
-                        result["entities"].append(corrected_type)
-
-        return result
-    except json.JSONDecodeError:
-        print("❌ Invalid JSON:\n", content)
-        return None
-
-
-def score_match(user_extraction, candidate_metadata):
+def compute_match_score(user_extraction, candidate_metadata):
     user_intents = set(user_extraction.get("intents", []))
     user_entities = set(user_extraction.get("entities", []))
     query_entities = [e for e in user_extraction.get(
@@ -258,7 +194,7 @@ def score_match(user_extraction, candidate_metadata):
     return round(score, 3)
 
 
-def semantic_retrieval(extraction_result, top_k=10):
+def rank_and_score_matches(extraction_result, top_k=10):
     embedding_text = json.dumps(extraction_result)
     query_embedding = embedder.encode(embedding_text).tolist()
 
@@ -274,7 +210,7 @@ def semantic_retrieval(extraction_result, top_k=10):
         metadata["parameters"] = normalize_parameters(
             metadata.get("parameters", {}))
 
-        score = score_match(extraction_result, metadata)
+        score = compute_match_score(extraction_result, metadata)
         final_score = 0.7 * score + 0.3 * (1 - distance)
 
         metadata.update({

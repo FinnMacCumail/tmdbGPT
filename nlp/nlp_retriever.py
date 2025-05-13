@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import re
 from typing import Dict, List, Optional, Set, Any
 
-from core.embeddings.hybrid_retrieval_test import hybrid_search, convert_matches_to_execution_steps
+from core.embeddings.hybrid_retrieval import retrieve_semantic_matches, convert_matches_to_execution_steps
 from core.planner.plan_validator import PlanValidator, SymbolicConstraintFilter
 from pathlib import Path
 
@@ -86,7 +86,7 @@ class DependencyEndpointSuggester:
 
         all_matches = []
         for q in queries:
-            results = hybrid_search(q, top_k=limit)
+            results = retrieve_semantic_matches(q, top_k=limit)
             all_matches.extend(results)
 
         # De-duplicate by endpoint
