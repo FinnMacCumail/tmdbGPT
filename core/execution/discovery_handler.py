@@ -14,6 +14,7 @@ from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import passes_symbolic_filter
 
 from core.planner.plan_validator import should_apply_symbolic_filter
+from core.planner.plan_utils import is_symbol_free_query
 
 
 class DiscoveryHandler:
@@ -23,6 +24,18 @@ class DiscoveryHandler:
         step_id = step.get("step_id")
         endpoint = step.get("endpoint")
         results = json_data.get("results", [])
+
+        # If the query is symbol-free, bypass post-validation and fallback injection
+        if is_symbol_free_query(state):
+            for movie in results:
+                movie["_step"] = step  # embed step context
+                state.responses.append(movie)
+            ExecutionTraceLogger.log_step(
+                step_id, endpoint, "Handled (symbol-free)",
+                summary=f"{len(results)} result(s) extracted (no post-validation)",
+                state=state
+            )
+            return
 
         if not results:
             ExecutionTraceLogger.log_step(
@@ -127,27 +140,48 @@ class DiscoveryHandler:
     def handle_generic_response(step, json_data, state):
         """
         Extract generic summaries from non-discovery endpoints and attach to state.
+        Applies symbolic filtering only when necessary.
         """
-
         path = step["endpoint"]
         try:
             summaries = ResultExtractor.extract(
                 json_data, path, state.resolved_entities)
-            if summaries:
-                for summary in summaries:
-                    summary["source"] = path
-                filtered = [
-                    m for m in summaries
-                    if passes_symbolic_filter(m, state.constraint_tree, state.data_registry)
-                ]
-                state.responses.extend(filtered)
 
+            if not summaries:
+                return
+
+            # Embed metadata on each result
+            for summary in summaries:
+                summary["source"] = path
+                summary["_step"] = step
+                summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
+                summary["final_score"] = summary.get("final_score", 1.0)
+
+            # 🔁 If symbol-free, skip constraint filtering entirely
+            if is_symbol_free_query(state):
+                state.responses.extend(summaries)
                 ExecutionTraceLogger.log_step(
                     step["step_id"], path,
-                    "Handled",
-                    summary=f"{len(summaries)} result(s) extracted.",
+                    "Handled (symbol-free generic)",
+                    summary=f"{len(summaries)} result(s) used directly without filtering",
                     state=state
                 )
+                return
+
+            # 🧪 Apply symbolic constraint filtering
+            filtered = [
+                m for m in summaries
+                if passes_symbolic_filter(m, state.constraint_tree, state.data_registry)
+            ]
+
+            state.responses.extend(filtered)
+            ExecutionTraceLogger.log_step(
+                step["step_id"], path,
+                "Handled (filtered)",
+                summary=f"{len(filtered)} of {len(summaries)} result(s) kept after symbolic filtering",
+                state=state
+            )
+
         except Exception as e:
             ExecutionTraceLogger.log_step(
                 step["step_id"], path,
