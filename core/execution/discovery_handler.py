@@ -33,10 +33,10 @@ class DiscoveryHandler:
                 step_id, endpoint, "Empty", state=state)
             return
 
-        # 🔁 Symbol-free: skip validation/fallback
+        # 🔁 Symbol-free queries bypass filtering
         if is_symbol_free_query(state):
             for movie in results:
-                movie["_step"] = step  # ✅ always embed step
+                movie["_step"] = step
                 movie["type"] = "movie_summary"
                 movie["final_score"] = movie.get("vote_average", 0) / 10.0
                 state.responses.append(movie)
@@ -48,11 +48,14 @@ class DiscoveryHandler:
             )
             return
 
-        # 🔍 Step 1: Validate and score
-        validated = DiscoveryHandler._run_post_validations(
-            step, json_data, state)
+        # ✅ Only apply validation if endpoint supports symbolic filtering
+        validated = results
+        if is_symbolically_filterable(endpoint):
+            validated = DiscoveryHandler._run_post_validations(
+                step, json_data, state)
+
         if not validated:
-            # 🔁 Try relaxing constraints
+            # 🔁 Try relaxing
             relaxed_steps = FallbackHandler.relax_constraints(
                 step, state=state)
             if relaxed_steps:
@@ -61,7 +64,7 @@ class DiscoveryHandler:
                 state.completed_steps.append(step_id)
                 return
 
-            # 🔧 Inject semantic fallback
+            # 🔧 Inject fallback
             fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
                 original_step=step,
                 extraction_result=state.extraction_result,
@@ -79,92 +82,70 @@ class DiscoveryHandler:
             state.completed_steps.append(step_id)
             return
 
-        # 🧠 Step 2: Rank and append
+        # 🧠 Rank and filter
         query_entities = state.extraction_result.get("query_entities", [])
         ranked = EntityAwareReranker.boost_by_entity_mentions(
             validated, query_entities)
 
-        print(f"📊 Ranked results count: {len(ranked)}")
-
         for movie in ranked:
             movie["type"] = "movie_summary"
-            movie["final_score"] = movie.get("final_score", 1.0)
-            movie["_step"] = step  # ✅ always embed step context
+            movie["_step"] = step
+            score = movie.get("final_score", 0)
+            matched = movie.get("_provenance", {}).get(
+                "matched_constraints", [])
 
-            enrich_symbolic_registry(movie, state.data_registry)
-
-            step_context = movie["_step"]
-            title = movie.get("title") or movie.get("name", "Untitled")
-
-            # ✅ For non-filterable endpoints, accept as-is
-            if not should_apply_symbolic_filter(state, step_context):
-                print(
-                    f"✅ [NO FILTER] {title} → appended without symbolic filtering")
+            if score > 0 and matched:
                 state.responses.append(movie)
-                continue
-
-            # ✅ Score movie against all constraints
-            score, matched_constraints = PostValidator.score_movie_against_query(
-                movie,
-                state.constraint_tree,
-                state.data_registry
-            )
-            movie["score"] = score
-            movie["_provenance"] = {"satisfied_roles": matched_constraints}
-
-            if score > 0:
                 print(
-                    f"✅ [MATCHED] {title} → score: {score} | roles: {matched_constraints}")
-                state.responses.append(movie)
+                    f"✅ [APPENDED] {movie.get('title')} — score={score} — matched: {matched}")
             else:
                 print(
-                    f"❌ [REJECTED] {title} → score: 0 | roles: {matched_constraints}")
+                    f"❌ [REJECTED] {movie.get('title')} — score={score} — matched: {matched}")
 
-        # 🗃️ Store validated entries
         state.data_registry[step_id]["validated"] = ranked
         ExecutionTraceLogger.log_step(
-            step_id, endpoint, "Validated", summary=ranked[0], state=state
-        )
+            step_id, endpoint, "Validated", summary=ranked[0], state=state)
 
-    @staticmethod
-    def _run_post_validations(step, json_data, state):
-        """
-        Validate movie results against symbolic constraint tree and role presence.
-        """
-        results = json_data.get("results", [])
-        validated = []
+        @staticmethod
+        def _run_post_validations(step, json_data, state):
+            """
+            Validate movie results against symbolic constraint tree and role presence.
+            """
+            results = json_data.get("results", [])
+            validated = []
 
-        for movie in results:
-            movie_id = movie.get("id")
-            if not movie_id:
-                continue
-
-            credits_url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits"
-            try:
-                import requests
-                res = requests.get(credits_url, headers=state.headers)
-                if res.status_code != 200:
+            for movie in results:
+                movie_id = movie.get("id")
+                if not movie_id:
                     continue
-                credits = res.json()
-            except Exception:
-                continue
 
-            score, matched_constraints = PostValidator.score_movie_against_query(
-                movie=movie,
-                state=state,
-                credits=credits,
-                step=step,
-                query_entities=state.extraction_result.get(
-                    "query_entities", [])
-            )
+                credits_url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits"
+                try:
+                    import requests
+                    res = requests.get(credits_url, headers=state.headers)
+                    if res.status_code != 200:
+                        continue
+                    credits = res.json()
+                except Exception:
+                    continue
 
-            if score > 0:
-                movie["final_score"] = min(score, 1.0)
-                movie["_provenance"] = movie.get("_provenance", {})
-                movie["_provenance"]["matched_constraints"] = matched_constraints
-                validated.append(movie)
+                score, matched_constraints = PostValidator.score_movie_against_query(
+                    movie=movie,
+                    constraint_tree=state.constraint_tree,
+                    state=state,
+                    credits=credits,
+                    step=step,
+                    query_entities=state.extraction_result.get(
+                        "query_entities", [])
+                )
 
-        return validated
+                if score > 0:
+                    movie["final_score"] = min(score, 1.0)
+                    movie["_provenance"] = movie.get("_provenance", {})
+                    movie["_provenance"]["matched_constraints"] = matched_constraints
+                    validated.append(movie)
+
+            return validated
 
     @staticmethod
     def handle_generic_response(step, json_data, state):
