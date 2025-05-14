@@ -398,16 +398,13 @@ class PostValidator:
             - Company/Network: 0.3
             - Year (if desired later): 0.2
         """
-        constraint_tree = state.constraint_tree
+        constraint_tree = kwargs.get("constraint_tree") or (
+            getattr(state, "constraint_tree", None) if state else None
+        )
+        if constraint_tree is None:
+            raise ValueError("Missing constraint_tree in state or kwargs")
+
         relaxed = getattr(state, "last_dropped_constraints", [])
-
-        matched_constraints = []
-        matched_roles = set()
-        matched_entities = set()
-        post_validations = []
-
-        score = 0.0
-
         # Weights per entity type
         WEIGHTS = {
             "cast": 0.4,
@@ -419,98 +416,91 @@ class PostValidator:
             "network": 0.3,
         }
 
-        for constraint in constraint_tree.flatten():
+        score = 0.0
+        matched_constraints = []
+        matched_roles = set()
+        matched_entities = set()
+        post_validations = []
+
+        flattened = list(constraint_tree.flatten())
+
+        for constraint in flattened:
             type_ = constraint.type
-            value = str(constraint.value)
-            subtype = constraint.subtype
+            key = constraint.key
+            value = str(constraint.value)       # for matched_constraints
+            raw_value = constraint.value        # for comparison
+            subtype = (constraint.subtype or "").lower()
 
             if type_ == "person":
                 if not credits:
                     continue
+                cast = credits.get("cast", [])
+                crew = credits.get("crew", [])
+
                 if subtype in {"cast", "actor"}:
-                    cast_ids = {str(p["id"]) for p in credits.get("cast", [])}
-                    if value in cast_ids:
+                    if raw_value in {p.get("id") for p in cast}:
                         score += WEIGHTS.get("cast", 0)
-                        matched_constraints.append(f"{constraint.key}={value}")
+                        matched_constraints.append(f"{key}={value}")
                         matched_roles.add("cast")
                         matched_entities.add("person")
                         post_validations.append("has_all_cast")
+
                 elif subtype == "director":
-                    crew = credits.get("crew", [])
-                    directors = {str(p["id"])
-                                 for p in crew if p.get("job") == "Director"}
-                    if value in directors:
+                    if raw_value in {p.get("id") for p in crew if p.get("job") == "Director"}:
                         score += WEIGHTS.get("director", 0)
-                        matched_constraints.append(f"{constraint.key}={value}")
+                        matched_constraints.append(f"{key}={value}")
                         matched_roles.add("director")
                         matched_entities.add("person")
                         post_validations.append("has_director")
+
                 elif subtype == "writer":
-                    crew = credits.get("crew", [])
-                    writers = {str(p["id"]) for p in crew if p.get(
+                    writer_ids = {p.get("id") for p in crew if p.get(
                         "job", "").lower() in {"writer", "screenplay"}}
-
-                    # debug check
-                    writer_ids = {str(p["id"]) for p in crew if p.get(
-                        "job", "").lower() in {"writer", "screenplay"}}
-
-                    if value in writers:
+                    if raw_value in writer_ids:
                         score += WEIGHTS.get("writer", 0)
-                        matched_constraints.append(f"{constraint.key}={value}")
+                        matched_constraints.append(f"{key}={value}")
                         matched_roles.add("writer")
                         matched_entities.add("person")
                         post_validations.append("has_writer")
-                    # debug check
-                    else:
-                        print(
-                            f"❌ No writer match: {value} not in writer_ids → {writer_ids}")
 
                 elif subtype == "composer":
-                    crew = credits.get("crew", [])
-                    composers = {
-                        str(p["id"]) for p in crew if "music" in p.get("job", "").lower()}
-                    if value in composers:
+                    composer_ids = {
+                        p.get("id") for p in crew if "music" in p.get("job", "").lower()}
+                    if raw_value in composer_ids:
                         score += WEIGHTS.get("composer", 0)
-                        matched_constraints.append(f"{constraint.key}={value}")
+                        matched_constraints.append(f"{key}={value}")
                         matched_roles.add("composer")
                         matched_entities.add("person")
                         post_validations.append("has_composer")
 
             elif type_ == "genre":
-                if int(value) in movie.get("genre_ids", []):
+                if int(raw_value) in movie.get("genre_ids", []):
                     score += WEIGHTS.get("genre", 0)
-                    matched_constraints.append(f"{constraint.key}={value}")
+                    matched_constraints.append(f"{key}={value}")
                     matched_entities.add("genre")
                     post_validations.append("genre_matched")
 
             elif type_ == "company":
-                if PostValidator.validate_company(movie, [constraint.value]):
+                if PostValidator.validate_company(movie, [raw_value]):
                     score += WEIGHTS.get("company", 0)
-                    matched_constraints.append(f"{constraint.key}={value}")
+                    matched_constraints.append(f"{key}={value}")
                     matched_entities.add("company")
                     post_validations.append("company_matched")
-                # debug check
-                else:
-                    print(
-                        f"❌ No company match: {value} not in production_companies → {[c.get('id') for c in movie.get('production_companies', [])]}")
 
-            elif type_ == "network" and movie.get("media_type") == "tv":
-                if PostValidator.validate_network(movie, [constraint.value]):
+            elif type_ == "network":
+                if movie.get("media_type") == "tv" and PostValidator.validate_network(movie, [raw_value]):
                     score += WEIGHTS.get("network", 0)
-                    matched_constraints.append(f"{constraint.key}={value}")
+                    matched_constraints.append(f"{key}={value}")
                     matched_entities.add("network")
                     post_validations.append("network_matched")
-                # debug chec
-                else:
-                    print(
-                        f"❌ No network match: {value} not in networks → {[n.get('id') for n in movie.get('networks', [])]}")
-        # Cap score at 1.0
-        score = round(min(score, 1.0), 3)
 
-        # Provenance
+        total_constraints = len(flattened)
+        normalized_score = round(
+            score / total_constraints, 3) if total_constraints else 0.0
+
         movie["_provenance"] = movie.get("_provenance", {})
         movie["_provenance"].update({
-            "final_score": score,
+            "final_score": normalized_score,
             "matched_constraints": matched_constraints,
             "relaxed_constraints": [
                 f"Dropped {c.key}={c.value} (priority={c.priority}, confidence={c.confidence})"
@@ -521,4 +511,9 @@ class PostValidator:
             "matched_entities": sorted(matched_entities)
         })
 
-        return score, matched_constraints
+        print(f"🧠 Matched: {matched_constraints}")
+        print(
+            f"🎯 Score: {score} / {sum(WEIGHTS.get(c.subtype or c.type, 0) for c in flattened)}")
+        print(f"🔍 Final normalized score: {normalized_score}")
+
+        return normalized_score, matched_constraints
