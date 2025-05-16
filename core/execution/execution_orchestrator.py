@@ -363,7 +363,13 @@ class ExecutionOrchestrator:
             }
 
             enrich_symbolic_registry(
-                movie, state.data_registry, credits=credits)
+                movie,
+                state.data_registry,
+                credits=credits,
+                keywords=None,
+                release_info=None,
+                watch_providers=None
+            )
 
             satisfied = movie["_provenance"].get("satisfied_roles", [])
             state.satisfied_roles.update(satisfied)
