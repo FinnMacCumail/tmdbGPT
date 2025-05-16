@@ -217,6 +217,17 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     enrich_year(entity, registry)
     enrich_watch_providers(entity, watch_providers, registry)
 
+    debug_keys = list(registry.keys())
+    entity_title = entity.get("title") or entity.get("name") or "Unknown"
+    entity_id = entity.get("id")
+    print(
+        f"🧩 Enriched {entity_title} (ID: {entity_id}) with keys: {sorted(debug_keys)}")
+    for key in sorted(registry):
+        subkeys = registry[key]
+        for subk, ids in subkeys.items():
+            if entity_id and str(entity_id) in ids:
+                print(f"   ↳ {key}[{subk}]: matched ID {entity_id}")
+
 
 def enrich_person_roles(entity, credits, registry, media_type):
     if not credits:
