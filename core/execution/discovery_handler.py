@@ -94,6 +94,9 @@ class DiscoveryHandler:
             matched = movie.get("_provenance", {}).get(
                 "matched_constraints", [])
 
+            print(
+                f"🎯 SCORE: {movie.get('title')} — {score} — constraints matched: {matched}")
+
             if score > 0 and matched:
                 state.responses.append(movie)
                 print(
@@ -173,7 +176,8 @@ class DiscoveryHandler:
             # 🔁 If symbol-free, skip constraint filtering entirely
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
                 print(f"✅ Skipping symbolic filtering for: {resolved_path}")
-                state.responses.extend(summaries)
+                filtered = filter_symbolic_responses(state, summaries, path)
+                state.responses.extend(filtered)
                 ExecutionTraceLogger.log_step(
                     step["step_id"], path,
                     "Handled (non-filtered endpoint)",
@@ -202,3 +206,24 @@ class DiscoveryHandler:
                 status=f"Failed during generic extract: {e}",
                 state=state
             )
+
+
+def filter_symbolic_responses(state, summaries, endpoint):
+    """
+    Filters a list of summary dicts based on:
+    - final_score > 0
+    - symbolic constraint satisfaction (if required for endpoint)
+    """
+    filtered = []
+    for s in summaries:
+        score = s.get("final_score", 0)
+        if score <= 0:
+            continue
+
+        if should_apply_symbolic_filter(state, {"endpoint": endpoint}):
+            if passes_symbolic_filter(s, state.constraint_tree, state.data_registry):
+                filtered.append(s)
+        else:
+            filtered.append(s)
+
+    return filtered
