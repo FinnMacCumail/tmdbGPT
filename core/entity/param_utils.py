@@ -186,132 +186,145 @@ def get_param_key_for_type(type_, prefer="default"):
     return type_  # final fallback
 
 
-def update_symbolic_registry(entity: dict, registry: dict, credits: dict = None, keywords: list = None, release_info: dict = None, watch_providers: dict = None):
+def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keywords=None, release_info=None, watch_providers=None):
     """
-    Updates symbolic registry with known symbolic constraints.
-    - credits: from /movie/{id}/credits
-    - keywords: from /movie/{id}/keywords
-    - release_info: from /movie/{id}/release_dates
-    - watch_providers: from /movie/{id}/watch/providers
+    Symbolically enrich a TMDB entity (movie or TV show) into the constraint registry for filtering.
+
+    - Handles cast/crew/person roles
+    - Handles genres, companies, networks
+    - Handles keywords, certification, providers
+    - Handles language, region, runtime, year
     """
+    if not isinstance(entity, dict):
+        return
+
+    media_type = entity.get("media_type") or (
+        "tv" if "first_air_date" in entity else "movie")
     entity_id = entity.get("id")
+
     if not entity_id:
         return
 
-    # genre
-    for gid in entity.get("genre_ids", []):
+    enrich_person_roles(entity, credits, registry, media_type)
+    enrich_genres(entity, registry, media_type)
+    enrich_networks(entity, registry)
+    enrich_companies(entity, registry)
+    enrich_keywords(entity, keywords, registry)
+    enrich_certification(entity, release_info, registry)
+    enrich_language(entity, registry)
+    enrich_region(entity, registry)
+    enrich_runtime(entity, registry)
+    enrich_year(entity, registry)
+    enrich_watch_providers(entity, watch_providers, registry)
+
+
+def enrich_person_roles(entity, credits, registry, media_type):
+    if not credits:
+        return
+    cast = credits.get("cast", [])
+    crew = credits.get("crew", [])
+    for person in cast:
+        pid = person.get("id")
+        if pid:
+            registry.setdefault("with_people", {}).setdefault(
+                str(pid), set()).add(entity["id"])
+    for person in crew:
+        pid = person.get("id")
+        job = person.get("job", "").lower()
+        if pid:
+            registry.setdefault("with_people", {}).setdefault(
+                str(pid), set()).add(entity["id"])
+            if job in {"director", "writer", "screenplay", "producer", "composer"}:
+                registry.setdefault(job, {}).setdefault(
+                    str(pid), set()).add(entity["id"])
+
+
+def enrich_genres(entity, registry, media_type):
+    genre_ids = entity.get("genre_ids") or [
+        g["id"] for g in entity.get("genres", [])]
+    for gid in genre_ids:
         registry.setdefault("with_genres", {}).setdefault(
-            str(gid), set()).add(entity_id)
+            str(gid), set()).add(entity["id"])
 
-    # company
-    for comp in entity.get("production_companies", []):
-        cid = comp.get("id")
-        if cid:
-            registry.setdefault("with_companies", {}).setdefault(
-                str(cid), set()).add(entity_id)
 
-    # network
-    for net in entity.get("networks", []):
-        nid = net.get("id")
+def enrich_networks(entity, registry):
+    for n in entity.get("networks", []):
+        nid = n.get("id")
         if nid:
             registry.setdefault("with_networks", {}).setdefault(
-                str(nid), set()).add(entity_id)
+                str(nid), set()).add(entity["id"])
 
-    # language
+
+def enrich_companies(entity, registry):
+    for c in entity.get("production_companies", []):
+        cid = c.get("id")
+        if cid:
+            registry.setdefault("with_companies", {}).setdefault(
+                str(cid), set()).add(entity["id"])
+
+
+def enrich_keywords(entity, keywords, registry):
+    if not keywords:
+        return
+    for kw in keywords.get("keywords", []):
+        kid = kw.get("id")
+        if kid:
+            registry.setdefault("with_keywords", {}).setdefault(
+                str(kid), set()).add(entity["id"])
+
+
+def enrich_certification(entity, release_info, registry):
+    if not release_info:
+        return
+    for entry in release_info.get("results", []):
+        for release in entry.get("release_dates", []):
+            cert = release.get("certification")
+            if cert:
+                registry.setdefault("certification", {}).setdefault(
+                    cert, set()).add(entity["id"])
+
+
+def enrich_language(entity, registry):
     lang = entity.get("original_language")
     if lang:
         registry.setdefault("with_original_language", {}).setdefault(
-            str(lang), set()).add(entity_id)
+            lang, set()).add(entity["id"])
 
-    # country
-    for country in entity.get("origin_country", []):
-        registry.setdefault("watch_region", {}).setdefault(
-            str(country), set()).add(entity_id)
 
-    # person indexing from credits
-    if credits:
-        for cast_member in credits.get("cast", []):
-            pid = cast_member.get("id")
+def enrich_region(entity, registry):
+    country = entity.get("origin_country") or []
+    for r in country:
+        registry.setdefault("region", {}).setdefault(
+            r, set()).add(entity["id"])
+
+
+def enrich_runtime(entity, registry):
+    runtime = entity.get("runtime")
+    if runtime:
+        registry.setdefault("runtime", {}).setdefault(
+            str(runtime), set()).add(entity["id"])
+
+
+def enrich_year(entity, registry):
+    date = entity.get("release_date") or entity.get("first_air_date")
+    if date and len(date) >= 4:
+        year = date[:4]
+        registry.setdefault("primary_release_year", {}).setdefault(
+            year, set()).add(entity["id"])
+
+
+def enrich_watch_providers(entity, watch_providers, registry):
+    if not watch_providers:
+        return
+    for key in ["flatrate", "ads", "buy", "rent"]:
+        for p in watch_providers.get("results", {}).get("US", {}).get(key, []):
+            pid = p.get("provider_id")
             if pid:
-                registry.setdefault("with_people", {}).setdefault(
-                    str(pid), set()).add(entity_id)
-                registry.setdefault("with_cast", {}).setdefault(
-                    str(pid), set()).add(entity_id)
-        for crew_member in credits.get("crew", []):
-            pid = crew_member.get("id")
-            job = crew_member.get("job", "").lower()
-            if pid:
-                registry.setdefault("with_people", {}).setdefault(
-                    str(pid), set()).add(entity_id)
-                registry.setdefault("with_crew", {}).setdefault(
-                    str(pid), set()).add(entity_id)
-                if job == "director":
-                    registry.setdefault("with_crew_director", {}).setdefault(
-                        str(pid), set()).add(entity_id)
-
-    # keywords
-    if keywords:
-        for kw in keywords:
-            kid = kw.get("id")
-            if kid:
-                registry.setdefault("with_keywords", {}).setdefault(
-                    str(kid), set()).add(entity_id)
-
-    # certifications
-    if release_info:
-        results = release_info.get("results", [])
-        for region_block in results:
-            country_code = region_block.get("iso_3166_1")
-            for release in region_block.get("release_dates", []):
-                cert = release.get("certification")
-                if cert:
-                    registry.setdefault("certification", {}).setdefault(
-                        cert, set()).add(entity_id)
-                if country_code:
-                    registry.setdefault("certification_country", {}).setdefault(
-                        country_code, set()).add(entity_id)
-
-    # watch providers and monetization types
-    if watch_providers:
-        results = watch_providers.get("results", {})
-        for country_code, info in results.items():
-            registry.setdefault("watch_region", {}).setdefault(
-                country_code, set()).add(entity_id)
-            for m_type in ["flatrate", "buy", "rent", "ads"]:
-                if m_type in info:
-                    registry.setdefault("with_watch_monetization_types", {}).setdefault(
-                        m_type, set()).add(entity_id)
-                    for provider in info[m_type]:
-                        pid = provider.get("provider_id")
-                        if pid:
-                            registry.setdefault("with_watch_providers", {}).setdefault(
-                                str(pid), set()).add(entity_id)
-
-    # Numeric/date value fields for .gte/.lte filtering
-    if "vote_average" in entity:
-        registry.setdefault("vote_average", {})[
-            entity_id] = entity["vote_average"]
-    if "vote_count" in entity:
-        registry.setdefault("vote_count", {})[entity_id] = entity["vote_count"]
-    if "release_date" in entity:
-        registry.setdefault("release_date", {})[
-            entity_id] = entity["release_date"]
-    if "first_air_date" in entity:
-        registry.setdefault("first_air_date", {})[
-            entity_id] = entity["first_air_date"]
-
-# core/entity/symbolic_indexer.py
+                registry.setdefault("with_watch_providers", {}).setdefault(
+                    str(pid), set()).add(entity["id"])
 
 
-def enrich_symbolic_registry(
-    movie: dict,
-    registry: dict,
-    *,
-    credits: dict = None,
-    keywords: list = None,
-    release_info: dict = None,
-    watch_providers: dict = None
-) -> None:
+def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, release_info=None, watch_providers=None):
     """
     Robust wrapper to symbolically index a movie into the constraint registry.
     Supports full enrichment from credits, keywords, release dates, and providers.
