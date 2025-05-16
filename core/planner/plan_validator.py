@@ -9,6 +9,7 @@ from core.llm.focused_endpoints import get_focused_endpoints
 from core.model.constraint import Constraint
 from core.model.evaluator import evaluate_constraint_tree
 from core.planner.question_routing import SymbolicConstraintFilter, QUESTION_TYPE_ROUTING
+from core.planner.plan_utils import is_symbolically_filterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CHROMA_PATH = PROJECT_ROOT / "chroma_db"
@@ -185,18 +186,31 @@ def apply_llm_endpoint_filter(query: str, matches: list, question_type: str) -> 
 
 def should_apply_symbolic_filter(state, step) -> bool:
     """
-    Return True if symbolic constraint filtering or post-validation should be applied.
+    Return True if symbolic constraint filtering should apply to this step.
+    Applies if:
+    - Endpoint is explicitly symbolically filterable, OR
+    - The query includes symbolic constraints like with_people, with_genres, etc.
     """
-    if not getattr(state, "constraint_tree", None):
-        return False
-    if not list(state.constraint_tree.flatten()):
+    if not step:
         return False
 
-    if step.get("produces_final_output"):
-        return False
+    endpoint = step.get("endpoint") or step.get("path") or ""
+    if is_symbolically_filterable(endpoint):
+        return True
 
-    endpoint = step.get("endpoint", "")
-    if not endpoint.startswith("/discover/"):
-        return False
+    # 🔍 Fallback override: force filtering if symbolic constraints are present
+    constraint_tree = getattr(state, "constraint_tree", None)
 
-    return True
+    #!!!!!!!!!!!!!!!!!!!!!!!! - this is limited
+
+    if constraint_tree:
+        symbolic_keys = {"with_people", "with_genres", "with_keywords",
+                         "with_companies", "with_networks", "with_movies",
+                         "vote_average.gte", "primary_release_year"}
+
+        for constraint in constraint_tree:
+            if isinstance(constraint, Constraint) and constraint.key in symbolic_keys:
+                print(f"🔁 Overriding symbolic filter for fallback: {endpoint}")
+                return True
+
+    return False
