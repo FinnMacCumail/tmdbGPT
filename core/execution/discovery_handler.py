@@ -164,12 +164,40 @@ class DiscoveryHandler:
             if not summaries:
                 return
 
+            try:
+                enrich_symbolic_registry(
+                    summary,
+                    state.data_registry,
+                    credits=None,
+                    keywords=None,
+                    release_info=None,
+                    watch_providers=None
+                )
+            except Exception as e:
+                print(
+                    f"⚠️ Failed enrichment for fallback result {summary.get('title') or summary.get('name')}: {e}")
+
             # Embed metadata on each result
             for summary in summaries:
                 summary["source"] = path
                 summary["_step"] = step
                 summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
+
+                # ✅ Enrich fallback summary
+                from core.entity.param_utils import enrich_symbolic_registry
+                try:
+                    enrich_symbolic_registry(
+                        summary,
+                        state.data_registry,
+                        credits=None,
+                        keywords=None,
+                        release_info=None,
+                        watch_providers=None
+                    )
+                except Exception as e:
+                    print(
+                        f"⚠️ Failed enrichment for fallback result {summary.get('title') or summary.get('name')}: {e}")
 
             resolved_path = PathRewriter.rewrite(path, state.resolved_entities)
 
