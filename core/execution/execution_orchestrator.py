@@ -18,6 +18,7 @@ from core.model.evaluator import evaluate_constraint_tree
 from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import filter_valid_movies
+from core.entity.symbolic_filter import passes_symbolic_filter
 
 
 class ExecutionOrchestrator:
@@ -189,11 +190,13 @@ class ExecutionOrchestrator:
                 state.error = str(ex)
 
         # 🔁 Deduplicate final results by movie ID
+        # 🔁 Filter THEN deduplicate
         original_count = len(state.responses)
+        filtered = filter_final_responses(state)
+
         seen = set()
         deduped = []
-
-        for r in state.responses:
+        for r in filtered:
             dedup_key = r.get("id") or r.get("title") or r.get("name")
             if dedup_key and dedup_key not in seen:
                 deduped.append(r)
@@ -215,21 +218,6 @@ class ExecutionOrchestrator:
         renderer = RESPONSE_RENDERERS.get(format_type, format_fallback)
         final_output = renderer(state)
         state.formatted_response = final_output
-
-        final_validated = []
-        if getattr(state, "constraint_tree", None) and any(state.constraint_tree.flatten()):
-            for item in state.responses:
-                step_context = item.get("_step") or {
-                    "endpoint": item.get("source", "")}
-                if should_apply_symbolic_filter(state, step_context):
-                    if state.constraint_tree.is_satisfied_by(item):
-                        final_validated.append(item)
-                else:
-                    final_validated.append(item)
-            state.responses = final_validated
-        else:
-            # 🔥 Symbol-free: skip all symbolic filtering
-            state.responses = state.responses
 
         if getattr(state, "satisfied_roles", None):
             roles_text = ", ".join(sorted(state.satisfied_roles))
@@ -411,3 +399,50 @@ class ExecutionOrchestrator:
             step_id, path, "Validated", summary=ranked[0], state=state
         )
         state.completed_steps.append(step_id)
+
+# core/execution/filters.py (or inline in execution_orchestrator.py for now)
+
+
+def filter_final_responses(state) -> list:
+    """
+    Filters state.responses:
+    - drops anything with score <= 0
+    - enforces symbolic constraint satisfaction if required
+    """
+    constraint_tree = getattr(state, "constraint_tree", None)
+    if not constraint_tree or not any(constraint_tree.flatten()):
+        # Symbol-free: allow all score > 0
+        return [item for item in state.responses if item.get("final_score", 0) > 0]
+
+    validated = []
+    for item in state.responses:
+        score = item.get("final_score", 0)
+        if score <= 0:
+            continue
+
+        # 🧠 Backtrack to its originating endpoint
+        step_context = item.get("_step") or {
+            "endpoint": item.get("source", "")}
+        endpoint = step_context.get("endpoint", "")
+
+        # 🧪 Final symbolic enforcement
+        if should_apply_symbolic_filter(state, {"endpoint": endpoint}):
+            if passes_symbolic_filter(item, state.constraint_tree, state.data_registry):
+                validated.append(item)
+        else:
+            validated.append(item)
+
+    print(f"🧪 Filtering: {len(state.responses)} raw items")
+
+    for item in state.responses:
+        title = item.get("title")
+        score = item.get("final_score")
+        matched = item.get("_provenance", {}).get("matched_constraints", [])
+        step_context = item.get("_step") or {
+            "endpoint": item.get("source", "")}
+        passed = should_apply_symbolic_filter(
+            state, step_context) and state.constraint_tree.is_satisfied_by(item)
+        print(
+            f"🔍 {title} — score={score} — constraints={matched} — passed_filter={passed}")
+
+    return validated
