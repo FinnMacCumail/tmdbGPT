@@ -203,8 +203,16 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     media_type = entity.get("media_type") or (
         "tv" if "first_air_date" in entity else "movie")
     entity_id = entity.get("id")
+
     if not entity_id:
         return
+
+    # ✅ NEW: Fallback person indexing from _actor_id
+    if "_actor_id" in entity:
+        actor_id = str(entity["_actor_id"])
+        registry.setdefault("with_people", {}).setdefault(
+            actor_id, set()).add(entity_id)
+        print(f"✅ Indexing fallback: with_people[{actor_id}] → {entity_id}")
 
     # 🔹 Preferred enrichment paths (external API results passed in)
     enrich_person_roles(entity, credits, registry, media_type)
