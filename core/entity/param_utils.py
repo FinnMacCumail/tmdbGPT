@@ -1,6 +1,7 @@
 import json
 
 import os
+import requests
 
 
 def normalize_parameters(value):
@@ -194,6 +195,7 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     - Handles genres, companies, networks
     - Handles keywords, certification, providers
     - Handles language, region, runtime, year
+    - Supports both full enrichment input and direct fallback via *_ids
     """
     if not isinstance(entity, dict):
         return
@@ -201,10 +203,10 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     media_type = entity.get("media_type") or (
         "tv" if "first_air_date" in entity else "movie")
     entity_id = entity.get("id")
-
     if not entity_id:
         return
 
+    # 🔹 Preferred enrichment paths (external API results passed in)
     enrich_person_roles(entity, credits, registry, media_type)
     enrich_genres(entity, registry, media_type)
     enrich_networks(entity, registry)
@@ -217,6 +219,53 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     enrich_year(entity, registry)
     enrich_watch_providers(entity, watch_providers, registry)
 
+    # 🔁 Direct fallback indexing from *_ids if enrich_* failed or wasn't used
+    def fallback_index(entity, field_key, registry_key):
+        """
+        Generic fallback: if entity[field_key] is present (either list or scalar), index it under registry_key
+        """
+        values = entity.get(field_key)
+
+        if not values:
+            print(f"🔕 No values for {field_key} in {entity.get('id')}")
+            return
+
+        if not isinstance(values, list):
+            values = [values]  # ✅ wrap single int/str in list
+
+        for v in values:
+            if v is None:
+                continue
+            print(f"✅ Indexing fallback: {registry_key}[{v}] → {entity['id']}")
+            registry.setdefault(registry_key, {}).setdefault(
+                str(v), set()).add(entity["id"])
+
+    fallback_index(entity, "genre_ids", "with_genres")
+    fallback_index(entity, "network_ids", "with_networks")
+    fallback_index(entity, "production_company_ids", "with_companies")
+    fallback_index(entity, "keyword_ids", "with_keywords")
+
+    # 🔁 Language fallback
+    lang = entity.get("original_language")
+    if lang:
+        registry.setdefault("with_original_language", {}).setdefault(
+            lang, set()).add(entity_id)
+
+    # 🔁 Region fallback (if present)
+    if "origin_country" in entity:
+        origin_val = entity["origin_country"]
+        regions = origin_val if isinstance(origin_val, list) else [origin_val]
+        for region in regions:
+            registry.setdefault("with_origin_country", {}).setdefault(
+                region, set()).add(entity_id)
+
+    # 🔁 Year fallback (extract from release_date or first_air_date)
+    date_field = entity.get("release_date") or entity.get("first_air_date")
+    if date_field and len(date_field) >= 4:
+        year = date_field[:4]
+        registry.setdefault("primary_release_year", {}).setdefault(
+            year, set()).add(entity_id)
+
     debug_keys = list(registry.keys())
     entity_title = entity.get("title") or entity.get("name") or "Unknown"
     entity_id = entity.get("id")
@@ -225,7 +274,8 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     for key in sorted(registry):
         subkeys = registry[key]
         for subk, ids in subkeys.items():
-            if entity_id and str(entity_id) in ids:
+            # ✅ Defensive: only check `in` if ids is a set
+            if isinstance(ids, set) and str(entity_id) in ids:
                 print(f"   ↳ {key}[{subk}]: matched ID {entity_id}")
 
 
@@ -251,15 +301,23 @@ def enrich_person_roles(entity, credits, registry, media_type):
 
 
 def enrich_genres(entity, registry, media_type):
-    genre_ids = entity.get("genre_ids") or [
-        g["id"] for g in entity.get("genres", [])]
+    genre_ids = entity.get("genre_ids")
+    if not genre_ids:
+        genre_ids = [g["id"] for g in entity.get("genres", [])]
+    elif not isinstance(genre_ids, list):
+        genre_ids = [genre_ids]
+
     for gid in genre_ids:
         registry.setdefault("with_genres", {}).setdefault(
             str(gid), set()).add(entity["id"])
 
 
 def enrich_networks(entity, registry):
-    for n in entity.get("networks", []):
+    networks = entity.get("networks", [])
+    if isinstance(networks, dict):
+        networks = [networks]
+
+    for n in networks:
         nid = n.get("id")
         if nid:
             registry.setdefault("with_networks", {}).setdefault(
@@ -267,7 +325,11 @@ def enrich_networks(entity, registry):
 
 
 def enrich_companies(entity, registry):
-    for c in entity.get("production_companies", []):
+    companies = entity.get("production_companies", [])
+    if isinstance(companies, dict):
+        companies = [companies]
+
+    for c in companies:
         cid = c.get("id")
         if cid:
             registry.setdefault("with_companies", {}).setdefault(
@@ -277,7 +339,12 @@ def enrich_companies(entity, registry):
 def enrich_keywords(entity, keywords, registry):
     if not keywords:
         return
-    for kw in keywords.get("keywords", []):
+
+    keyword_list = []
+    if isinstance(keywords, dict) and isinstance(keywords.get("keywords"), list):
+        keyword_list = keywords["keywords"]
+
+    for kw in keyword_list:
         kid = kw.get("id")
         if kid:
             registry.setdefault("with_keywords", {}).setdefault(
@@ -361,3 +428,40 @@ def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, re
     except Exception as e:
         print(
             f"⚠️ Failed symbolic indexing for movie ID {movie.get('id')}: {e}")
+
+
+def enrich_symbolic_fields(summary: dict, state) -> dict:
+    """Enrich a fallback summary with missing symbolic metadata via /tv/{id} or /movie/{id}"""
+    media_type = summary.get("media_type")
+    if media_type not in ("tv", "movie"):
+        return summary
+
+    endpoint = f"/{media_type}/{summary['id']}"
+    try:
+        res = requests.get(f"{state.base_url}{endpoint}",
+                           headers=state.headers)
+        if res.status_code != 200:
+            return summary
+        details = res.json()
+    except Exception as e:
+        print(f"⚠️ Failed to enrich {media_type}/{summary['id']}: {e}")
+        return summary
+
+    # Patch genre_ids
+    if not summary.get("genre_ids") and "genres" in details:
+        summary["genre_ids"] = [g["id"] for g in details.get("genres", [])]
+
+    # Patch network_ids
+    if media_type == "tv" and not summary.get("network_ids") and "networks" in details:
+        summary["network_ids"] = [n["id"] for n in details["networks"]]
+
+    # Patch production_company_ids
+    if media_type == "movie" and not summary.get("production_company_ids") and "production_companies" in details:
+        summary["production_company_ids"] = [c["id"]
+                                             for c in details["production_companies"]]
+
+    # Patch original_language
+    if not summary.get("original_language") and "original_language" in details:
+        summary["original_language"] = details["original_language"]
+
+    return summary
