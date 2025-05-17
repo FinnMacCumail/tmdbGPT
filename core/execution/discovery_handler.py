@@ -153,7 +153,7 @@ class DiscoveryHandler:
             return validated
 
     @staticmethod
-    def handle_generic_response(step, json_data, state):
+    def handle_result_step(step, json_data, state):
         """
         Extract generic summaries from non-discovery endpoints and attach to state.
         Applies symbolic filtering only when necessary, with lazy enrichment.
