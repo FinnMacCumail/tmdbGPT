@@ -19,6 +19,7 @@ from core.planner.plan_utils import is_symbol_free_query
 from nlp.nlp_retriever import PathRewriter
 from core.planner.plan_utils import is_symbolically_filterable
 import requests
+from core.model.constraint import Constraint
 
 
 class DiscoveryHandler:
@@ -161,23 +162,23 @@ class DiscoveryHandler:
 
         try:
             summaries = ResultExtractor.extract(
-                json_data, path, state.resolved_entities
-            )
+                json_data, path, state.resolved_entities)
             if not summaries:
                 return
 
-            # 🧩 Enrich metadata that is always safe to populate
+            resolved_path = PathRewriter.rewrite(path, state.resolved_entities)
+
+            # 🧩 Attach safe metadata
             for summary in summaries:
                 summary["source"] = path
                 summary["_step"] = step
                 summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
 
-            resolved_path = PathRewriter.rewrite(path, state.resolved_entities)
-
-            # 🔁 Skip symbolic filtering if not applicable
+            # 🔁 Skip symbolic filtering if not needed
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
-                print(f"✅ Skipping symbolic filtering for: {resolved_path}")
+                print(
+                    f"✅ Skipping full symbolic filtering for: {resolved_path} — fallback will still use lazy_enrich_and_filter()")
                 filtered = filter_symbolic_responses(state, summaries, path)
                 state.responses.extend(filtered)
                 ExecutionTraceLogger.log_step(
@@ -188,10 +189,11 @@ class DiscoveryHandler:
                 )
                 return
 
-            # 🧪 Apply lazy symbolic filtering with on-demand enrichment
+            # 🧪 Apply lazy symbolic filtering with fallback enrichment
             filtered = []
             for summary in summaries:
                 try:
+                    summary["media_type"] = "tv" if "tv" in path else "movie"
                     if lazy_enrich_and_filter(
                         summary,
                         constraint_tree=state.constraint_tree,
@@ -199,7 +201,19 @@ class DiscoveryHandler:
                         headers=state.headers,
                         base_url=state.base_url
                     ):
-                        filtered.append(summary)
+                        summary["_provenance"] = summary.get("_provenance", {})
+                        matched_constraints = extract_matched_constraints(
+                            summary, state.constraint_tree, state.data_registry
+                        )
+                        summary["_provenance"]["matched_constraints"] = matched_constraints
+
+                        if matched_constraints:
+                            print(
+                                f"✅ [PASSED] {summary.get('title')} — matched: {matched_constraints}")
+                            filtered.append(summary)
+                        else:
+                            print(
+                                f"❌ [REJECTED] {summary.get('title')} — matched nothing")
                 except Exception as e:
                     print(
                         f"⚠️ Lazy filter failed for {summary.get('title')} → {e}")
@@ -239,3 +253,20 @@ def filter_symbolic_responses(state, summaries, endpoint):
             filtered.append(s)
 
     return filtered
+
+
+def extract_matched_constraints(entity, constraint_tree, registry):
+    ids = evaluate_constraint_tree(constraint_tree, registry)
+    matched = []
+    for constraint in constraint_tree:
+        if isinstance(constraint, Constraint):
+            cid_sets = ids.get(entity.get("media_type", "movie"), {}).get(
+                constraint.key, {})
+            value = constraint.value
+            # ✅ Normalize list-wrapped values like [4495] → 4495
+            if isinstance(value, list) and len(value) == 1:
+                value = value[0]
+            if value in cid_sets:
+                if entity.get("id") in cid_sets[value]:
+                    matched.append(f"{constraint.key}={value}")
+    return matched
