@@ -209,7 +209,10 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
 
     # ✅ NEW: Fallback person indexing from _actor_id
     if "_actor_id" in entity:
-        actor_id = str(entity["_actor_id"])
+        actor_id = entity["_actor_id"]
+        if isinstance(actor_id, list):  # 🛠 fix nested list
+            actor_id = actor_id[0]
+        actor_id = str(actor_id)
         registry.setdefault("with_people", {}).setdefault(
             actor_id, set()).add(entity_id)
         print(f"✅ Indexing fallback: with_people[{actor_id}] → {entity_id}")
