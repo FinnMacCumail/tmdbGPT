@@ -365,12 +365,13 @@ class ResultExtractor:
 
             summaries.append({
                 "id": entity_id,
-                "type": "movie_summary",
+                "type": "tv_summary" if "tv" in endpoint else "movie_summary",
                 "title": title,
                 "overview": overview.strip(),
                 "source": endpoint,
                 "final_score": round(score, 2),
-                "release_date": release_date
+                "release_date": release_date,
+                "media_type": "tv" if "tv" in endpoint else "movie"
             })
 
         return summaries
@@ -433,6 +434,11 @@ class ResultExtractor:
             entity_id = entry.get("id")
             title = entry.get("name") or entry.get(
                 "original_name") or "Untitled"
+
+            if "office" in title.lower():
+                print(
+                    f"✅ DEBUG: Found The Office → id={entity_id}, actor_id={person_id}")
+
             overview = entry.get("overview") or entry.get(
                 "character") or "Cast"
             release_date = entry.get("first_air_date") or "Unknown"
@@ -446,8 +452,8 @@ class ResultExtractor:
                 "final_score": 1.0,
                 "source": "/tv_credits",
                 "job": "cast",
-                "id": entry.get("id"),
                 "_actor_id": person_id,
+                "media_type": "tv"
             })
 
         allowed_jobs = {"director", "writer", "producer"}
@@ -469,7 +475,7 @@ class ResultExtractor:
                     "final_score": 1.0,
                     "source": "/tv_credits",
                     "job": job,
-                    "id": entry.get("id")
+                    "media_type": "tv"
                 })
 
         print(f"✅ Returning {len(summaries)} TV summaries")
@@ -566,7 +572,8 @@ class ResultExtractor:
                     "overview": overview.strip(),
                     "source": endpoint,
                     "final_score": round(score, 2),
-                    "release_date": release_date
+                    "release_date": release_date,
+                    "media_type": "tv" if "tv" in endpoint else "movie"
                 })
 
         # --- Flat object fallback (for /person/{id} etc.) ---
@@ -586,7 +593,8 @@ class ResultExtractor:
                 "title": flat_title or "Untitled",
                 "overview": flat_overview.strip() or "No bio available.",
                 "source": endpoint,
-                "final_score": 1.0
+                "final_score": 1.0,
+                "media_type": "tv" if "tv" in endpoint else "movie"
             })
 
         return summaries
