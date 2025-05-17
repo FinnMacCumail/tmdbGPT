@@ -47,7 +47,7 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
 
 def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list:
     """
-    Filter a list of TMDB entities based on symbolic constraint satisfaction.
+    Filter a list of TMDB entities (movies or TV) based on symbolic constraint satisfaction.
 
     Args:
         entities (list): List of TMDB media dicts (must include 'id').
@@ -58,25 +58,38 @@ def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list
         list: Entities that pass the symbolic filter.
     """
     ids = evaluate_constraint_tree(constraint_tree, registry)
-    movie_constraints = ids.get("movie", {})
-    if not movie_constraints:
-        return []
 
-    logic = getattr(constraint_tree, "logic", "AND").upper()
+    # Support both movie and tv entries
+    valid_ids = set()
+    for media_type in ("movie", "tv"):
+        matches = ids.get(media_type, {})
+        if not matches:
+            continue
 
-    if logic == "OR":
-        valid_ids = set()
-        for match_set in movie_constraints.values():
-            valid_ids |= match_set
-    else:
-        valid_ids = None
-        for match_set in movie_constraints.values():
-            if valid_ids is None:
-                valid_ids = set(match_set)
-            else:
-                valid_ids &= match_set
+        logic = getattr(constraint_tree, "logic", "AND").upper()
+        if logic == "OR":
+            for match_set in matches.values():
+                valid_ids |= match_set
+        else:
+            intersection = None
+            for match_set in matches.values():
+                if intersection is None:
+                    intersection = set(match_set)
+                else:
+                    intersection &= match_set
+            if intersection:
+                valid_ids |= intersection
 
-    return [m for m in entities if m.get("id") in valid_ids]
+    filtered = []
+    for m in entities:
+        mid = m.get("id")
+        passed = mid in valid_ids
+        print(
+            f"🔍 {m.get('title') or m.get('name')} — passed symbolic filter: {passed}")
+        if passed:
+            filtered.append(m)
+
+    return filtered
 
 
 def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url) -> bool:
