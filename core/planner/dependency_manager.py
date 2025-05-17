@@ -10,17 +10,23 @@ from core.planner.constraint_planner import intersect_media_ids_across_constrain
 
 def inject_lookup_steps_from_role_intersection(state):
     """
-    Refactored for Phase 21.3:
-    - Intersects symbolic results across person, company, network
-    - Injects /movie/{id} or /tv/{id} lookup steps based on matched entries
-    - Applies fallback if no match after relaxing constraints
+    Phase 21.3: Eager ID intersection for role-based TV/movie lookups.
+    - Intersects symbolic results across person, company, and network constraints.
+    - Injects /movie/{id} or /tv/{id} lookup steps based on matched entries.
+    - Falls back to discovery if no intersection found, even after relaxation.
     """
+    print(f"🧪 Constraint tree: {state.constraint_tree}")
+    print(f"🧪 Data registry: {state.data_registry}")
+    print(f"🧪 Response IDs: {[r['id'] for r in state.responses]}")
+    print(f"🧪 Intended type: {state.intended_media_type}")
+
     intended_type = getattr(state, "intended_media_type", "both") or "both"
     expected = {
         "person_ids": [],
         "company_ids": [],
         "network_ids": []
     }
+
     for ent in state.extraction_result.get("query_entities", []):
         if ent.get("type") == "person" and "resolved_id" in ent:
             expected["person_ids"].append(ent["resolved_id"])
@@ -29,23 +35,27 @@ def inject_lookup_steps_from_role_intersection(state):
         elif ent.get("type") == "network" and "resolved_id" in ent:
             expected["network_ids"].append(ent["resolved_id"])
 
+    # 🧩 Primary intersection
     intersection = intersect_media_ids_across_constraints(
-        state.responses, expected, intended_type)
+        state.responses, expected, intended_type
+    )
 
+    # 🔁 Try relaxed roles if no match
     if not intersection:
         relaxed_state = relax_roles_and_retry_intersection(state)
-        relaxed_intersection = intersect_media_ids_across_constraints(
-            relaxed_state.responses, expected, intended_type)
+        intersection = intersect_media_ids_across_constraints(
+            relaxed_state.responses, expected, intended_type
+        )
 
-        if not relaxed_intersection:
-            fallback_step = FallbackHandler.generate_steps(
+        if not intersection:
+            fallback_steps = FallbackHandler.generate_steps(
                 state.resolved_entities,
                 intents=state.extraction_result
             )
-            if isinstance(fallback_step, dict):
-                fallback_step = [fallback_step]
+            if isinstance(fallback_steps, dict):
+                fallback_steps = [fallback_steps]
 
-            for fs in reversed(fallback_step):
+            for fs in reversed(fallback_steps):
                 state.plan_steps.insert(0, fs)
 
             ExecutionTraceLogger.log_step(
@@ -56,31 +66,50 @@ def inject_lookup_steps_from_role_intersection(state):
                 state=state
             )
             return state
-        else:
-            intersection = relaxed_intersection
 
-    # 🚀 Inject lookup steps
+    # ✅ Inject /tv/{id} or /movie/{id} lookup steps
+    injected_ids = []
+
     for item in intersection:
-        if intended_type == "movie" or (intended_type == "both" and "title" in item):
-            movie_id = item.get("id")
-            if movie_id:
-                state.plan_steps.insert(0, {
-                    "step_id": f"step_lookup_movie_{movie_id}",
-                    "endpoint": f"/movie/{movie_id}",
-                    "method": "GET",
-                    "produces": [],
-                    "requires": ["movie_id"]
-                })
-        elif intended_type == "tv" or (intended_type == "both" and "name" in item):
-            tv_id = item.get("id")
-            if tv_id:
-                state.plan_steps.insert(0, {
-                    "step_id": f"step_lookup_tv_{tv_id}",
-                    "endpoint": f"/tv/{tv_id}",
-                    "method": "GET",
-                    "produces": [],
-                    "requires": ["tv_id"]
-                })
+        item_id = item.get("id")
+        if not item_id:
+            continue
+
+        is_tv = "first_air_date" in item or "name" in item
+        is_movie = "release_date" in item or "title" in item
+
+        if intended_type == "tv" or (intended_type == "both" and is_tv):
+            step = {
+                "step_id": f"step_lookup_tv_{item_id}",
+                "endpoint": f"/tv/{item_id}",
+                "method": "GET",
+                "produces": [],
+                "requires": ["tv_id"]
+            }
+            state.plan_steps.insert(0, step)
+            injected_ids.append(item_id)
+
+        elif intended_type == "movie" or (intended_type == "both" and is_movie):
+            step = {
+                "step_id": f"step_lookup_movie_{item_id}",
+                "endpoint": f"/movie/{item_id}",
+                "method": "GET",
+                "produces": [],
+                "requires": ["movie_id"]
+            }
+            state.plan_steps.insert(0, step)
+            injected_ids.append(item_id)
+
+    # 🧠 Trace successful injection
+    if injected_ids:
+        ExecutionTraceLogger.log_step(
+            step_id="role_intersection_success",
+            path="(internal)",
+            status="TV/Movie Lookup Injected",
+            summary=f"Injected lookup steps for IDs: {injected_ids}",
+            state=state
+        )
+        print(f"✅ Injected role-based lookup steps for IDs: {injected_ids}")
 
     return state
 
