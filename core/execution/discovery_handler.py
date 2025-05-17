@@ -11,7 +11,7 @@ from core.execution.post_execution_validator import PostExecutionValidator
 from core.execution.post_validator import PostValidator
 from nlp.nlp_retriever import ResultExtractor
 from core.entity.param_utils import enrich_symbolic_registry
-from core.entity.symbolic_filter import passes_symbolic_filter
+from core.entity.symbolic_filter import passes_symbolic_filter, lazy_enrich_and_filter
 
 from core.planner.plan_validator import should_apply_symbolic_filter
 from core.planner.plan_utils import is_symbol_free_query
@@ -125,7 +125,7 @@ class DiscoveryHandler:
 
                 credits_url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits"
                 try:
-                    import requests
+
                     res = requests.get(credits_url, headers=state.headers)
                     if res.status_code != 200:
                         continue
@@ -155,75 +155,27 @@ class DiscoveryHandler:
     def handle_generic_response(step, json_data, state):
         """
         Extract generic summaries from non-discovery endpoints and attach to state.
-        Applies symbolic filtering only when necessary.
+        Applies symbolic filtering only when necessary, with lazy enrichment.
         """
         path = step["endpoint"]
+
         try:
             summaries = ResultExtractor.extract(
-                json_data, path, state.resolved_entities)
-
+                json_data, path, state.resolved_entities
+            )
             if not summaries:
                 return
 
-            # try:
-            #     enrich_symbolic_registry(
-            #         summary,
-            #         state.data_registry,
-            #         credits=None,
-            #         keywords=None,
-            #         release_info=None,
-            #         watch_providers=None
-            #     )
-            # except Exception as e:
-            #     print(
-            #         f"⚠️ Failed enrichment for fallback result {summary.get('title') or summary.get('name')}: {e}")
-
-            # Embed metadata on each result
+            # 🧩 Enrich metadata that is always safe to populate
             for summary in summaries:
                 summary["source"] = path
                 summary["_step"] = step
                 summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
 
-                # ✅ Enrich fallback summary with missing metadata if needed
-                entity_id = summary.get("id")
-                media_type = "tv" if "tv" in path else "movie"
-
-                if entity_id and not summary.get("genre_ids"):
-                    try:
-                        detail_url = f"https://api.themoviedb.org/3/{media_type}/{entity_id}"
-                        res = requests.get(detail_url, headers=state.headers)
-                        if res.status_code == 200:
-                            detail = res.json()
-                            summary["genre_ids"] = [g["id"]
-                                                    for g in detail.get("genres", [])]
-                            summary["network_ids"] = [n["id"]
-                                                      for n in detail.get("networks", [])]
-                            summary["production_company_ids"] = [c["id"]
-                                                                 for c in detail.get("production_companies", [])]
-                            summary["original_language"] = detail.get(
-                                "original_language")
-                            summary["origin_country"] = detail.get(
-                                "origin_country")
-                    except Exception as e:
-                        print(
-                            f"⚠️ Failed to enrich metadata for {summary.get('title')} → {e}")
-
-                try:
-                    enrich_symbolic_registry(
-                        summary,
-                        state.data_registry,
-                        credits=None,
-                        keywords=None,
-                        release_info=None,
-                        watch_providers=None
-                    )
-                except Exception as e:
-                    print(f"⚠️ Failed symbolic enrichment: {e}")
-
             resolved_path = PathRewriter.rewrite(path, state.resolved_entities)
 
-            # 🔁 If symbol-free, skip constraint filtering entirely
+            # 🔁 Skip symbolic filtering if not applicable
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
                 print(f"✅ Skipping symbolic filtering for: {resolved_path}")
                 filtered = filter_symbolic_responses(state, summaries, path)
@@ -231,22 +183,32 @@ class DiscoveryHandler:
                 ExecutionTraceLogger.log_step(
                     step["step_id"], path,
                     "Handled (non-filtered endpoint)",
-                    summary=f"{len(summaries)} result(s) used directly without filtering",
+                    summary=f"{len(filtered)} result(s) used directly without filtering",
                     state=state
                 )
                 return
 
-            # 🧪 Apply symbolic constraint filtering
-            filtered = [
-                m for m in summaries
-                if passes_symbolic_filter(m, state.constraint_tree, state.data_registry)
-            ]
+            # 🧪 Apply lazy symbolic filtering with on-demand enrichment
+            filtered = []
+            for summary in summaries:
+                try:
+                    if lazy_enrich_and_filter(
+                        summary,
+                        constraint_tree=state.constraint_tree,
+                        registry=state.data_registry,
+                        headers=state.headers,
+                        base_url=state.base_url
+                    ):
+                        filtered.append(summary)
+                except Exception as e:
+                    print(
+                        f"⚠️ Lazy filter failed for {summary.get('title')} → {e}")
 
             state.responses.extend(filtered)
             ExecutionTraceLogger.log_step(
                 step["step_id"], path,
                 "Handled (filtered)",
-                summary=f"{len(filtered)} of {len(summaries)} result(s) kept after symbolic filtering",
+                summary=f"{len(filtered)} of {len(summaries)} result(s) kept after lazy symbolic filtering",
                 state=state
             )
 
