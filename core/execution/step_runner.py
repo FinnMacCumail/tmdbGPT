@@ -74,7 +74,7 @@ class StepRunner:
                         DiscoveryHandler.handle_discover_step(
                             step, json_data, state)
                     else:
-                        DiscoveryHandler.handle_generic_response(
+                        DiscoveryHandler.handle_result_step(
                             step, json_data, state)
 
                     if not state.roles_injected:
