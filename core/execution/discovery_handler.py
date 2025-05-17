@@ -18,6 +18,7 @@ from core.planner.plan_utils import is_symbol_free_query
 
 from nlp.nlp_retriever import PathRewriter
 from core.planner.plan_utils import is_symbolically_filterable
+import requests
 
 
 class DiscoveryHandler:
@@ -164,18 +165,18 @@ class DiscoveryHandler:
             if not summaries:
                 return
 
-            try:
-                enrich_symbolic_registry(
-                    summary,
-                    state.data_registry,
-                    credits=None,
-                    keywords=None,
-                    release_info=None,
-                    watch_providers=None
-                )
-            except Exception as e:
-                print(
-                    f"⚠️ Failed enrichment for fallback result {summary.get('title') or summary.get('name')}: {e}")
+            # try:
+            #     enrich_symbolic_registry(
+            #         summary,
+            #         state.data_registry,
+            #         credits=None,
+            #         keywords=None,
+            #         release_info=None,
+            #         watch_providers=None
+            #     )
+            # except Exception as e:
+            #     print(
+            #         f"⚠️ Failed enrichment for fallback result {summary.get('title') or summary.get('name')}: {e}")
 
             # Embed metadata on each result
             for summary in summaries:
@@ -184,8 +185,30 @@ class DiscoveryHandler:
                 summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
 
-                # ✅ Enrich fallback summary
-                from core.entity.param_utils import enrich_symbolic_registry
+                # ✅ Enrich fallback summary with missing metadata if needed
+                entity_id = summary.get("id")
+                media_type = "tv" if "tv" in path else "movie"
+
+                if entity_id and not summary.get("genre_ids"):
+                    try:
+                        detail_url = f"https://api.themoviedb.org/3/{media_type}/{entity_id}"
+                        res = requests.get(detail_url, headers=state.headers)
+                        if res.status_code == 200:
+                            detail = res.json()
+                            summary["genre_ids"] = [g["id"]
+                                                    for g in detail.get("genres", [])]
+                            summary["network_ids"] = [n["id"]
+                                                      for n in detail.get("networks", [])]
+                            summary["production_company_ids"] = [c["id"]
+                                                                 for c in detail.get("production_companies", [])]
+                            summary["original_language"] = detail.get(
+                                "original_language")
+                            summary["origin_country"] = detail.get(
+                                "origin_country")
+                    except Exception as e:
+                        print(
+                            f"⚠️ Failed to enrich metadata for {summary.get('title')} → {e}")
+
                 try:
                     enrich_symbolic_registry(
                         summary,
@@ -196,8 +219,7 @@ class DiscoveryHandler:
                         watch_providers=None
                     )
                 except Exception as e:
-                    print(
-                        f"⚠️ Failed enrichment for fallback result {summary.get('title') or summary.get('name')}: {e}")
+                    print(f"⚠️ Failed symbolic enrichment: {e}")
 
             resolved_path = PathRewriter.rewrite(path, state.resolved_entities)
 
