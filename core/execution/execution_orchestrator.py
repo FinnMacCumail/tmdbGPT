@@ -19,6 +19,7 @@ from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import filter_valid_movies
 from core.entity.symbolic_filter import passes_symbolic_filter
+from nlp.nlp_retriever import ResultExtractor
 
 
 class ExecutionOrchestrator:
@@ -39,6 +40,18 @@ class ExecutionOrchestrator:
         print("🧪 About to execute steps:", [
               s["step_id"] for s in state.plan_steps])
         print("🎯 Intended media type:", state.intended_media_type)
+
+        # ✅ Phase 21.5 Patch: Early TV role intersection before defaulting to /discover/tv
+        if state.intended_media_type in ("tv", "both"):
+            state = inject_lookup_steps_from_role_intersection(state)
+            has_lookup = any(
+                step.get("endpoint", "").startswith("/tv/")
+                or "/tv_credits" in step.get("endpoint", "")
+                for step in state.plan_steps
+            )
+            if not has_lookup:
+                print(
+                    "⚠️ No early TV role lookup steps were injected — will rely on /discover/tv")
 
         while state.plan_steps:
             step = state.plan_steps.pop(0)
@@ -147,11 +160,21 @@ class ExecutionOrchestrator:
                             if k not in previous_entities
                         }
 
-                        if step["endpoint"].startswith("/discover/movie"):
-                            self._handle_discover_movie_step(
-                                step, step_id, path, json_data, state, depth, seen_step_keys)
+                        if step["endpoint"].startswith("/discover/"):
+                            if step["endpoint"].startswith("/discover/movie"):
+                                self._handle_discover_movie_step(
+                                    step, step_id, path, json_data, state, depth, seen_step_keys
+                                )
+                            elif step["endpoint"].startswith("/discover/tv"):
+                                self._handle_discover_tv_step(
+                                    step, step_id, path, json_data, state, depth, seen_step_keys
+                                )
+                            else:
+                                print(
+                                    f"⚠️ Unknown /discover/ endpoint: {step['endpoint']}")
                         else:
-                            DiscoveryHandler.handle_generic_response(
+                            # 🧩 Handles non-discovery responses like /person/ID/credits
+                            DiscoveryHandler.handle_result_step(
                                 step, json_data, state)
 
                         if step["endpoint"].startswith("/discover/movie") and not step.get("fallback_injected"):
@@ -250,10 +273,12 @@ class ExecutionOrchestrator:
                 summary=f"Relaxed constraints attempted before fallback: {relaxed_summary}",
                 state=state
             )
-        # debu log
+       # 🧠 Debug log for final results
         for r in state.responses:
+            title = r.get("title") or r.get("name") or "<untitled>"
             print(
-                f"🧠 Final Result: {r['title']} — score: {r.get('final_score')} — constraints: {r.get('_provenance', {}).get('matched_constraints', [])}")
+                f"🧠 Final Result: {title} — score: {r.get('final_score')} — constraints: {r.get('_provenance', {}).get('matched_constraints', [])}"
+            )
 
         log_summary(state)
         return state
@@ -341,17 +366,8 @@ class ExecutionOrchestrator:
                 continue
 
             # Enrich with TMDB /credits if available
-            credits = None
-            try:
-                res = requests.get(
-                    f"{state.base_url}/movie/{movie_id}/credits",
-                    headers=state.headers
-                )
-                if res.status_code == 200:
-                    credits = res.json()
-            except Exception as e:
-                print(
-                    f"⚠️ Could not fetch credits for movie ID {movie_id}: {e}")
+            credits = fetch_credits_for_entity(
+                movie, state.base_url, state.headers)
 
             # ✅ Inject provenance and enrich registry
             movie["final_score"] = movie.get("final_score", 1.0)
@@ -406,7 +422,109 @@ class ExecutionOrchestrator:
         )
         state.completed_steps.append(step_id)
 
-# core/execution/filters.py (or inline in execution_orchestrator.py for now)
+    def _handle_discover_tv_step(self, step, step_id, path, json_data, state, depth, seen_step_keys):
+
+        filtered_tv = PostValidator.run_post_validations(
+            step, json_data, state)
+
+        if not filtered_tv:
+            ExecutionTraceLogger.log_step(
+                step_id, path, "Filtered", "No matching TV results", state=state
+            )
+            return
+
+        query_entities = state.extraction_result.get("query_entities", [])
+        ranked = EntityAwareReranker.boost_by_entity_mentions(
+            filtered_tv, query_entities
+        )
+
+        if should_apply_symbolic_filter(state, step):
+            valid_shows = filter_valid_movies(
+                ranked,
+                constraint_tree=state.constraint_tree,
+                registry=state.data_registry
+            )
+
+            rejected = [show for show in ranked if show not in valid_shows]
+            for show in rejected:
+                show_id = show.get("id")
+                show_name = show.get("name") or "<unknown>"
+                print(
+                    f"❌ [REJECTED] {show_name} (ID: {show_id}) — failed symbolic filter")
+        else:
+            valid_shows = ranked
+
+        matched_keys = set(
+            e.key for e in state.constraint_tree if isinstance(e, Constraint)
+        )
+        matched = [f"{c.key}={c.value}" for c in state.constraint_tree if isinstance(
+            c, Constraint) and c.key in matched_keys]
+        relaxed = list(state.relaxation_log)
+        validated = list(state.post_validation_log)
+
+        if not hasattr(state, "satisfied_roles"):
+            state.satisfied_roles = set()
+
+        for show in valid_shows:
+            tv_id = show.get("id")
+            show["_step"] = step
+            if not tv_id:
+                continue
+
+            credits = fetch_credits_for_entity(
+                show, state.base_url, state.headers)
+
+            show["final_score"] = show.get("final_score", 1.0)
+            show["type"] = "tv_summary"
+            show["_provenance"] = {
+                "matched_constraints": matched,
+                "relaxed_constraints": relaxed,
+                "post_validations": validated
+            }
+
+            enrich_symbolic_registry(
+                show,
+                state.data_registry,
+                credits=credits,
+                keywords=None,
+                release_info=None,
+                watch_providers=None
+            )
+
+            satisfied = show["_provenance"].get("satisfied_roles", [])
+            state.satisfied_roles.update(satisfied)
+
+            print(
+                f"🧠 Appending validated TV show: {show.get('name')} with score {show.get('final_score')}")
+            state.responses.append(show)
+
+        state.data_registry[step_id]["validated"] = ranked
+
+        if state.relaxation_log and (dropped := getattr(state, "last_dropped_constraints", [])):
+            restored = []
+            for c in dropped:
+                ids = state.data_registry.get(
+                    c.key, {}).get(str(c.value), set())
+                if ids:
+                    state.constraint_tree.constraints.append(c)
+                    restored.append(f"{c.key}={c.value}")
+            already_logged = set(state.relaxation_log)
+            for restored_id in restored:
+                msg = f"Restored: {restored_id}"
+                if msg not in already_logged:
+                    state.relaxation_log.append(msg)
+
+        if not getattr(state, "constraint_tree_evaluated", False):
+            ids = evaluate_constraint_tree(
+                state.constraint_tree, state.data_registry)
+            if ids:
+                inject_validation_steps_from_ids(ids, state)
+            state.constraint_tree_evaluated = True
+
+        ExecutionTraceLogger.log_step(
+            step_id, path, "Validated", summary=ranked[0], state=state
+        )
+        state.completed_steps.append(step_id)
 
 
 def filter_final_responses(state) -> list:
@@ -452,3 +570,23 @@ def filter_final_responses(state) -> list:
             f"🔍 {title} — score={score} — constraints={matched} — passed_filter={passed}")
 
     return validated
+
+
+def fetch_credits_for_entity(entity, base_url, headers):
+    """
+    Fetch and return credits for either movie or tv.
+    """
+    media_type = "tv" if entity.get("type", "").startswith("tv") else "movie"
+    entity_id = entity.get("id")
+    if not entity_id:
+        return None
+
+    try:
+        url = f"{base_url}/{media_type}/{entity_id}/credits"
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            return res.json()
+    except Exception as e:
+        print(
+            f"⚠️ Could not fetch credits for {media_type} ID {entity_id}: {e}")
+    return None
