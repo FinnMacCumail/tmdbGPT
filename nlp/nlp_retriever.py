@@ -324,7 +324,7 @@ class ResultExtractor:
         # ✅ Credits endpoints: tv or movie
         if "tv_credits" in endpoint or "movie_credits" in endpoint:
             print("🎯 Routing to _extract_credits (tv/movie)")
-            return ResultExtractor._extract_credits(json_data, endpoint)
+            return ResultExtractor._extract_credits(json_data, endpoint, resolved_entities=resolved_entities)
 
         # ✅ Discovery endpoint
         if "/discover/" in endpoint:
@@ -361,8 +361,10 @@ class ResultExtractor:
             score = item.get("vote_average", 0) / 10.0
             release_date = item.get(
                 "release_date") or item.get("first_air_date")
+            entity_id = item.get("id")
 
             summaries.append({
+                "id": entity_id,
                 "type": "movie_summary",
                 "title": title,
                 "overview": overview.strip(),
@@ -403,19 +405,23 @@ class ResultExtractor:
         return summaries
 
     @staticmethod
-    def _extract_credits(json_data: dict, endpoint: str) -> list:
+    def _extract_credits(json_data: dict, endpoint: str, resolved_entities=None) -> list:
         """
         Dispatcher for credit extraction.
         Routes to TV or Movie logic based on endpoint path.
         """
+        person_id = None
+        if resolved_entities and "person_id" in resolved_entities:
+            person_id = resolved_entities["person_id"]
+
         if "tv_credits" in endpoint:
-            return ResultExtractor._extract_tv_credits(json_data)
+            return ResultExtractor._extract_tv_credits(json_data, person_id=person_id)
         elif "movie_credits" in endpoint:
             return ResultExtractor._extract_movie_credits(json_data, endpoint)
         return []
 
     @staticmethod
-    def _extract_tv_credits(json_data: dict) -> list:
+    def _extract_tv_credits(json_data: dict, person_id=None) -> list:
         cast = json_data.get("cast", [])
         crew = json_data.get("crew", [])
         print(
@@ -424,6 +430,7 @@ class ResultExtractor:
         summaries = []
 
         for entry in cast:
+            entity_id = entry.get("id")
             title = entry.get("name") or entry.get(
                 "original_name") or "Untitled"
             overview = entry.get("overview") or entry.get(
@@ -431,6 +438,7 @@ class ResultExtractor:
             release_date = entry.get("first_air_date") or "Unknown"
 
             summaries.append({
+                "id": entity_id,
                 "type": "tv_summary",
                 "title": title,
                 "overview": overview,
@@ -438,19 +446,22 @@ class ResultExtractor:
                 "final_score": 1.0,
                 "source": "/tv_credits",
                 "job": "cast",
-                "id": entry.get("id")
+                "id": entry.get("id"),
+                "_actor_id": person_id,
             })
 
         allowed_jobs = {"director", "writer", "producer"}
         for entry in crew:
             job = (entry.get("job") or "").lower()
             if job in allowed_jobs:
+                entity_id = entry.get("id")
                 title = entry.get("name") or entry.get(
                     "original_name") or "Untitled"
                 overview = entry.get("overview") or job.title()
                 release_date = entry.get("first_air_date") or "Unknown"
 
                 summaries.append({
+                    "id": entity_id,
                     "type": "tv_summary",
                     "title": title,
                     "overview": overview,
