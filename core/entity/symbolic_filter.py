@@ -1,5 +1,8 @@
 from core.model.evaluator import evaluate_constraint_tree
 
+import requests
+from core.entity.param_utils import update_symbolic_registry
+
 
 def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> bool:
     """
@@ -74,3 +77,51 @@ def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list
                 valid_ids &= match_set
 
     return [m for m in entities if m.get("id") in valid_ids]
+
+
+def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url) -> bool:
+    """
+    Try symbolic filtering first. If it fails, enrich the entity and try again.
+    Returns True if the entity passes symbolic filtering after optional enrichment.
+    """
+    entity_id = entity.get("id")
+    media_type = "tv" if "first_air_date" in entity else "movie"
+
+    if passes_symbolic_filter(entity, constraint_tree, registry):
+        return True  # already passes
+
+    # 🛠 Fetch full entity details
+    try:
+        url = f"{base_url}/{media_type}/{entity_id}"
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            return False
+        enriched = res.json()
+        # Patch the fallback entity with enriched fields
+        for field in ["genres", "production_companies", "networks", "original_language", "origin_country"]:
+            if field in enriched:
+                entity[field] = enriched[field]
+
+        # Optionally populate `genre_ids`, etc.
+        if "genres" in enriched:
+            entity["genre_ids"] = [g["id"] for g in enriched.get("genres", [])]
+        if "networks" in enriched:
+            entity["network_ids"] = [n["id"]
+                                     for n in enriched.get("networks", [])]
+        if "production_companies" in enriched:
+            entity["production_company_ids"] = [c["id"]
+                                                for c in enriched.get("production_companies", [])]
+        if "original_language" in enriched:
+            entity["original_language"] = enriched.get("original_language")
+        if "origin_country" in enriched:
+            entity["origin_country"] = enriched.get("origin_country")
+
+        # Symbolically enrich registry after patching
+        update_symbolic_registry(entity, registry)
+
+        # Retry filtering
+        return passes_symbolic_filter(entity, constraint_tree, registry)
+
+    except Exception as e:
+        print(f"⚠️ Lazy enrichment failed for {entity_id}: {e}")
+        return False
