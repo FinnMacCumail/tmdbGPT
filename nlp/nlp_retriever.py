@@ -116,6 +116,9 @@ class PathRewriter:
 
 
 class PostStepUpdater:
+    # 🔎 Extracts resolved entity IDs from /search/* API responses (e.g., person, movie).
+    # Updates state.resolved_entities and logs extracted results for downstream use.
+    # may want to extend this logic to handle /credits or /discover responses in the future.
     @staticmethod
     def update(state, step, json_data):
         path = step.get("endpoint")
