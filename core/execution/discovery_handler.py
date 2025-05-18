@@ -11,7 +11,7 @@ from core.execution.post_execution_validator import PostExecutionValidator
 from core.execution.post_validator import PostValidator
 from nlp.nlp_retriever import ResultExtractor
 from core.entity.param_utils import enrich_symbolic_registry
-from core.entity.symbolic_filter import passes_symbolic_filter, lazy_enrich_and_filter
+from core.entity.symbolic_filter import passes_symbolic_filter, lazy_enrich_and_filter, filter_valid_movies
 
 from core.planner.plan_validator import should_apply_symbolic_filter
 from core.planner.plan_utils import is_symbol_free_query
@@ -20,137 +20,10 @@ from nlp.nlp_retriever import PathRewriter
 from core.planner.plan_utils import is_symbolically_filterable
 import requests
 from core.model.constraint import Constraint
+from core.planner.constraint_planner import inject_validation_steps_from_ids
 
 
 class DiscoveryHandler:
-
-    @staticmethod
-    def handle_discover_step(step, json_data, state):
-        step_id = step.get("step_id")
-        endpoint = step.get("endpoint")
-        results = json_data.get("results", [])
-
-        if not results:
-            ExecutionTraceLogger.log_step(
-                step_id, endpoint, "Empty", state=state)
-            return
-
-        # 🔁 Symbol-free queries bypass filtering
-        if is_symbol_free_query(state):
-            for movie in results:
-                movie["_step"] = step
-                movie["type"] = "movie_summary"
-                movie["final_score"] = movie.get("vote_average", 0) / 10.0
-                state.responses.append(movie)
-
-            ExecutionTraceLogger.log_step(
-                step_id, endpoint, "Handled (symbol-free)",
-                summary=f"{len(results)} result(s) extracted (no post-validation)",
-                state=state
-            )
-            return
-
-        # ✅ Only apply validation if endpoint supports symbolic filtering
-        validated = results
-        if is_symbolically_filterable(endpoint):
-            validated = DiscoveryHandler._run_post_validations(
-                step, json_data, state)
-
-        if not validated:
-            # 🔁 Try relaxing
-            relaxed_steps = FallbackHandler.relax_constraints(
-                step, state=state)
-            if relaxed_steps:
-                for retry_step in relaxed_steps:
-                    state.plan_steps.insert(0, retry_step)
-                state.completed_steps.append(step_id)
-                return
-
-            # 🔧 Inject fallback
-            fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
-                original_step=step,
-                extraction_result=state.extraction_result,
-                resolved_entities=state.resolved_entities
-            )
-            if fallback_step["step_id"] not in state.completed_steps:
-                state.plan_steps.insert(0, fallback_step)
-                ExecutionTraceLogger.log_step(
-                    fallback_step["step_id"],
-                    fallback_step["endpoint"],
-                    status="Semantic Fallback Injected",
-                    summary=f"Injected fallback step with parameters: {fallback_step['parameters']}",
-                    state=state
-                )
-            state.completed_steps.append(step_id)
-            return
-
-        # 🧠 Rank and filter
-        query_entities = state.extraction_result.get("query_entities", [])
-        ranked = EntityAwareReranker.boost_by_entity_mentions(
-            validated, query_entities)
-
-        for movie in ranked:
-            movie["type"] = "movie_summary"
-            movie["_step"] = step
-            score = movie.get("final_score", 0)
-            matched = movie.get("_provenance", {}).get(
-                "matched_constraints", [])
-
-            print(
-                f"🎯 SCORE: {movie.get('title')} — {score} — constraints matched: {matched}")
-
-            if score > 0 and matched:
-                state.responses.append(movie)
-                print(
-                    f"✅ [APPENDED] {movie.get('title')} — score={score} — matched: {matched}")
-            else:
-                print(
-                    f"❌ [REJECTED] {movie.get('title')} — score={score} — matched: {matched}")
-
-        state.data_registry[step_id]["validated"] = ranked
-        ExecutionTraceLogger.log_step(
-            step_id, endpoint, "Validated", summary=ranked[0], state=state)
-
-        @staticmethod
-        def _run_post_validations(step, json_data, state):
-            """
-            Validate movie results against symbolic constraint tree and role presence.
-            """
-            results = json_data.get("results", [])
-            validated = []
-
-            for movie in results:
-                movie_id = movie.get("id")
-                if not movie_id:
-                    continue
-
-                credits_url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits"
-                try:
-
-                    res = requests.get(credits_url, headers=state.headers)
-                    if res.status_code != 200:
-                        continue
-                    credits = res.json()
-                except Exception:
-                    continue
-
-                score, matched_constraints = PostValidator.score_movie_against_query(
-                    movie=movie,
-                    constraint_tree=state.constraint_tree,
-                    state=state,
-                    credits=credits,
-                    step=step,
-                    query_entities=state.extraction_result.get(
-                        "query_entities", [])
-                )
-
-                if score > 0:
-                    movie["final_score"] = min(score, 1.0)
-                    movie["_provenance"] = movie.get("_provenance", {})
-                    movie["_provenance"]["matched_constraints"] = matched_constraints
-                    validated.append(movie)
-
-            return validated
 
     @staticmethod
     def handle_result_step(step, json_data, state):
@@ -233,6 +106,146 @@ class DiscoveryHandler:
                 state=state
             )
 
+    @staticmethod
+    def handle_discover_movie_step(step, step_id, path, json_data, state, depth, seen_step_keys):
+        filtered_movies = PostValidator.run_post_validations(
+            step, json_data, state)
+
+        if not filtered_movies:
+            ExecutionTraceLogger.log_step(
+                step_id, path, "Filtered", "No matching results", state=state
+            )
+
+            already_dropped = {p.strip()
+                               for p in step_id.split("_relaxed_")[1:] if p}
+            relaxed_steps = FallbackHandler.relax_constraints(
+                step, already_dropped, state=state)
+
+            if relaxed_steps:
+                for relaxed_step in relaxed_steps:
+                    if relaxed_step["step_id"] not in state.completed_steps:
+                        constraint_dropped = relaxed_step["step_id"].split("_relaxed_")[
+                            1]
+                        state.plan_steps.insert(0, relaxed_step)
+                        ExecutionTraceLogger.log_step(
+                            relaxed_step["step_id"], path,
+                            status=f"Relaxation Injected ({constraint_dropped})",
+                            summary=f"Dropped constraint: {constraint_dropped}",
+                            state=state
+                        )
+                state.relaxed_parameters.extend(already_dropped)
+                ExecutionTraceLogger.log_step(
+                    step_id, path, "Relaxation Started", summary="Injected relaxed steps", state=state
+                )
+                state.completed_steps.append(step_id)
+                return
+
+            fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
+                original_step=step,
+                extraction_result=state.extraction_result,
+                resolved_entities=state.resolved_entities
+            )
+            if fallback_step["step_id"] not in state.completed_steps:
+                state.plan_steps.insert(0, fallback_step)
+                ExecutionTraceLogger.log_step(
+                    fallback_step["step_id"], fallback_step["endpoint"],
+                    status="Semantic Fallback Injected",
+                    summary=f"Enriched fallback injected with parameters: {fallback_step.get('parameters', {})}",
+                    state=state
+                )
+            state.completed_steps.append(step_id)
+            return
+
+        query_entities = state.extraction_result.get("query_entities", [])
+        ranked = EntityAwareReranker.boost_by_entity_mentions(
+            filtered_movies, query_entities)
+
+        # 🔍 Filter only symbolically valid movies
+        if should_apply_symbolic_filter(state, step):
+            valid_movies = filter_valid_movies(
+                ranked,
+                constraint_tree=state.constraint_tree,
+                registry=state.data_registry
+            )
+        else:
+            valid_movies = ranked  # skip filtering
+
+        # 📌 Track matched constraints for explanation
+        matched_keys = set(
+            e.key for e in state.constraint_tree if isinstance(e, Constraint))
+        matched = [f"{c.key}={c.value}" for c in state.constraint_tree if isinstance(
+            c, Constraint) and c.key in matched_keys]
+        relaxed = list(state.relaxation_log)
+        validated = list(state.post_validation_log)
+
+        # 🧠 Initialize role tracker if needed
+        if not hasattr(state, "satisfied_roles"):
+            state.satisfied_roles = set()
+
+        # 🧪 Process filtered results
+        for movie in valid_movies:
+            movie_id = movie.get("id")
+            movie["_step"] = step  # 🔧 Embed step metadata
+            if not movie_id:
+                continue
+
+            # Enrich with TMDB /credits if available
+            credits = fetch_credits_for_entity(
+                movie, state.base_url, state.headers)
+
+            # ✅ Inject provenance and enrich registry
+            movie["final_score"] = movie.get("final_score", 1.0)
+            movie["type"] = "movie_summary"
+            movie["_provenance"] = {
+                "matched_constraints": matched,
+                "relaxed_constraints": relaxed,
+                "post_validations": validated
+            }
+
+            enrich_symbolic_registry(
+                movie,
+                state.data_registry,
+                credits=credits,
+                keywords=None,
+                release_info=None,
+                watch_providers=None
+            )
+
+            satisfied = movie["_provenance"].get("satisfied_roles", [])
+            state.satisfied_roles.update(satisfied)
+
+            print(
+                f"🧠 Appending validated movie: {movie.get('title')} with score {movie.get('final_score')}")
+            state.responses.append(movie)
+
+        state.data_registry[step_id]["validated"] = ranked
+
+        if state.relaxation_log and (dropped := getattr(state, "last_dropped_constraints", [])):
+            restored = []
+            for c in dropped:
+                ids = state.data_registry.get(
+                    c.key, {}).get(str(c.value), set())
+                if ids:
+                    state.constraint_tree.constraints.append(c)
+                    restored.append(f"{c.key}={c.value}")
+            already_logged = set(state.relaxation_log)
+            for restored_id in restored:
+                msg = f"Restored: {restored_id}"
+                if msg not in already_logged:
+                    state.relaxation_log.append(msg)
+
+        if not getattr(state, "constraint_tree_evaluated", False):
+            ids = evaluate_constraint_tree(
+                state.constraint_tree, state.data_registry)
+            if ids:
+                inject_validation_steps_from_ids(ids, state)
+            state.constraint_tree_evaluated = True
+
+        ExecutionTraceLogger.log_step(
+            step_id, path, "Validated", summary=ranked[0], state=state
+        )
+        state.completed_steps.append(step_id)
+
 
 def filter_symbolic_responses(state, summaries, endpoint):
     """
@@ -270,3 +283,23 @@ def extract_matched_constraints(entity, constraint_tree, registry):
                 if entity.get("id") in cid_sets[value]:
                     matched.append(f"{constraint.key}={value}")
     return matched
+
+
+def fetch_credits_for_entity(entity, base_url, headers):
+    """
+    Fetch and return credits for either movie or tv.
+    """
+    media_type = "tv" if entity.get("type", "").startswith("tv") else "movie"
+    entity_id = entity.get("id")
+    if not entity_id:
+        return None
+
+    try:
+        url = f"{base_url}/{media_type}/{entity_id}/credits"
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            return res.json()
+    except Exception as e:
+        print(
+            f"⚠️ Could not fetch credits for {media_type} ID {entity_id}: {e}")
+    return None
