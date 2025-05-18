@@ -25,6 +25,7 @@ class AppState(BaseModel):
     pending_steps: Optional[List[Dict]] = Field(default_factory=list)
     execution_trace: Optional[List[Dict]] = Field(default_factory=list)
     visited_fingerprints: Set[str] = Field(default_factory=set)
+    roles_injected: bool = False
 
     # Planner guidance
     question_type: Optional[str] = None
