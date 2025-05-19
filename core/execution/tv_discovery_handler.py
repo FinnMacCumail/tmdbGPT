@@ -61,6 +61,24 @@ def handle_discover_tv_step(step, step_id, path, json_data, state, depth, seen_s
         credits = fetch_credits_for_entity(
             show, state.base_url, state.headers)
 
+        # ✅ Add missing role validation before enrichment
+        PostValidator.validate_roles(
+            credits=credits,
+            query_entities=query_entities,
+            movie=show,
+            state=state
+        )
+
+        # ✅ Then symbolically enrich the registry
+        enrich_symbolic_registry(
+            show,
+            state.data_registry,
+            credits=credits,
+            keywords=None,
+            release_info=None,
+            watch_providers=None
+        )
+
         show["final_score"] = show.get("final_score", 1.0)
         show["type"] = "tv_summary"
         show["_provenance"] = {
