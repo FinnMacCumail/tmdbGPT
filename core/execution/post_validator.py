@@ -5,6 +5,7 @@ from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import passes_symbolic_filter
 from core.planner.plan_validator import should_apply_symbolic_filter
 import requests
+from typing import Dict, List, Optional, Any
 
 
 class PostValidator:
@@ -105,71 +106,101 @@ class PostValidator:
 
     # 🧩 NEW: Flexible Role Validation Function
     @staticmethod
-    def validate_roles(credits: Dict, query_entities: List[Dict]) -> Dict[str, bool]:
-        role_results = {}
+    def validate_roles(
+        credits: Dict,
+        query_entities: List[Dict],
+        *,
+        movie: Optional[Dict] = None,
+        state: Optional[Any] = None
+    ) -> Dict[str, bool]:
+        """
+        Validate whether cast/crew roles in credits satisfy the query entities.
+
+        Args:
+            credits (Dict): TMDB credits response containing 'cast' and 'crew'.
+            query_entities (List[Dict]): Structured entities with roles and IDs.
+            movie (Optional[Dict]): The result item to attach _provenance (if any).
+            state (Optional[Any]): App state to update satisfied_roles (if present).
+
+        Returns:
+            Dict[str, bool]: Mapping of role_id keys (e.g., 'director_1032') to validation status.
+        """
         cast_list = credits.get("cast", [])
         crew_list = credits.get("crew", [])
+
+        role_results: Dict[str, bool] = {}
 
         for entity in query_entities:
             if entity.get("type") != "person":
                 continue
 
-            person_name = entity.get("name", "").lower()
+            role = entity.get("role", "actor").lower()
             person_id = entity.get("resolved_id")
-            role = entity.get("role", "actor")  # default to cast
+            person_name = entity.get("name", "").lower()
 
-            if role == "cast" or role == "actor":
-                passed = any(
-                    (person_name in (member.get("name", "").lower())
-                     or person_id == member.get("id"))
-                    for member in cast_list
-                )
+            key = f"{role}_{person_id}"
+
+            def match_person(group: List[Dict], job_filter=None) -> bool:
+                for member in group:
+                    if job_filter and member.get("job", "").lower() != job_filter:
+                        continue
+                    if person_id and person_id == member.get("id"):
+                        return True
+                    if person_name and person_name in member.get("name", "").lower():
+                        return True
+                return False
+
+            if role in {"cast", "actor"}:
+                passed = match_person(cast_list)
             elif role == "director":
-                passed = any(
-                    (person_name in (member.get("name", "").lower())
-                     or person_id == member.get("id"))
-                    and member.get("job", "").lower() == "director"
-                    for member in crew_list
-                )
+                passed = match_person(crew_list, job_filter="director")
             elif role == "writer":
                 passed = any(
-                    (person_name in (member.get("name", "").lower())
-                     or person_id == member.get("id"))
-                    and member.get("job", "").lower() in {"writer", "screenplay"}
-                    for member in crew_list
+                    (person_id == c.get("id")
+                     or person_name in c.get("name", "").lower())
+                    and c.get("job", "").lower() in {"writer", "screenplay"}
+                    for c in crew_list
                 )
             elif role == "producer":
                 passed = any(
-                    (person_name in (member.get("name", "").lower())
-                     or person_id == member.get("id"))
-                    and "producer" in member.get("job", "").lower()
-                    for member in crew_list
+                    (person_id == c.get("id")
+                     or person_name in c.get("name", "").lower())
+                    and "producer" in c.get("job", "").lower()
+                    for c in crew_list
                 )
             elif role == "composer":
                 passed = any(
-                    (person_name in (member.get("name", "").lower())
-                     or person_id == member.get("id"))
-                    and ("composer" in member.get("job", "").lower() or "music" in member.get("job", "").lower())
-                    for member in crew_list
+                    (person_id == c.get("id")
+                     or person_name in c.get("name", "").lower())
+                    and any(k in c.get("job", "").lower() for k in ["composer", "music", "score"])
+                    for c in crew_list
                 )
             else:
                 passed = False
 
-            key = f"{role}_{person_id}"
             role_results[key] = passed
 
-        # 🧠 Debugging: Compare expected vs. satisfied roles
-        expected_roles = {
-            f"{entity.get('role', 'actor')}_{entity.get('resolved_id')}" for entity in query_entities if entity.get("type") == "person"}
-        satisfied_roles = {role_key for role_key,
-                           passed in role_results.items() if passed}
+        # Extract all satisfied role keys
+        satisfied_roles = {k for k, v in role_results.items() if v}
 
-        if satisfied_roles == expected_roles:
-            print(f"✅ Role validation succeeded: {satisfied_roles}")
-        else:
-            print("⚠️ Role validation failed")
-            print(f"    ➤ Expected roles: {expected_roles}")
-            print(f"    ➤ Satisfied roles: {satisfied_roles}")
+        # 🔄 Update state
+        if state and hasattr(state, "satisfied_roles"):
+            state.satisfied_roles.update(satisfied_roles)
+
+        # 🧠 Inject into provenance if available
+        if movie is not None:
+            movie["_provenance"] = movie.get("_provenance", {})
+            movie["_provenance"]["satisfied_roles"] = list(satisfied_roles)
+
+        # 🧪 Optional: logging comparison
+        expected_roles = {
+            f"{entity.get('role', 'actor').lower()}_{entity.get('resolved_id')}"
+            for entity in query_entities if entity.get("type") == "person"
+        }
+
+        print("🎯 Role Validation Summary:")
+        print(f"    ➤ Expected:  {sorted(expected_roles)}")
+        print(f"    ➤ Satisfied: {sorted(satisfied_roles)}")
 
         return role_results
 
@@ -323,6 +354,58 @@ class PostValidator:
                 "required_ids": [
                     int(p) for p in step["parameters"].get("with_people", "").split(",") if p.isdigit()
                 ]
+            },
+            "arg_source": "credits"
+        },
+        {
+            "endpoint": "/discover/tv",
+            "trigger_param": "with_people",
+            "followup_endpoint_template": "/tv/{tv_id}/credits",
+            "validator": has_director.__func__,
+            "args_builder": lambda step, state: {
+                "director_name": next((
+                    e["name"] for e in state.extraction_result.get("query_entities", [])
+                    if e.get("type") == "person" and e.get("role") == "director"
+                ), None)
+            },
+            "arg_source": "credits"
+        },
+        {
+            "endpoint": "/discover/tv",
+            "trigger_param": "with_people",
+            "followup_endpoint_template": "/tv/{tv_id}/credits",
+            "validator": has_writer.__func__,
+            "args_builder": lambda step, state: {
+                "writer_name": next((
+                    e["name"] for e in state.extraction_result.get("query_entities", [])
+                    if e.get("type") == "person" and e.get("role") == "writer"
+                ), None)
+            },
+            "arg_source": "credits"
+        },
+        {
+            "endpoint": "/discover/tv",
+            "trigger_param": "with_people",
+            "followup_endpoint_template": "/tv/{tv_id}/credits",
+            "validator": has_producer.__func__,
+            "args_builder": lambda step, state: {
+                "producer_name": next((
+                    e["name"] for e in state.extraction_result.get("query_entities", [])
+                    if e.get("type") == "person" and e.get("role") == "producer"
+                ), None)
+            },
+            "arg_source": "credits"
+        },
+        {
+            "endpoint": "/discover/tv",
+            "trigger_param": "with_people",
+            "followup_endpoint_template": "/tv/{tv_id}/credits",
+            "validator": has_composer.__func__,
+            "args_builder": lambda step, state: {
+                "composer_name": next((
+                    e["name"] for e in state.extraction_result.get("query_entities", [])
+                    if e.get("type") == "person" and e.get("role") == "composer"
+                ), None)
             },
             "arg_source": "credits"
         }
@@ -561,6 +644,22 @@ class PostValidator:
             "matched_roles": sorted(matched_roles),
             "matched_entities": sorted(matched_entities)
         })
+
+        # ✅ Run and inject role validation summary
+        role_results = PostValidator.validate_roles(
+            credits=credits,
+            query_entities=kwargs.get("query_entities", []),
+            movie=movie,
+            state=state
+        )
+
+        satisfied_roles = {role for role,
+                           passed in role_results.items() if passed}
+
+        if hasattr(state, "satisfied_roles"):
+            state.satisfied_roles.update(satisfied_roles)
+
+        movie["_provenance"]["satisfied_roles"] = list(satisfied_roles)
 
         print(f"🧠 Matched: {matched_constraints}")
         print(
