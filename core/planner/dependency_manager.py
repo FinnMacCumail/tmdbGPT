@@ -142,6 +142,27 @@ class DependencyManager:
         intersected_ids = set.intersection(*movie_id_sets)
         validation_steps = []
 
+        for media_id in sorted(intersected_ids):
+            # Detect whether this ID refers to a movie or TV show
+            media_obj = next(
+                (r for r in state.responses if r.get("id") == media_id),
+                {}
+            )
+            if "first_air_date" in media_obj or media_obj.get("media_type") == "tv":
+                validation_steps.append({
+                    "step_id": f"step_validate_tv_{media_id}",
+                    "endpoint": f"/tv/{media_id}/credits",
+                    "produces": ["cast", "crew"],
+                    "requires": ["tv_id"]
+                })
+            else:
+                validation_steps.append({
+                    "step_id": f"step_validate_{media_id}",
+                    "endpoint": f"/movie/{media_id}/credits",
+                    "produces": ["cast", "crew"],
+                    "requires": ["movie_id"]
+                })
+
         for movie_id in sorted(intersected_ids):
             validation_steps.append({
                 "step_id": f"step_validate_{movie_id}",
