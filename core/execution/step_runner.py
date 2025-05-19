@@ -273,8 +273,11 @@ class StepRunner:
         state.responses = deduped
 
         ExecutionTraceLogger.log_step(
-            "deduplication", path="(global)", status="Deduplicated",
-            summary=f"Reduced results from {original_count} to {len(deduped)}", state=state
+            step_id="deduplication",
+            path="(global)",
+            status="Deduplicated",
+            summary=f"Reduced results from {len(filtered)} to {len(deduped)}",
+            state=state
         )
 
         # 🔁 Constraint Restoration (for relaxation)
