@@ -129,7 +129,8 @@ class StepRunner:
                         full_url, headers=self.headers, params=params)
                     if response.status_code == 200:
                         json_data = response.json()
-                        # 📦 Cache the raw API response for this step, enabling validation, filtering, and provenance tracking.
+
+                        # 📦 Cache the raw response
                         state.data_registry[step_id] = json_data
 
                         # 🧠 Snapshot resolved entities before update to detect which new entities are added by this step.
@@ -141,17 +142,59 @@ class StepRunner:
                             if k not in previous_entities
                         }
 
-                        # 📦 Route API response to the appropriate handler based on endpoint type.
-                        # TV and movie discovery responses are processed with symbolic filtering and validation,
-                        # while other endpoints fall back to generic result handling.
+                        # ✅ Handle TV join validation: /tv/{id}/credits
+                        if endpoint.startswith("/tv/") and endpoint.endswith("/credits"):
+                            tv_id = step.get("parameters", {}).get(
+                                "tv_id") or endpoint.split("/")[2]
+                            tv_id = int(
+                                tv_id) if tv_id and tv_id.isdigit() else None
+                            tv = next(
+                                (r for r in state.responses if r.get("id") == tv_id), {})
+
+                            if not tv:
+                                print(
+                                    f"⚠️ No TV result in state.responses for ID={tv_id}")
+                            else:
+                                from core.execution.post_validator import PostValidator
+                                from core.entity.param_utils import enrich_symbolic_registry
+
+                                # Validate roles
+                                role_results = PostValidator.validate_roles(
+                                    credits=json_data,
+                                    query_entities=state.extraction_result.get(
+                                        "query_entities", []),
+                                    movie=tv,
+                                    state=state
+                                )
+
+                                # Score the result
+                                score = PostValidator.score_role_validation(
+                                    role_results)
+                                tv["final_score"] = score
+
+                                # Enrich symbolic registry
+                                enrich_symbolic_registry(
+                                    tv, state.data_registry, credits=json_data)
+
+                                if score > 0:
+                                    state.responses.append(tv)
+
+                                ExecutionTraceLogger.log_step(
+                                    step_id=step_id,
+                                    path=endpoint,
+                                    status="Validated",
+                                    summary=f"{tv.get('name')} (ID={tv_id}) — score: {score}",
+                                    state=state
+                                )
+                            continue  # skip rest of generic handling
+
+                        # 📦 Route to correct handler
                         if endpoint.startswith("/discover/tv"):
                             handle_discover_tv_step(
-                                step, step_id, path, json_data, state, depth, seen_step_keys
-                            )
+                                step, step_id, path, json_data, state, depth, seen_step_keys)
                         elif endpoint.startswith("/discover/movie"):
                             DiscoveryHandler.handle_discover_movie_step(
-                                step, step_id, path, json_data, state, depth, seen_step_keys
-                            )
+                                step, step_id, path, json_data, state, depth, seen_step_keys)
                         else:
                             if endpoint.startswith("/discover/"):
                                 print(
@@ -164,7 +207,6 @@ class StepRunner:
                         # Injects /movie/{id} or /tv/{id} lookups for results satisfying all role-based constraints.
                         # Skips if fallback has already been applied to avoid redundant logic.
                         # Ensures queries like "movies directed by X and starring Y" don’t prematurely fallback.
-                        # Probably need a TV version
                         if endpoint.startswith("/discover/movie") and not step.get("fallback_injected"):
                             FallbackHandler.inject_credit_fallback_steps(
                                 state, step)
@@ -187,13 +229,11 @@ class StepRunner:
                         self._inject_role_steps_if_ready(state)
 
                         # 🔁 After updating state, detect newly resolved entities and expand dependent steps.
-                        # This supports dynamic multi-entity chaining (e.g., person → credits → movie).
                         for new_step in expand_plan_with_dependencies(state, new_entities):
                             state.plan_steps.append(new_step)
                             step_origin_depth[new_step["step_id"]] = depth + 1
 
                 except Exception as ex:
-                    # 🧯 Handle unexpected failures gracefully
                     ExecutionTraceLogger.log_step(
                         step_id, path or endpoint, f"Failed: {ex}", state=state)
                     state.error = str(ex)
