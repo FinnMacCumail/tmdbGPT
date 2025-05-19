@@ -2,6 +2,7 @@ from core.model.evaluator import evaluate_constraint_tree
 
 import requests
 from core.entity.param_utils import update_symbolic_registry
+from core.planner.constraint_planner import extract_matched_constraints
 
 """
 Check if a given movie or TV entity satisfies all symbolic constraints
@@ -99,10 +100,21 @@ def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list
     for m in entities:
         mid = m.get("id")
         passed = mid in valid_ids
-        print(
-            f"🔍 {m.get('title') or m.get('name')} — passed symbolic filter: {passed}")
+
+        m["_provenance"] = m.get("_provenance", {})
+
         if passed:
+            # ✅ Inject matched constraints for debugging and traceability
+            matched = extract_matched_constraints(m, constraint_tree, registry)
+            m["_provenance"]["matched_constraints"] = matched
+
+            print(
+                f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={mid} — matched: {matched}")
             filtered.append(m)
+
+        else:
+            print(
+                f"❌ [REJECTED] {m.get('title') or m.get('name')} — ID={mid} — failed symbolic filter")
 
     return filtered
 
