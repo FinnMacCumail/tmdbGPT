@@ -8,19 +8,20 @@ from core.execution.fallback import FallbackHandler, FallbackSemanticBuilder
 from core.entity.param_utils import update_symbolic_registry
 
 from core.execution.post_execution_validator import PostExecutionValidator
-from core.execution.post_validator import PostValidator
 from nlp.nlp_retriever import ResultExtractor
 from core.entity.param_utils import enrich_symbolic_registry
-from core.entity.symbolic_filter import passes_symbolic_filter, lazy_enrich_and_filter, filter_valid_movies
+from core.entity.symbolic_filter import passes_symbolic_filter, lazy_enrich_and_filter
 
 from core.planner.plan_validator import should_apply_symbolic_filter
-from core.planner.plan_utils import is_symbol_free_query
+from core.planner.plan_utils import is_symbol_free_query, filter_valid_movies
 
 from nlp.nlp_retriever import PathRewriter
 from core.planner.plan_utils import is_symbolically_filterable
 import requests
 from core.model.constraint import Constraint
 from core.planner.constraint_planner import inject_validation_steps_from_ids
+from core.planner.plan_utils import extract_matched_constraints
+from core.execution.post_validator import PostValidator
 
 
 class DiscoveryHandler:
@@ -302,23 +303,6 @@ def filter_symbolic_responses(state, summaries, endpoint):
             filtered.append(s)
 
     return filtered
-
-
-def extract_matched_constraints(entity, constraint_tree, registry):
-    ids = evaluate_constraint_tree(constraint_tree, registry)
-    matched = []
-    for constraint in constraint_tree:
-        if isinstance(constraint, Constraint):
-            cid_sets = ids.get(entity.get("media_type", "movie"), {}).get(
-                constraint.key, {})
-            value = constraint.value
-            # ✅ Normalize list-wrapped values like [4495] → 4495
-            if isinstance(value, list) and len(value) == 1:
-                value = value[0]
-            if value in cid_sets:
-                if entity.get("id") in cid_sets[value]:
-                    matched.append(f"{constraint.key}={value}")
-    return matched
 
 
 def fetch_credits_for_entity(entity, base_url, headers):
