@@ -8,7 +8,7 @@ from core.execution.fallback import FallbackHandler
 from core.execution.discovery_handler import DiscoveryHandler
 from core.formatting.registry import RESPONSE_RENDERERS
 from core.formatting.templates import format_fallback, QueryExplanationBuilder
-from core.entity.symbolic_filter import filter_valid_movies
+from core.planner.plan_utils import filter_valid_movies
 from core.entity.param_utils import enrich_symbolic_registry
 from core.model.constraint import Constraint
 from core.model.evaluator import evaluate_constraint_tree
@@ -18,6 +18,7 @@ from nlp.nlp_retriever import PostStepUpdater, PathRewriter, expand_plan_with_de
 from core.planner.dependency_manager import DependencyManager, inject_lookup_steps_from_role_intersection
 from core.execution.tv_discovery_handler import handle_discover_tv_step
 from response.log_summary import log_summary
+from core.validation.role_validators import validate_roles, score_role_validation
 
 
 class StepRunner:
@@ -159,7 +160,7 @@ class StepRunner:
                                 from core.entity.param_utils import enrich_symbolic_registry
 
                                 # Validate roles
-                                role_results = PostValidator.validate_roles(
+                                role_results = validate_roles(
                                     credits=json_data,
                                     query_entities=state.extraction_result.get(
                                         "query_entities", []),
@@ -168,7 +169,7 @@ class StepRunner:
                                 )
 
                                 # Score the result
-                                score = PostValidator.score_role_validation(
+                                score = score_role_validation(
                                     role_results)
                                 tv["final_score"] = score
 
