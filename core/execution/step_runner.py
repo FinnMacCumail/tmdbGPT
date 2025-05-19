@@ -39,21 +39,6 @@ class StepRunner:
         if not hasattr(state, "roles_injected"):
             state.roles_injected = False
 
-        # 🔍 Role Step Injection (Early) for TV media-type
-        # 🔍 Early role-based lookup injection for TV queries.
-        # Attempts to inject precise /tv/{id} steps via symbolic intersection.
-        # Falls back to /discover/tv if no matches are found.
-        if state.intended_media_type in ("tv", "both") and not state.roles_injected:
-            state = inject_lookup_steps_from_role_intersection(state)
-            has_lookup = any(
-                step.get("endpoint", "").startswith("/tv/")
-                or "/tv_credits" in step.get("endpoint", "")
-                for step in state.plan_steps
-            )
-            if not has_lookup:
-                print(
-                    "⚠️ No early TV role lookup steps were injected — will rely on /discover/tv")
-
         while state.plan_steps:
             step = state.plan_steps.pop(0)
             # 🔀 Expands a step into multiple single-valued steps if a path parameter contains a list.
