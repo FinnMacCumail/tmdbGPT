@@ -3,6 +3,14 @@ from core.model.evaluator import evaluate_constraint_tree
 import requests
 from core.entity.param_utils import update_symbolic_registry
 
+"""
+Check if a given movie or TV entity satisfies all symbolic constraints
+by evaluating whether its ID appears in the intersection (AND) or union (OR)
+of constraint-matching ID sets from the registry.
+
+note!! - It only looks at "movie" and ignores "tv". - needs refactoring
+"""
+
 
 def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> bool:
     """

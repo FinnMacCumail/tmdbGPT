@@ -4,6 +4,7 @@ from core.model.evaluator import evaluate_constraint_tree, relax_constraint_tree
 from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import passes_symbolic_filter
 from core.planner.plan_validator import should_apply_symbolic_filter
+import requests
 
 
 class PostValidator:
@@ -28,11 +29,15 @@ class PostValidator:
 
         return validated
 
+    # ✅ Return True if all required actor IDs are present in the movie/TV cast.
+    # Used to validate cast constraints (with_people) during post-validation.
     @staticmethod
     def has_all_cast(credits: Dict, required_ids: List[int]) -> bool:
         cast_ids = {c["id"] for c in credits.get("cast", [])}
         return all(pid in cast_ids for pid in required_ids)
 
+    # ✅ Return True if the specified director is present in the crew list with job="Director".
+    # Used to validate director-role constraints after fetching /movie/{id}/credits
     @staticmethod
     def has_director(credits: Dict, director_name: str) -> bool:
         crew = credits.get("crew", [])
@@ -277,6 +282,12 @@ class PostValidator:
 
         return False
 
+    # 🎯 Post-validation rules used for symbolic filtering.
+    # Each rule triggers a follow-up /credits API call to validate roles (cast, director).
+    # - Applies only if the specified endpoint and trigger_param are matched in the step.
+    # - followup_endpoint_template → where to fetch real cast/crew data.
+    # - validator → function that checks for presence of required people in cast/crew.
+    # - args_builder → constructs arguments for validator from the query step and app state.
     POST_VALIDATION_RULES = [
         {
             "endpoint": "/discover/movie",
@@ -319,12 +330,18 @@ class PostValidator:
 
     @staticmethod
     def run_post_validations(step, data, state):
+
+        # 🧪 Skip symbolic post-validation for symbol-free queries.
+        # If no symbolic constraints (e.g., no cast, director, genre), return results as-is.
         if not should_apply_symbolic_filter(state, step):
             return data.get("results", [])
+
         validated = []
         results = data.get("results", [])
         query_entities = state.extraction_result.get("query_entities", [])
 
+        # 🧪 Check if current step matches any post-validation rule (e.g. with_people on /discover/movie)
+        # If matched, fetch /movie/{id}/credits (or /tv/{id}/credits) for each result to validate cast/director roles
         for rule in PostValidator.POST_VALIDATION_RULES:
             if rule["endpoint"] in step["endpoint"] and rule["trigger_param"] in step.get("parameters", {}):
                 validator = rule["validator"]
@@ -335,17 +352,20 @@ class PostValidator:
                     item_id = item.get("id")
                     if not item_id:
                         continue
-
+                    # 🔧 Build URL to fetch full credits for this movie/TV show.
+                    # Substitutes {movie_id} or {tv_id} into the template, then sends GET request.
                     url_template = rule["followup_endpoint_template"]
                     url = f"{state.base_url}{url_template.replace('{tv_id}', str(item_id)).replace('{movie_id}', str(item_id))}"
 
                     try:
-                        import requests
                         response = requests.get(url, headers=state.headers)
                         if response.status_code != 200:
                             continue
 
                         result_data = response.json()
+                        # 🧠 Score the result against the symbolic constraint tree.
+                        # Uses cast/crew info to compute a match score [0.0–1.0].
+                        # Returns score and list of matched constraints (e.g., cast, director, genre).
                         score_tuple = PostValidator.score_movie_against_query(
                             movie=item,
                             state=state,
@@ -358,13 +378,18 @@ class PostValidator:
                             continue
 
                         score, matched = score_tuple
+                        # ✅ If score is positive, store it and apply final symbolic filter.
                         if score > 0:
                             item["final_score"] = min(score, 1.0)
 
                             # 🧠 Filter against symbolic constraints before final append
+                            # Only keep result if it still satisfies symbolic constraint intersection (AND logic).
+                            # Also append validator tags to result provenance for explanation/debugging.
                             if passes_symbolic_filter(item, state.constraint_tree, state.data_registry):
                                 validated.append(item)
 
+                            # 🧠 Append a trace tag to the result's provenance to indicate which validator passed.
+                            # This is used for explanation/debugging (e.g., passed 'has_director' validation).
                             post_validations = item.setdefault(
                                 "_provenance", {}).setdefault("post_validations", [])
                             if rule["validator"].__name__ == "has_all_cast":
@@ -373,6 +398,9 @@ class PostValidator:
                                 post_validations.append("has_director")
 
                             # ✅ Symbolic enrichment before adding to validated
+                            # 🧩 Index this result into the symbolic registry using its credits metadata.
+                            # This enables symbolic filtering and constraint matching across roles, genres, companies, etc.
+                            # e.g., updates: with_people[6193] → movie_ids, director[1032] → movie_ids
                             enrich_symbolic_registry(
                                 movie=item,
                                 registry=state.data_registry,
@@ -388,6 +416,29 @@ class PostValidator:
 
         return validated or results
 
+    # 🔍 Symbolic Post-Validation Scoring Function
+    # --------------------------------------------
+    # This function scores a movie or TV result against the symbolic constraints extracted from a user query.
+    # It evaluates whether the result satisfies role-based, categorical, or numeric constraints such as:
+    #   - Person roles (cast, director, writer, composer)
+    #   - Genres (via genre_ids)
+    #   - Companies or networks
+    #   - Future extensions: runtime, language, certification, etc.
+    #
+    # Scoring uses a weighted model, where each matched constraint contributes a fixed portion to the total score.
+    # - Person roles carry higher weights (e.g., cast/director = 0.4)
+    # - Non-person entities like genres/companies contribute smaller weights (0.3)
+    # - The score is normalized based on the total number of constraints in the query
+    #
+    # The function also records a rich provenance log into `movie["_provenance"]` for downstream filtering, explanation,
+    # and debugging, including:
+    #   - final_score: normalized match score [0.0–1.0]
+    #   - matched_constraints: list of symbolic constraints that were satisfied
+    #   - post_validations: tags like 'has_director', 'genre_matched'
+    #   - matched_roles and matched_entities for analytical filtering
+    #
+    # Returns:
+    #   Tuple (normalized_score: float, matched_constraints: List[str])
     @staticmethod
     def score_movie_against_query(movie, state, credits=None, **kwargs):
         """

@@ -184,6 +184,10 @@ def apply_llm_endpoint_filter(query: str, matches: list, question_type: str) -> 
     ]
 
 
+# ✅ Determine whether symbolic filtering (e.g., constraint-based validation) should apply.
+# Returns True if:
+# - Endpoint is pre-designated as filterable (e.g., /discover/movie), OR
+# - Constraint tree includes known symbolic filters (e.g., with_people, with_genres).
 def should_apply_symbolic_filter(state, step) -> bool:
     """
     Return True if symbolic constraint filtering should apply to this step.

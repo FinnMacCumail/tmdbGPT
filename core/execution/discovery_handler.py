@@ -108,9 +108,13 @@ class DiscoveryHandler:
 
     @staticmethod
     def handle_discover_movie_step(step, step_id, path, json_data, state, depth, seen_step_keys):
+        # 🎯 Post-validate discovery results using symbolic constraints (e.g., cast, director, genre).
+        # If validation rules are triggered (e.g., with_people), performs credit lookups for accuracy.
         filtered_movies = PostValidator.run_post_validations(
             step, json_data, state)
 
+        # ❌ No results passed validation or symbolic filtering.
+        # Triggers fallback or relaxation logic (e.g., retry with fewer constraints or inject generic discovery).
         if not filtered_movies:
             ExecutionTraceLogger.log_step(
                 step_id, path, "Filtered", "No matching results", state=state
@@ -118,6 +122,11 @@ class DiscoveryHandler:
 
             already_dropped = {p.strip()
                                for p in step_id.split("_relaxed_")[1:] if p}
+
+            # 🔁 Trigger Constraint Relaxation
+            # If symbolic filtering or validation yielded no results,
+            # attempt to recover by relaxing one symbolic constraint (e.g., drop with_genres or with_director).
+            # Returns one or more fallback discovery steps to re-attempt execution with looser filters.
             relaxed_steps = FallbackHandler.relax_constraints(
                 step, already_dropped, state=state)
 
@@ -126,6 +135,7 @@ class DiscoveryHandler:
                     if relaxed_step["step_id"] not in state.completed_steps:
                         constraint_dropped = relaxed_step["step_id"].split("_relaxed_")[
                             1]
+                        # ➕ Inject the Relaxed Step at the Front of the Plan
                         state.plan_steps.insert(0, relaxed_step)
                         ExecutionTraceLogger.log_step(
                             relaxed_step["step_id"], path,
@@ -133,18 +143,29 @@ class DiscoveryHandler:
                             summary=f"Dropped constraint: {constraint_dropped}",
                             state=state
                         )
+                # 🧠 Track What’s Been Relaxed
                 state.relaxed_parameters.extend(already_dropped)
                 ExecutionTraceLogger.log_step(
                     step_id, path, "Relaxation Started", summary="Injected relaxed steps", state=state
                 )
+                # ✅ Mark the Original Step as Complete
                 state.completed_steps.append(step_id)
                 return
 
+            # 🧠 Enrich Fallback Discovery Step with Semantic Context
+            # When symbolic filtering fails, enhance the original discovery step by injecting optional parameters
+            # (e.g., vote_average.gte, primary_release_year, with_original_language) inferred from the query and resolved entities.
+            # This produces more relevant fallback results even when symbolic constraints are dropped.
             fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
                 original_step=step,
                 extraction_result=state.extraction_result,
                 resolved_entities=state.resolved_entities
             )
+            # 🛠️ Inject Enriched Fallback Step (if not already executed)
+            # If a semantic fallback step was generated and hasn't been run yet:
+            # - Insert it at the front of the plan to retry with enriched semantic parameters (e.g., rating, year, language)
+            # - Log the injection for traceability
+            # - Mark the original (failed) step as completed to avoid retrying it
             if fallback_step["step_id"] not in state.completed_steps:
                 state.plan_steps.insert(0, fallback_step)
                 ExecutionTraceLogger.log_step(
@@ -156,11 +177,18 @@ class DiscoveryHandler:
             state.completed_steps.append(step_id)
             return
 
+        # 🎯 Boost Results Based on Query Entity Matches - intent-aware prioritization
+        # Applies a ranking boost to each movie that includes direct matches to the entities mentioned in the user's query
+        # (e.g., actor IDs in cast, director IDs in crew, matching production companies).
+        # This ensures that results tied more strongly to the user's explicit intent are ranked higher.
         query_entities = state.extraction_result.get("query_entities", [])
         ranked = EntityAwareReranker.boost_by_entity_mentions(
             filtered_movies, query_entities)
 
-        # 🔍 Filter only symbolically valid movies
+        # 🧠 Apply Symbolic Filtering (if supported)
+        # If the current step supports symbolic constraint filtering (e.g., /discover/movie),
+        # filter results using the constraint tree and symbolic registry to enforce role, genre, and entity alignment.
+        # Otherwise, skip filtering and accept all ranked results as valid (e.g., for detail or fallback steps).
         if should_apply_symbolic_filter(state, step):
             valid_movies = filter_valid_movies(
                 ranked,
@@ -175,6 +203,7 @@ class DiscoveryHandler:
             e.key for e in state.constraint_tree if isinstance(e, Constraint))
         matched = [f"{c.key}={c.value}" for c in state.constraint_tree if isinstance(
             c, Constraint) and c.key in matched_keys]
+
         relaxed = list(state.relaxation_log)
         validated = list(state.post_validation_log)
 
@@ -190,6 +219,7 @@ class DiscoveryHandler:
                 continue
 
             # Enrich with TMDB /credits if available
+            # may nned to cache this as could have already occureed in the pipleline? - refer to How to Avoid Redundant Calls (Optional Optimization)
             credits = fetch_credits_for_entity(
                 movie, state.base_url, state.headers)
 
@@ -202,6 +232,7 @@ class DiscoveryHandler:
                 "post_validations": validated
             }
 
+            # needs update
             enrich_symbolic_registry(
                 movie,
                 state.data_registry,
@@ -220,6 +251,10 @@ class DiscoveryHandler:
 
         state.data_registry[step_id]["validated"] = ranked
 
+        # 🔁 Attempt to Restore Dropped Constraints
+        # If symbolic constraints were dropped during fallback, but valid matching results are later found,
+        # restore those constraints to the constraint tree.
+        # Also update the relaxation log to reflect restored constraints for auditability
         if state.relaxation_log and (dropped := getattr(state, "last_dropped_constraints", [])):
             restored = []
             for c in dropped:
@@ -234,6 +269,7 @@ class DiscoveryHandler:
                 if msg not in already_logged:
                     state.relaxation_log.append(msg)
 
+        # ✅ Check if Evaluation Has Already Occurred
         if not getattr(state, "constraint_tree_evaluated", False):
             ids = evaluate_constraint_tree(
                 state.constraint_tree, state.data_registry)

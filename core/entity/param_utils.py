@@ -427,6 +427,9 @@ def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, re
         watch_providers (dict, optional): Data from /watch/providers.
     """
 
+    # 🧩 Index this result into the symbolic registry using its credits metadata.
+    # This enables symbolic filtering and constraint matching across roles, genres, companies, etc.
+    # e.g., updates: with_people[6193] → movie_ids, director[1032] → movie_ids
     try:
         update_symbolic_registry(
             entity=movie,
