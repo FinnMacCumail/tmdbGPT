@@ -1,3 +1,7 @@
+from core.model.evaluator import evaluate_constraint_tree
+from core.model.constraint import Constraint
+
+
 def is_symbol_free_query(state) -> bool:
     """
     Returns True if there are no symbolic query entities (like people, genres, companies),
@@ -152,3 +156,78 @@ def is_symbolically_filterable(endpoint: str) -> bool:
     Do NOT apply symbolic filtering to detail endpoints like /person/{id}.
     """
     return endpoint.startswith("/discover/") or endpoint.startswith("/search/")
+
+
+def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list:
+    """
+    Filter a list of TMDB entities (movies or TV) based on symbolic constraint satisfaction.
+
+    Args:
+        entities (list): List of TMDB media dicts (must include 'id').
+        constraint_tree: ConstraintGroup holding current query constraints.
+        registry (dict): Enriched symbolic registry (e.g. state.data_registry).
+
+    Returns:
+        list: Entities that pass the symbolic filter.
+    """
+    ids = evaluate_constraint_tree(constraint_tree, registry)
+
+    # Support both movie and tv entries
+    valid_ids = set()
+    for media_type in ("movie", "tv"):
+        matches = ids.get(media_type, {})
+        if not matches:
+            continue
+
+        logic = getattr(constraint_tree, "logic", "AND").upper()
+        if logic == "OR":
+            for match_set in matches.values():
+                valid_ids |= match_set
+        else:
+            intersection = None
+            for match_set in matches.values():
+                if intersection is None:
+                    intersection = set(match_set)
+                else:
+                    intersection &= match_set
+            if intersection:
+                valid_ids |= intersection
+
+    filtered = []
+    for m in entities:
+        mid = m.get("id")
+        passed = mid in valid_ids
+
+        m["_provenance"] = m.get("_provenance", {})
+
+        if passed:
+            # ✅ Inject matched constraints for debugging and traceability
+            matched = extract_matched_constraints(m, constraint_tree, registry)
+            m["_provenance"]["matched_constraints"] = matched
+
+            print(
+                f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={mid} — matched: {matched}")
+            filtered.append(m)
+
+        else:
+            print(
+                f"❌ [REJECTED] {m.get('title') or m.get('name')} — ID={mid} — failed symbolic filter")
+
+    return filtered
+
+
+def extract_matched_constraints(entity, constraint_tree, registry):
+    ids = evaluate_constraint_tree(constraint_tree, registry)
+    matched = []
+    for constraint in constraint_tree:
+        if isinstance(constraint, Constraint):
+            cid_sets = ids.get(entity.get("media_type", "movie"), {}).get(
+                constraint.key, {})
+            value = constraint.value
+            # ✅ Normalize list-wrapped values like [4495] → 4495
+            if isinstance(value, list) and len(value) == 1:
+                value = value[0]
+            if value in cid_sets:
+                if entity.get("id") in cid_sets[value]:
+                    matched.append(f"{constraint.key}={value}")
+    return matched
