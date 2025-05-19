@@ -29,22 +29,29 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
         return False
 
     constraint_ids = evaluate_constraint_tree(constraint_tree, registry)
-    movie_constraint_sets = constraint_ids.get("movie", {})
-    if not movie_constraint_sets:
+
+    # 🧠 Determine media type based on release info
+    if "first_air_date" in entity:
+        media_type = "tv"
+    else:
+        media_type = "movie"
+
+    constraint_sets = constraint_ids.get(media_type, {})
+    if not constraint_sets:
         return False
 
     logic_mode = getattr(constraint_tree, "logic", "AND").upper()
 
     if logic_mode == "OR":
         # ✅ Pass if the entity appears in any constraint match
-        for match_set in movie_constraint_sets.values():
+        for match_set in constraint_sets.values():
             if entity_id in match_set:
                 return True
         return False
 
     # ✅ Default: must appear in the intersection of all constraint match sets
     valid_ids = None
-    for match_set in movie_constraint_sets.values():
+    for match_set in constraint_sets.values():
         if valid_ids is None:
             valid_ids = set(match_set)
         else:
