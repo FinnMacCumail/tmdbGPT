@@ -2,7 +2,7 @@ from core.model.evaluator import evaluate_constraint_tree
 
 import requests
 from core.entity.param_utils import update_symbolic_registry
-from core.planner.constraint_planner import extract_matched_constraints
+
 
 """
 Check if a given movie or TV entity satisfies all symbolic constraints
@@ -59,64 +59,6 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
             valid_ids &= match_set
 
     return bool(valid_ids) and entity_id in valid_ids
-
-
-def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list:
-    """
-    Filter a list of TMDB entities (movies or TV) based on symbolic constraint satisfaction.
-
-    Args:
-        entities (list): List of TMDB media dicts (must include 'id').
-        constraint_tree: ConstraintGroup holding current query constraints.
-        registry (dict): Enriched symbolic registry (e.g. state.data_registry).
-
-    Returns:
-        list: Entities that pass the symbolic filter.
-    """
-    ids = evaluate_constraint_tree(constraint_tree, registry)
-
-    # Support both movie and tv entries
-    valid_ids = set()
-    for media_type in ("movie", "tv"):
-        matches = ids.get(media_type, {})
-        if not matches:
-            continue
-
-        logic = getattr(constraint_tree, "logic", "AND").upper()
-        if logic == "OR":
-            for match_set in matches.values():
-                valid_ids |= match_set
-        else:
-            intersection = None
-            for match_set in matches.values():
-                if intersection is None:
-                    intersection = set(match_set)
-                else:
-                    intersection &= match_set
-            if intersection:
-                valid_ids |= intersection
-
-    filtered = []
-    for m in entities:
-        mid = m.get("id")
-        passed = mid in valid_ids
-
-        m["_provenance"] = m.get("_provenance", {})
-
-        if passed:
-            # ✅ Inject matched constraints for debugging and traceability
-            matched = extract_matched_constraints(m, constraint_tree, registry)
-            m["_provenance"]["matched_constraints"] = matched
-
-            print(
-                f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={mid} — matched: {matched}")
-            filtered.append(m)
-
-        else:
-            print(
-                f"❌ [REJECTED] {m.get('title') or m.get('name')} — ID={mid} — failed symbolic filter")
-
-    return filtered
 
 
 def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url) -> bool:
