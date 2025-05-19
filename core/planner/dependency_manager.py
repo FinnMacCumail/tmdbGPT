@@ -143,11 +143,8 @@ class DependencyManager:
         validation_steps = []
 
         for media_id in sorted(intersected_ids):
-            # Detect whether this ID refers to a movie or TV show
             media_obj = next(
-                (r for r in state.responses if r.get("id") == media_id),
-                {}
-            )
+                (r for r in state.responses if r.get("id") == media_id), {})
             if "first_air_date" in media_obj or media_obj.get("media_type") == "tv":
                 validation_steps.append({
                     "step_id": f"step_validate_tv_{media_id}",
@@ -157,7 +154,7 @@ class DependencyManager:
                 })
             else:
                 validation_steps.append({
-                    "step_id": f"step_validate_{media_id}",
+                    "step_id": f"step_validate_movie_{media_id}",
                     "endpoint": f"/movie/{media_id}/credits",
                     "produces": ["cast", "crew"],
                     "requires": ["movie_id"]
@@ -209,7 +206,8 @@ class DependencyManager:
                             f"🛑 Skipped /person/{_id}/movie_credits because {role_tag} is already satisfied.")
                         continue
 
-                    endpoint = f"/person/{_id}/movie_credits"
+                    media_type = getattr(state, "intended_media_type", "movie")
+                    endpoint = f"/person/{_id}/{media_type}_credits"
                     step_id = f"step_{role_tag}_{_id}"
 
                     new_steps.append({
