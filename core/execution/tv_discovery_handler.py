@@ -1,12 +1,14 @@
 from core.execution.post_validator import PostValidator
 from core.planner.plan_validator import should_apply_symbolic_filter
 from core.execution.trace_logger import ExecutionTraceLogger
-from core.entity.symbolic_filter import filter_valid_movies
+from core.planner.plan_utils import filter_valid_movies
 from core.model.constraint import Constraint
 from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.model.evaluator import evaluate_constraint_tree
 from core.planner.entity_reranker import EntityAwareReranker
 from core.entity.param_utils import enrich_symbolic_registry
+from core.validation.role_validators import validate_roles
+from core.execution.discovery_handler import fetch_credits_for_entity
 
 
 def handle_discover_tv_step(step, step_id, path, json_data, state, depth, seen_step_keys):
@@ -57,12 +59,11 @@ def handle_discover_tv_step(step, step_id, path, json_data, state, depth, seen_s
         if not tv_id:
             continue
 
-        from core.execution.execution_orchestrator import fetch_credits_for_entity
         credits = fetch_credits_for_entity(
             show, state.base_url, state.headers)
 
         # ✅ Add missing role validation before enrichment
-        PostValidator.validate_roles(
+        validate_roles(
             credits=credits,
             query_entities=query_entities,
             movie=show,
