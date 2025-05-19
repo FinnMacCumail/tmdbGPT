@@ -293,22 +293,42 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
 def enrich_person_roles(entity, credits, registry, media_type):
     if not credits:
         return
-    cast = credits.get("cast", [])
-    crew = credits.get("crew", [])
-    for person in cast:
-        pid = person.get("id")
-        if pid:
-            registry.setdefault("with_people", {}).setdefault(
-                str(pid), set()).add(entity["id"])
-    for person in crew:
-        pid = person.get("id")
+
+    eid = entity.get("id")
+    if not eid:
+        return
+
+    # ✅ Cast roles
+    for person in credits.get("cast", []):
+        _add_role_index(registry, eid, person, "cast")
+
+    # ✅ Crew roles
+    for person in credits.get("crew", []):
         job = person.get("job", "").lower()
-        if pid:
-            registry.setdefault("with_people", {}).setdefault(
-                str(pid), set()).add(entity["id"])
-            if job in {"director", "writer", "screenplay", "producer", "composer"}:
-                registry.setdefault(job, {}).setdefault(
-                    str(pid), set()).add(entity["id"])
+        role = _map_job_to_symbolic_role(job)
+        _add_role_index(registry, eid, person, role)
+
+
+def _add_role_index(registry, eid, person, role=None):
+    pid = person.get("id")
+    if not pid:
+        return
+    pid = str(pid)
+    if role:
+        registry.setdefault(role, {}).setdefault(pid, set()).add(eid)
+    registry.setdefault("with_people", {}).setdefault(pid, set()).add(eid)
+
+
+def _map_job_to_symbolic_role(job):
+    if job == "director":
+        return "director"
+    elif job in {"writer", "screenplay"}:
+        return "writer"
+    elif "producer" in job:
+        return "producer"
+    elif any(k in job for k in {"composer", "music", "score"}):
+        return "composer"
+    return None  # other crew jobs are still indexed in with_people
 
 
 def enrich_genres(entity, registry, media_type):
