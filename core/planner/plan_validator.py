@@ -213,6 +213,7 @@ def should_apply_symbolic_filter(state, step) -> bool:
                          "vote_average.gte", "primary_release_year"}
 
         for constraint in constraint_tree:
+            # 🔍 This is where symbolic constraints (like director_1032) are extracted from the parsed query and incorporated into the constraint tree.
             if isinstance(constraint, Constraint) and constraint.key in symbolic_keys:
                 print(f"🔁 Overriding symbolic filter for fallback: {endpoint}")
                 return True

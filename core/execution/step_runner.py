@@ -8,7 +8,7 @@ from core.execution.fallback import FallbackHandler
 from core.execution.discovery_handler import DiscoveryHandler
 from core.formatting.registry import RESPONSE_RENDERERS
 from core.formatting.templates import format_fallback, QueryExplanationBuilder
-from core.planner.plan_utils import filter_valid_movies
+from core.planner.plan_utils import filter_valid_movies_or_tv
 from core.entity.param_utils import enrich_symbolic_registry
 from core.model.constraint import Constraint
 from core.model.evaluator import evaluate_constraint_tree
@@ -16,7 +16,7 @@ from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.planner.plan_validator import PlanValidator
 from nlp.nlp_retriever import PostStepUpdater, PathRewriter, expand_plan_with_dependencies
 from core.planner.dependency_manager import DependencyManager, inject_lookup_steps_from_role_intersection
-from core.execution.tv_discovery_handler import handle_discover_tv_step
+
 from response.log_summary import log_summary
 from core.validation.role_validators import validate_roles, score_role_validation
 
@@ -128,72 +128,18 @@ class StepRunner:
                             if k not in previous_entities
                         }
 
-                        # ✅ Handle TV join validation: /tv/{id}/credits
-                        if endpoint.startswith("/tv/") and endpoint.endswith("/credits"):
-                            tv_id = step.get("parameters", {}).get(
-                                "tv_id") or endpoint.split("/")[2]
-                            tv_id = int(
-                                tv_id) if tv_id and tv_id.isdigit() else None
-                            tv = next(
-                                (r for r in state.responses if r.get("id") == tv_id), {})
-
-                            if not tv:
-                                print(
-                                    f"⚠️ No TV result in state.responses for ID={tv_id}")
-                            else:
-                                from core.execution.post_validator import PostValidator
-                                from core.entity.param_utils import enrich_symbolic_registry
-
-                                # Validate roles
-                                role_results = validate_roles(
-                                    credits=json_data,
-                                    query_entities=state.extraction_result.get(
-                                        "query_entities", []),
-                                    movie=tv,
-                                    state=state
-                                )
-
-                                # Score the result
-                                score = score_role_validation(
-                                    role_results)
-                                tv["final_score"] = score
-
-                                # Enrich symbolic registry
-                                enrich_symbolic_registry(
-                                    tv, state.data_registry, credits=json_data)
-
-                                if score > 0:
-                                    state.responses.append(tv)
-
-                                ExecutionTraceLogger.log_step(
-                                    step_id=step_id,
-                                    path=endpoint,
-                                    status="Validated",
-                                    summary=f"{tv.get('name')} (ID={tv_id}) — score: {score}",
-                                    state=state
-                                )
-                            continue  # skip rest of generic handling
-
-                        # 📦 Route to correct handler
-                        if endpoint.startswith("/discover/tv"):
-                            handle_discover_tv_step(
-                                step, step_id, path, json_data, state, depth, seen_step_keys)
-                        elif endpoint.startswith("/discover/movie"):
-                            DiscoveryHandler.handle_discover_movie_step(
+                        if endpoint.startswith("/discover/"):
+                            DiscoveryHandler.handle_discover_step(
                                 step, step_id, path, json_data, state, depth, seen_step_keys)
                         else:
-                            if endpoint.startswith("/discover/"):
-                                print(
-                                    f"⚠️ Unknown /discover/ endpoint: {endpoint}")
-                            else:
-                                DiscoveryHandler.handle_result_step(
-                                    step, json_data, state)
+                            DiscoveryHandler.handle_result_step(
+                                step, json_data, state)
 
                         # 🔗 After all symbolic role steps (e.g., cast, director) are complete, trigger intersection.
                         # Injects /movie/{id} or /tv/{id} lookups for results satisfying all role-based constraints.
                         # Skips if fallback has already been applied to avoid redundant logic.
                         # Ensures queries like "movies directed by X and starring Y" don’t prematurely fallback.
-                        if endpoint.startswith("/discover/movie") and not step.get("fallback_injected"):
+                        if endpoint.startswith("/discover/") and not step.get("fallback_injected"):
                             FallbackHandler.inject_credit_fallback_steps(
                                 state, step)
                             step["fallback_injected"] = True
@@ -284,7 +230,7 @@ class StepRunner:
         original_count = len(state.responses)
         # This ensures that low-quality results with zero or negative scores are excluded after symbolic filtering
         filtered = [
-            r for r in filter_valid_movies(state.responses, state.constraint_tree, state.data_registry)
+            r for r in filter_valid_movies_or_tv(state.responses, state.constraint_tree, state.data_registry)
             if r.get("final_score", 0) > 0
         ]
 

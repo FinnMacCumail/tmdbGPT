@@ -158,7 +158,7 @@ def is_symbolically_filterable(endpoint: str) -> bool:
     return endpoint.startswith("/discover/") or endpoint.startswith("/search/")
 
 
-def filter_valid_movies(entities: list, constraint_tree, registry: dict) -> list:
+def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -> list:
     """
     Filter a list of TMDB entities (movies or TV) based on symbolic constraint satisfaction.
 
