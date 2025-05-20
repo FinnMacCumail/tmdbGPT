@@ -38,6 +38,7 @@ class DiscoveryHandler:
         try:
             summaries = ResultExtractor.extract(
                 json_data, path, state.resolved_entities)
+
             if not summaries:
                 return
 
@@ -49,6 +50,17 @@ class DiscoveryHandler:
                 summary["_step"] = step
                 summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
+
+             # 🔁 Enrich TV/movie summaries with symbolic keys (e.g. cast_4495)
+            for summary in summaries:
+                enrich_symbolic_registry(
+                    movie=summary,
+                    registry=state.data_registry,
+                    credits=None,  # Already extracted → we only need _actor_id
+                    keywords=None,
+                    release_info=None,
+                    watch_providers=None
+                )
 
             # 🔁 Skip symbolic filtering if not needed
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
