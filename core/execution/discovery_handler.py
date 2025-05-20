@@ -22,6 +22,7 @@ from core.model.constraint import Constraint
 from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.planner.plan_utils import extract_matched_constraints
 from core.execution.post_validator import PostValidator
+from core.validation.role_validators import validate_roles
 
 
 class DiscoveryHandler:
@@ -235,15 +236,27 @@ class DiscoveryHandler:
                 "post_validations": validated
             }
 
-            # needs update
-            enrich_symbolic_registry(
-                item,
-                state.data_registry,
-                credits=credits,
-                keywords=None,
-                release_info=None,
-                watch_providers=None
-            )
+            if credits:
+                validate_roles(
+                    credits=credits,
+                    query_entities=query_entities,
+                    movie=item,
+                    state=state
+                )
+
+                enrich_symbolic_registry(
+                    item,
+                    state.data_registry,
+                    credits=credits,
+                    keywords=None,
+                    release_info=None,
+                    watch_providers=None
+                )
+            else:
+                print(
+                    f"⚠️ Skipping role validation for {item.get('title')} (ID: {item.get('id')}) — credits not available")
+                item.setdefault("_provenance", {}).setdefault(
+                    "post_validations", []).append("missing_credits")
 
             satisfied = item["_provenance"].get("satisfied_roles", [])
             state.satisfied_roles.update(satisfied)
