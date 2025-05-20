@@ -13,7 +13,7 @@ from core.entity.param_utils import enrich_symbolic_registry
 from core.entity.symbolic_filter import passes_symbolic_filter, lazy_enrich_and_filter
 
 from core.planner.plan_validator import should_apply_symbolic_filter
-from core.planner.plan_utils import is_symbol_free_query, filter_valid_movies
+from core.planner.plan_utils import is_symbol_free_query, filter_valid_movies_or_tv
 
 from nlp.nlp_retriever import PathRewriter
 from core.planner.plan_utils import is_symbolically_filterable
@@ -108,15 +108,18 @@ class DiscoveryHandler:
             )
 
     @staticmethod
-    def handle_discover_movie_step(step, step_id, path, json_data, state, depth, seen_step_keys):
+    def handle_discover_step(step, step_id, path, json_data, state, depth, seen_step_keys):
+
+        # Determine media type from endpoint
+        media_type = "tv" if "/tv" in step.get("endpoint", "") else "movie"
+
         # 🎯 Post-validate discovery results using symbolic constraints (e.g., cast, director, genre).
         # If validation rules are triggered (e.g., with_people), performs credit lookups for accuracy.
-        filtered_movies = PostValidator.run_post_validations(
-            step, json_data, state)
+        filtered = PostValidator.run_post_validations(step, json_data, state)
 
         # ❌ No results passed validation or symbolic filtering.
         # Triggers fallback or relaxation logic (e.g., retry with fewer constraints or inject generic discovery).
-        if not filtered_movies:
+        if not filtered:
             ExecutionTraceLogger.log_step(
                 step_id, path, "Filtered", "No matching results", state=state
             )
@@ -184,20 +187,20 @@ class DiscoveryHandler:
         # This ensures that results tied more strongly to the user's explicit intent are ranked higher.
         query_entities = state.extraction_result.get("query_entities", [])
         ranked = EntityAwareReranker.boost_by_entity_mentions(
-            filtered_movies, query_entities)
+            filtered, query_entities)
 
         # 🧠 Apply Symbolic Filtering (if supported)
         # If the current step supports symbolic constraint filtering (e.g., /discover/movie),
         # filter results using the constraint tree and symbolic registry to enforce role, genre, and entity alignment.
         # Otherwise, skip filtering and accept all ranked results as valid (e.g., for detail or fallback steps).
         if should_apply_symbolic_filter(state, step):
-            valid_movies = filter_valid_movies(
+            valid_mt = filter_valid_movies_or_tv(
                 ranked,
                 constraint_tree=state.constraint_tree,
                 registry=state.data_registry
             )
         else:
-            valid_movies = ranked  # skip filtering
+            valid_mt = ranked  # skip filtering
 
         # 📌 Track matched constraints for explanation
         matched_keys = set(
@@ -213,21 +216,20 @@ class DiscoveryHandler:
             state.satisfied_roles = set()
 
         # 🧪 Process filtered results
-        for movie in valid_movies:
-            movie_id = movie.get("id")
-            movie["_step"] = step  # 🔧 Embed step metadata
-            if not movie_id:
+        for item in valid_mt:
+            item_id = item.get("id")
+            item["_step"] = step  # 🔧 Embed step metadata
+            if not item_id:
                 continue
 
             # Enrich with TMDB /credits if available
-            # may nned to cache this as could have already occureed in the pipleline? - refer to How to Avoid Redundant Calls (Optional Optimization)
             credits = fetch_credits_for_entity(
-                movie, state.base_url, state.headers)
+                item, state.base_url, state.headers, state)
 
             # ✅ Inject provenance and enrich registry
-            movie["final_score"] = movie.get("final_score", 1.0)
-            movie["type"] = "movie_summary"
-            movie["_provenance"] = {
+            item["final_score"] = item.get("final_score", 1.0)
+            item["type"] = "movie_summary"
+            item["_provenance"] = {
                 "matched_constraints": matched,
                 "relaxed_constraints": relaxed,
                 "post_validations": validated
@@ -235,7 +237,7 @@ class DiscoveryHandler:
 
             # needs update
             enrich_symbolic_registry(
-                movie,
+                item,
                 state.data_registry,
                 credits=credits,
                 keywords=None,
@@ -243,12 +245,12 @@ class DiscoveryHandler:
                 watch_providers=None
             )
 
-            satisfied = movie["_provenance"].get("satisfied_roles", [])
+            satisfied = item["_provenance"].get("satisfied_roles", [])
             state.satisfied_roles.update(satisfied)
 
             print(
-                f"🧠 Appending validated movie: {movie.get('title')} with score {movie.get('final_score')}")
-            state.responses.append(movie)
+                f"🧠 Appending validated movie: {item.get('title')} with score {item.get('final_score')}")
+            state.responses.append(item)
 
         state.data_registry[step_id]["validated"] = ranked
 
@@ -305,21 +307,52 @@ def filter_symbolic_responses(state, summaries, endpoint):
     return filtered
 
 
-def fetch_credits_for_entity(entity, base_url, headers):
+def fetch_credits_for_entity(entity: dict, base_url: str, headers: dict, state=None) -> dict:
     """
-    Fetch and return credits for either movie or tv.
+    Fetch and return credits for either a movie or TV entity, with caching.
+
+    Args:
+        entity (dict): Entity object with "id" and optionally "media_type"
+        base_url (str): TMDB base URL
+        headers (dict): HTTP headers
+        state (AppState, optional): Used for caching credits
+
+    Returns:
+        dict: A TMDB credits object with cast and crew fields, or empty dict on failure
     """
-    media_type = "tv" if entity.get("type", "").startswith("tv") else "movie"
     entity_id = entity.get("id")
     if not entity_id:
-        return None
+        return {}
+
+    # Detect type (fallback to 'movie' if not specified)
+    media_type = entity.get("type", entity.get("media_type", "movie"))
+    if media_type not in ("movie", "tv"):
+        media_type = "movie"
+
+    # Init credits cache
+    if state is not None and "credits_cache" not in state.data_registry:
+        state.data_registry["credits_cache"] = {}
+
+    cache_key = f"{media_type}_{entity_id}"
+    if state and cache_key in state.data_registry["credits_cache"]:
+        return state.data_registry["credits_cache"][cache_key]
 
     try:
         url = f"{base_url}/{media_type}/{entity_id}/credits"
-        res = requests.get(url, headers=headers)
-        if res.status_code == 200:
-            return res.json()
+        print(
+            f"🎯 Fetching credits for {media_type.upper()} ID={entity_id} → {url}")
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            if state:
+                state.data_registry["credits_cache"][cache_key] = data
+            return data
+        else:
+            print(
+                f"⚠️ Failed to fetch credits for {media_type} {entity_id}: {response.status_code}")
     except Exception as e:
         print(
-            f"⚠️ Could not fetch credits for {media_type} ID {entity_id}: {e}")
-    return None
+            f"❌ Exception fetching credits for {media_type} ID={entity_id}: {e}")
+
+    return {}
