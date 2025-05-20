@@ -213,12 +213,35 @@ class DependencyManager:
 
                 for _id in ids:
                     if key == "person_id":
-                        role = next(
-                            (ent.get("role", "actor") for ent in query_entities
-                             if ent.get("resolved_id") == _id and ent.get("type") == "person"),
-                            "actor"
-                        )
-                        role_tag = role.lower()
+                        # Inject one credit step per role per person_id per media_type
+                        roles = {
+                            ent.get("role", "actor").lower()
+                            for ent in query_entities
+                            if ent.get("resolved_id") == _id and ent.get("type") == "person"
+                        }
+
+                        for role_tag in roles:
+                            if role_tag in getattr(state, "satisfied_roles", set()):
+                                print(
+                                    f"🛑 Skipped credit step for {role_tag}_{_id} — already satisfied.")
+                                continue
+
+                            target_types = {
+                                "movie", "tv"} if media_type == "both" else {media_type}
+                            for mtype in target_types:
+                                step_id = f"step_{role_tag}_{_id}_{mtype}"
+                                endpoint = f"/person/{_id}/{mtype}_credits"
+                                produces = [
+                                    "movie_id"] if mtype == "movie" else ["tv_id"]
+
+                                new_steps.append({
+                                    "step_id": step_id,
+                                    "endpoint": endpoint,
+                                    "produces": produces,
+                                    "requires": ["person_id"],
+                                    "role": role_tag,
+                                    "media_type": mtype
+                                })
 
                         print(
                             f"🔍 Checking role step for person_id={_id}, role={role_tag}")
