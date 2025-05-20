@@ -219,3 +219,23 @@ def should_apply_symbolic_filter(state, step) -> bool:
                 return True
 
     return False
+
+
+def contains_person_role_constraints(constraint_tree) -> bool:
+    """
+    Return True if any constraint is a person with a specific role (cast, director, etc.).
+    """
+    ROLE_TYPES = {"cast", "director", "writer", "producer", "composer"}
+
+    if not constraint_tree:
+        return False
+
+    for constraint in constraint_tree.flatten():
+        if (
+            isinstance(constraint, Constraint)
+            and constraint.type == "person"
+            and (constraint.subtype or "").lower() in ROLE_TYPES
+        ):
+            return True
+
+    return False
