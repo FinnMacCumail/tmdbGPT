@@ -284,9 +284,6 @@ class DependencyManager:
                             "requires": ["collection_id"]
                         })
 
-                    print(
-                        f"✅ Injected credit step: step_id={step_id} endpoint={endpoint}")
-
         # ✅ Phase 21.1: Fallback discover step based on company/network
         # (still single-valued media_type for fallback)
         fallback_media = "movie" if media_type not in {

@@ -65,14 +65,26 @@ class StepRunner:
 
                 # 🛑 Pause discovery until all role credit steps are completed (if query has roles)
                 if endpoint.startswith("/discover/") and contains_person_role_constraints(getattr(state, "constraint_tree", None)):
-                    expected_role_steps = {
-                        f"step_{qe['role']}_{qe['resolved_id']}_{state.intended_media_type}"
-                        for qe in state.extraction_result.get("query_entities", [])
-                        if qe.get("type") == "person" and qe.get("role")
-                    }
+                    expected_role_steps = set()
+                    for qe in state.extraction_result.get("query_entities", []):
+                        if qe.get("type") == "person" and qe.get("role") and "resolved_id" in qe:
+                            role = qe["role"]
+                            pid = qe["resolved_id"]
+                            media_type = getattr(
+                                state, "intended_media_type", "movie")
+                            if media_type == "both":
+                                expected_role_steps.update({
+                                    f"step_{role}_{pid}_tv",
+                                    f"step_{role}_{pid}_movie"
+                                })
+                            else:
+                                expected_role_steps.add(
+                                    f"step_{role}_{pid}_{media_type}")
                     if not expected_role_steps.issubset(set(state.completed_steps)):
+                        missing = expected_role_steps - \
+                            set(state.completed_steps)
                         print(
-                            f"⏸️ Discovery step '{step['step_id']}' deferred — waiting on role credit steps: {expected_role_steps - set(state.completed_steps)}")
+                            f"⏸️ Discovery step '{step['step_id']}' deferred — waiting on role credit steps: {missing}")
                         state.plan_steps.append(step)
                         continue
 
