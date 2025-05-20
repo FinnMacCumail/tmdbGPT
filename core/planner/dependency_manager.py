@@ -224,19 +224,26 @@ class DependencyManager:
                             f"🔍 Checking role step for person_id={_id}, role={role_tag}")
                         if role_tag in getattr(state, "satisfied_roles", set()):
                             print(
-                                f"🛑 Skipped /person/{_id}/movie_credits because {role_tag} is already satisfied.")
+                                f"🛑 Skipped credit steps for person_id={_id} because {role_tag} is already satisfied.")
                             continue
 
-                        step_id = f"step_{role_tag}_{_id}"
-                        credit_endpoint = f"/person/{_id}/{media_type}_credits"
+                        # 🔁 Determine target media types
+                        target_types = {
+                            "movie", "tv"} if media_type == "both" else {media_type}
+                        for mtype in target_types:
+                            step_id = f"step_{role_tag}_{_id}_{mtype}"
+                            endpoint = f"/person/{_id}/{mtype}_credits"
+                            produces = [
+                                "movie_id"] if mtype == "movie" else ["tv_id"]
 
-                        new_steps.append({
-                            "step_id": step_id,
-                            "endpoint": credit_endpoint,
-                            "produces": ["movie_id"] if media_type == "movie" else ["tv_id"],
-                            "requires": ["person_id"],
-                            "role": role_tag,
-                        })
+                            new_steps.append({
+                                "step_id": step_id,
+                                "endpoint": endpoint,
+                                "produces": produces,
+                                "requires": ["person_id"],
+                                "role": role_tag,
+                                "media_type": mtype
+                            })
 
                     elif key == "tv_id":
                         new_steps.append({
@@ -255,9 +262,9 @@ class DependencyManager:
                         })
 
         # ✅ Phase 21.1: Fallback discover step based on company/network
-        if media_type not in {"movie", "tv"}:
-            media_type = "movie"
-
+        # (still single-valued media_type for fallback)
+        fallback_media = "movie" if media_type not in {
+            "movie", "tv"} else media_type
         parameters = {}
 
         if "company_id" in newly_resolved:
@@ -267,7 +274,7 @@ class DependencyManager:
                     company_ids, list) else str(company_ids)
             )
 
-        if media_type == "tv" and "network_id" in newly_resolved:
+        if fallback_media == "tv" and "network_id" in newly_resolved:
             network_ids = newly_resolved["network_id"]
             parameters["with_networks"] = (
                 ",".join(map(str, network_ids)) if isinstance(
@@ -276,12 +283,12 @@ class DependencyManager:
 
         if parameters:
             discover_step = {
-                "step_id": f"step_discover_{media_type}_joined",
-                "endpoint": f"/discover/{media_type}",
+                "step_id": f"step_discover_{fallback_media}_joined",
+                "endpoint": f"/discover/{fallback_media}",
                 "method": "GET",
                 "parameters": parameters,
                 "requires": list(parameters.keys()),
-                "produces": ["movie_id"] if media_type == "movie" else ["tv_id"],
+                "produces": ["movie_id"] if fallback_media == "movie" else ["tv_id"],
                 "from_constraint": "company_network"
             }
             new_steps.append(discover_step)
