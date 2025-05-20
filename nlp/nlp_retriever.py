@@ -425,7 +425,17 @@ class ResultExtractor:
         return []
 
     @staticmethod
-    def _extract_tv_credits(json_data: dict, person_id=None) -> list:
+    def _extract_tv_credits(json_data: dict, person_id: int = None) -> list:
+        """
+        Extracts TV credits (cast and selected crew roles) from the TMDB credits response.
+
+        Args:
+            json_data (dict): TMDB /tv/{id}/credits response
+            person_id (int, optional): Used to tag cast summaries for symbolic role enrichment
+
+        Returns:
+            list of dict: Summarized TV credit entries with optional role tagging
+        """
         cast = json_data.get("cast", [])
         crew = json_data.get("crew", [])
         print(
@@ -433,20 +443,21 @@ class ResultExtractor:
 
         summaries = []
 
+        # ➤ Extract cast members
         for entry in cast:
             entity_id = entry.get("id")
             title = entry.get("name") or entry.get(
                 "original_name") or "Untitled"
-
-            if "office" in title.lower():
-                print(
-                    f"✅ DEBUG: Found The Office → id={entity_id}, actor_id={person_id}")
-
             overview = entry.get("overview") or entry.get(
                 "character") or "Cast"
             release_date = entry.get("first_air_date") or "Unknown"
 
-            summaries.append({
+            # 🔍 Debug: Recognize special known shows
+            if "office" in title.lower():
+                print(
+                    f"✅ DEBUG: Found The Office → id={entity_id}, actor_id={person_id}")
+
+            summary = {
                 "id": entity_id,
                 "type": "tv_summary",
                 "title": title,
@@ -455,10 +466,16 @@ class ResultExtractor:
                 "final_score": 1.0,
                 "source": "/tv_credits",
                 "job": "cast",
-                "_actor_id": person_id,
                 "media_type": "tv"
-            })
+            }
 
+            # 🎯 Inject actor ID for role-based indexing (symbolic constraint satisfaction)
+            if person_id:
+                summary["_actor_id"] = person_id
+
+            summaries.append(summary)
+
+        # ➤ Extract selected crew members (director, writer, producer)
         allowed_jobs = {"director", "writer", "producer"}
         for entry in crew:
             job = (entry.get("job") or "").lower()
@@ -478,7 +495,8 @@ class ResultExtractor:
                     "final_score": 1.0,
                     "source": "/tv_credits",
                     "job": job,
-                    "media_type": "tv"
+                    "media_type": "tv",
+                    "genre_ids": entry.get("genre_ids", []),
                 })
 
         print(f"✅ Returning {len(summaries)} TV summaries")
