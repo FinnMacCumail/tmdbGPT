@@ -13,7 +13,7 @@ from core.entity.param_utils import enrich_symbolic_registry
 from core.model.constraint import Constraint
 from core.model.evaluator import evaluate_constraint_tree
 from core.planner.constraint_planner import inject_validation_steps_from_ids
-from core.planner.plan_validator import PlanValidator
+from core.planner.plan_validator import PlanValidator, contains_person_role_constraints
 from nlp.nlp_retriever import PostStepUpdater, PathRewriter, expand_plan_with_dependencies
 from core.planner.dependency_manager import DependencyManager, inject_lookup_steps_from_role_intersection
 
@@ -62,6 +62,19 @@ class StepRunner:
                     continue
 
                 endpoint = step.get("endpoint")
+
+                # 🛑 Pause discovery until all role credit steps are completed (if query has roles)
+                if endpoint.startswith("/discover/") and contains_person_role_constraints(getattr(state, "constraint_tree", None)):
+                    expected_role_steps = {
+                        f"step_{qe['role']}_{qe['resolved_id']}_{state.intended_media_type}"
+                        for qe in state.extraction_result.get("query_entities", [])
+                        if qe.get("type") == "person" and qe.get("role")
+                    }
+                    if not expected_role_steps.issubset(set(state.completed_steps)):
+                        print(
+                            f"⏸️ Discovery step '{step['step_id']}' deferred — waiting on role credit steps: {expected_role_steps - set(state.completed_steps)}")
+                        state.plan_steps.append(step)
+                        continue
 
                 # 🔍 Media-Type Filtering (TV vs Movie)
                 # 🛑 Skip steps that target the wrong media type (e.g., TV step in a movie query).
