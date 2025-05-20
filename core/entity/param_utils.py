@@ -210,12 +210,21 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     # ✅ NEW: Fallback person indexing from _actor_id
     if "_actor_id" in entity:
         actor_id = entity["_actor_id"]
+        entity_id = entity.get("id")
+
         if isinstance(actor_id, list):  # 🛠 fix nested list
             actor_id = actor_id[0]
         actor_id = str(actor_id)
-        registry.setdefault("with_people", {}).setdefault(
-            actor_id, set()).add(entity_id)
-        print(f"✅ Indexing fallback: with_people[{actor_id}] → {entity_id}")
+
+        if entity_id:
+            registry.setdefault("with_people", {}).setdefault(
+                actor_id, set()).add(entity_id)
+            registry.setdefault("cast", {}).setdefault(
+                actor_id, set()).add(entity_id)
+            print(f"✅ Explicit cast[{actor_id}] → {entity_id}")
+        else:
+            print(
+                f"⚠️ Skipped cast indexing: entity missing ID for actor {actor_id}")
 
     # 🔹 Preferred enrichment paths (external API results passed in)
     enrich_person_roles(entity, credits, registry, media_type)
@@ -229,6 +238,9 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     enrich_runtime(entity, registry)
     enrich_year(entity, registry)
     enrich_watch_providers(entity, watch_providers, registry)
+
+    if "4495" not in registry.get("cast", {}):
+        print("❌ cast_4495 not indexed in registry!")
 
     # 🔁 Direct fallback indexing from *_ids if enrich_* failed or wasn't used
     def fallback_index(entity, field_key, registry_key):
@@ -341,6 +353,7 @@ def enrich_genres(entity, registry, media_type):
     for gid in genre_ids:
         registry.setdefault("with_genres", {}).setdefault(
             str(gid), set()).add(entity["id"])
+        print(f"✅ Indexing genre_id[{gid}] → {entity['id']}")
 
 
 def enrich_networks(entity, registry):
