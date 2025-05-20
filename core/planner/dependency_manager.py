@@ -6,6 +6,7 @@ from core.execution.trace_logger import ExecutionTraceLogger
 
 from core.execution.fallback import relax_roles_and_retry_intersection
 from core.planner.constraint_planner import intersect_media_ids_across_constraints
+from core.planner.plan_validator import contains_person_role_constraints
 
 
 def inject_lookup_steps_from_role_intersection(state):
@@ -174,68 +175,86 @@ class DependencyManager:
     def expand_plan_with_dependencies(state, newly_resolved: dict) -> List[dict]:
         """
         Adds dependency-based symbolic steps:
-        - Role-aware credits steps (Phase 20)
-        - Collection, TV show steps
-        - Discovery fallback enrichment with company/network (Phase 21.1)
+
+        Expand the current execution plan by injecting dependency-based steps
+        based on newly resolved entity IDs and symbolic query constraints.
+
+        This method supports two major planning strategies:
+
+        1. 🧩 Role-Aware Credit Step Injection (Phase 20):
+        - If the constraint tree contains person-role constraints (e.g., cast, director),
+            inject appropriate /person/{id}/{media_type}_credits steps.
+        - Each step is tagged with its role and skipped if already satisfied in state.
+        - Media type (tv/movie) is respected when constructing the endpoint.
+
+        2. 🧩 Fallback Discovery Injection (Phase 21.1):
+        - If company_id or network_id are resolved, inject a /discover/{media_type}
+            step with with_companies or with_networks filters accordingly.
+        - Used as a symbolic fallback when role-based matching fails.
+
+        Parameters:
+            state (AppState): The current app state with resolved entities and constraint tree.
+            newly_resolved (dict): Mapping of resolved entity types to IDs (e.g., person_id, company_id).
+
+        Returns:
+            List[dict]: A list of injected execution steps (e.g., credits lookups, discovery queries).
         """
         new_steps = []
         query_entities = state.extraction_result.get("query_entities", [])
-
-        # Phase 20: Role-aware person credit steps, TV, collection
-        for key, ids in newly_resolved.items():
-            if not isinstance(ids, list):
-                ids = [ids]
-
-            for _id in ids:
-                if key == "person_id":
-                    role = "actor"  # default
-                    for entity in query_entities:
-                        if entity.get("resolved_id") == _id and entity.get("type") == "person":
-                            role = entity.get("role", "actor")
-
-                    role_tag = role.lower()
-                    # 🔍 DEBUG: Check current role and satisfaction state
-                    print(
-                        f"🔍 Checking role step for person_id={_id}, role={role_tag}")
-                    print("   Already satisfied roles:", getattr(
-                        state, "satisfied_roles", set()))
-                    # can extend for /tv later
-
-                    if role_tag in getattr(state, "satisfied_roles", set()):
-                        print(
-                            f"🛑 Skipped /person/{_id}/movie_credits because {role_tag} is already satisfied.")
-                        continue
-
-                    media_type = getattr(state, "intended_media_type", "movie")
-                    endpoint = f"/person/{_id}/{media_type}_credits"
-                    step_id = f"step_{role_tag}_{_id}"
-
-                    new_steps.append({
-                        "step_id": step_id,
-                        "endpoint": endpoint,
-                        "produces": ["movie_id"],
-                        "requires": ["person_id"],
-                        "role": role_tag,
-                    })
-
-                elif key == "tv_id":
-                    new_steps.append({
-                        "step_id": f"step_tv_{_id}",
-                        "endpoint": f"/tv/{_id}/credits",
-                        "produces": ["cast", "crew"],
-                        "requires": ["tv_id"]
-                    })
-
-                elif key == "collection_id":
-                    new_steps.append({
-                        "step_id": f"step_collection_{_id}",
-                        "endpoint": f"/collection/{_id}",
-                        "produces": ["movie_id"],
-                        "requires": ["collection_id"]
-                    })
-
-        # Phase 21.1: Symbolic discover fallback injection with company/network
         media_type = getattr(state, "intended_media_type", "movie")
+        constraint_tree = getattr(state, "constraint_tree", None)
+
+        # ✅ Detect role constraints to determine if credit steps should be injected
+        inject_roles = contains_person_role_constraints(constraint_tree)
+
+        if inject_roles:
+            for key, ids in newly_resolved.items():
+                ids = ids if isinstance(ids, list) else [ids]
+
+                for _id in ids:
+                    if key == "person_id":
+                        role = next(
+                            (ent.get("role", "actor") for ent in query_entities
+                             if ent.get("resolved_id") == _id and ent.get("type") == "person"),
+                            "actor"
+                        )
+                        role_tag = role.lower()
+
+                        print(
+                            f"🔍 Checking role step for person_id={_id}, role={role_tag}")
+                        if role_tag in getattr(state, "satisfied_roles", set()):
+                            print(
+                                f"🛑 Skipped /person/{_id}/movie_credits because {role_tag} is already satisfied.")
+                            continue
+
+                        step_id = f"step_{role_tag}_{_id}"
+                        credit_endpoint = f"/person/{_id}/{media_type}_credits"
+
+                        new_steps.append({
+                            "step_id": step_id,
+                            "endpoint": credit_endpoint,
+                            "produces": ["movie_id"] if media_type == "movie" else ["tv_id"],
+                            "requires": ["person_id"],
+                            "role": role_tag,
+                        })
+
+                    elif key == "tv_id":
+                        new_steps.append({
+                            "step_id": f"step_tv_{_id}",
+                            "endpoint": f"/tv/{_id}/credits",
+                            "produces": ["cast", "crew"],
+                            "requires": ["tv_id"]
+                        })
+
+                    elif key == "collection_id":
+                        new_steps.append({
+                            "step_id": f"step_collection_{_id}",
+                            "endpoint": f"/collection/{_id}",
+                            "produces": ["movie_id"],
+                            "requires": ["collection_id"]
+                        })
+
+        # ✅ Phase 21.1: Fallback discover step based on company/network
         if media_type not in {"movie", "tv"}:
             media_type = "movie"
 
@@ -243,13 +262,17 @@ class DependencyManager:
 
         if "company_id" in newly_resolved:
             company_ids = newly_resolved["company_id"]
-            parameters["with_companies"] = ",".join(map(str, company_ids)) if isinstance(
-                company_ids, list) else str(company_ids)
+            parameters["with_companies"] = (
+                ",".join(map(str, company_ids)) if isinstance(
+                    company_ids, list) else str(company_ids)
+            )
 
         if media_type == "tv" and "network_id" in newly_resolved:
             network_ids = newly_resolved["network_id"]
-            parameters["with_networks"] = ",".join(map(str, network_ids)) if isinstance(
-                network_ids, list) else str(network_ids)
+            parameters["with_networks"] = (
+                ",".join(map(str, network_ids)) if isinstance(
+                    network_ids, list) else str(network_ids)
+            )
 
         if parameters:
             discover_step = {
