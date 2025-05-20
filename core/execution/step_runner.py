@@ -19,6 +19,7 @@ from core.planner.dependency_manager import DependencyManager, inject_lookup_ste
 
 from response.log_summary import log_summary
 from core.validation.role_validators import validate_roles, score_role_validation
+from core.execution.fallback import FallbackSemanticBuilder
 
 
 class StepRunner:
@@ -243,6 +244,26 @@ class StepRunner:
                 deduped.append(r)
                 seen.add(key)
         state.responses = deduped
+
+        if not state.responses:
+            print(
+                "⚠️ No valid responses after filtering and deduplication — injecting final fallback")
+
+            fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
+                # or dynamic step
+                original_step={"endpoint": "/discover/movie"},
+                extraction_result=state.extraction_result,
+                resolved_entities=state.resolved_entities
+            )
+
+            if fallback_step["step_id"] not in state.completed_steps:
+                state.plan_steps.insert(0, fallback_step)
+                ExecutionTraceLogger.log_step(
+                    fallback_step["step_id"], fallback_step["endpoint"],
+                    status="Final Fallback Injected",
+                    summary="No valid results — fallback enrichment triggered",
+                    state=state
+                )
 
         ExecutionTraceLogger.log_step(
             step_id="deduplication",
