@@ -29,6 +29,15 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
     if not entity_id:
         return False
 
+    if (
+        not constraint_tree or
+        not getattr(constraint_tree, "constraints", None) or
+        len(constraint_tree.constraints) == 0
+    ):
+        # ✅ No constraints = allow all
+        print("✅ passes_symbolic_filter bypassed — no constraints to check.")
+        return True
+
     constraint_ids = evaluate_constraint_tree(constraint_tree, registry)
 
     # 🧠 Determine media type based on release info
@@ -63,47 +72,68 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
 
 def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url) -> bool:
     """
-    Try symbolic filtering first. If it fails, enrich the entity and try again.
-    Returns True if the entity passes symbolic filtering after optional enrichment.
+    Attempt symbolic filtering on an entity. If it fails, fetch enriched details and retry.
+
+    Args:
+        entity (dict): TMDB entity (movie or TV).
+        constraint_tree (ConstraintGroup): Current symbolic constraints.
+        registry (dict): Symbolic data registry (e.g., state.data_registry).
+        headers (dict): HTTP headers for API calls.
+        base_url (str): Base TMDB API URL.
+
+    Returns:
+        bool: True if entity passes symbolic filter (initially or after enrichment).
     """
     entity_id = entity.get("id")
+    if not entity_id:
+        print("⚠️ Entity is missing an ID — cannot enrich.")
+        return False
+
     media_type = "tv" if "first_air_date" in entity else "movie"
 
-    if passes_symbolic_filter(entity, constraint_tree, registry):
-        return True  # already passes
+    # ✅ Shortcut: no constraints, always pass
+    if not constraint_tree or not getattr(constraint_tree, "constraints", []):
+        print(
+            f"✅ No constraints — accepted: {entity.get('title') or entity.get('name')}")
+        return True
 
-    # 🛠 Fetch full entity details
+    # ✅ Initial filter pass
+    if passes_symbolic_filter(entity, constraint_tree, registry):
+        return True
+
+    # 🛠 Attempt enrichment if initial filter fails
     try:
         url = f"{base_url}/{media_type}/{entity_id}"
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
+            print(
+                f"⚠️ Failed to fetch enrichment for ID={entity_id} — status: {res.status_code}")
             return False
+
         enriched = res.json()
-        # Patch the fallback entity with enriched fields
-        for field in ["genres", "production_companies", "networks", "original_language", "origin_country"]:
-            if field in enriched:
-                entity[field] = enriched[field]
 
-        # Optionally populate `genre_ids`, etc.
-        if "genres" in enriched:
-            entity["genre_ids"] = [g["id"] for g in enriched.get("genres", [])]
-        if "networks" in enriched:
-            entity["network_ids"] = [n["id"]
-                                     for n in enriched.get("networks", [])]
-        if "production_companies" in enriched:
-            entity["production_company_ids"] = [c["id"]
-                                                for c in enriched.get("production_companies", [])]
-        if "original_language" in enriched:
-            entity["original_language"] = enriched.get("original_language")
-        if "origin_country" in enriched:
-            entity["origin_country"] = enriched.get("origin_country")
+        # 🔄 Merge enrichable fields into the original entity
+        patch_fields = {
+            "genres": lambda v: [g["id"] for g in v],
+            "production_companies": lambda v: [c["id"] for c in v],
+            "networks": lambda v: [n["id"] for n in v],
+            "original_language": lambda v: v,
+            "origin_country": lambda v: v
+        }
 
-        # Symbolically enrich registry after patching
+        for key, transform in patch_fields.items():
+            if key in enriched:
+                entity[key] = enriched[key]
+                # Also create `_ids` versions where relevant
+                if key in ["genres", "production_companies", "networks"]:
+                    entity[f"{key[:-1]}_ids"] = transform(enriched[key])
+
+        # ♻️ Update registry after enrichment
         update_symbolic_registry(entity, registry)
 
-        # Retry filtering
+        # 🔁 Retry symbolic filter
         return passes_symbolic_filter(entity, constraint_tree, registry)
 
     except Exception as e:
-        print(f"⚠️ Lazy enrichment failed for {entity_id}: {e}")
+        print(f"⚠️ Lazy enrichment failed for ID={entity_id}: {e}")
         return False
