@@ -6,6 +6,11 @@ from core.model.constraint import Constraint, ConstraintGroup
 
 
 def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dict[str, Dict[str, Set[int]]]:
+
+    if not group or not group.constraints:
+        # ✅ No constraints = everything passes
+        return {"movie": {}, "tv": {}}
+
     results = []
 
     for node in group:
