@@ -252,17 +252,23 @@ class StepRunner:
         return [step]
 
     def finalize(self, state):
-        # 🔍 Final Symbolic Filtering
         original_count = len(state.responses)
-        # This ensures that low-quality results with zero or negative scores are excluded after symbolic filtering
-        filtered = [
-            r for r in filter_valid_movies_or_tv(state.responses, state.constraint_tree, state.data_registry)
-            if r.get("final_score", 0) > 0
-        ]
+        constraint_tree = getattr(state, "constraint_tree", None)
+        data_registry = state.data_registry
 
-        # 🧹 Deduplication
-        seen = set()
-        deduped = []
+        # ✅ Symbol-aware or symbol-free filtering
+        if constraint_tree:
+            filtered = [
+                r for r in filter_valid_movies_or_tv(state.responses, constraint_tree, data_registry)
+                if r.get("final_score", 0) > 0
+            ]
+        else:
+            print("⚠️ Skipped symbolic filtering — no constraint tree found")
+            filtered = [r for r in state.responses if r.get(
+                "final_score", 0) > 0]
+
+        # 🧹 Deduplicate
+        seen, deduped = set(), []
         for r in filtered:
             key = r.get("id") or r.get("title") or r.get("name")
             if key and key not in seen:
@@ -270,17 +276,15 @@ class StepRunner:
                 seen.add(key)
         state.responses = deduped
 
+        # 🆘 Inject fallback if nothing remains
         if not state.responses:
             print(
                 "⚠️ No valid responses after filtering and deduplication — injecting final fallback")
-
             fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
-                # or dynamic step
                 original_step={"endpoint": "/discover/movie"},
                 extraction_result=state.extraction_result,
                 resolved_entities=state.resolved_entities
             )
-
             if fallback_step["step_id"] not in state.completed_steps:
                 state.plan_steps.insert(0, fallback_step)
                 ExecutionTraceLogger.log_step(
@@ -290,51 +294,46 @@ class StepRunner:
                     state=state
                 )
 
+        # 📊 Deduplication log
         ExecutionTraceLogger.log_step(
             step_id="deduplication",
             path="(global)",
             status="Deduplicated",
-            summary=f"Reduced results from {len(filtered)} to {len(deduped)}",
+            summary=f"Reduced results from {original_count} to {len(state.responses)}",
             state=state
         )
 
-        # 🔁 Constraint Restoration (for relaxation)
+        # 🔄 Restore relaxed constraints (if applicable)
         if state.relaxation_log and getattr(state, "last_dropped_constraints", []):
             for c in state.last_dropped_constraints:
-                ids = state.data_registry.get(
-                    c.key, {}).get(str(c.value), set())
-                if ids:
-                    state.constraint_tree.constraints.append(c)
+                ids = data_registry.get(c.key, {}).get(str(c.value), set())
+                if ids and constraint_tree:
+                    constraint_tree.constraints.append(c)
 
-        # 🧠 Constraint Tree Evaluation and Validation Step Injection
-        if not getattr(state, "constraint_tree_evaluated", False):
-            ids = evaluate_constraint_tree(
-                state.constraint_tree, state.data_registry)
+        # 🧠 Evaluate constraint tree and inject validation
+        if constraint_tree and not getattr(state, "constraint_tree_evaluated", False):
+            ids = evaluate_constraint_tree(constraint_tree, data_registry)
             if ids:
                 inject_validation_steps_from_ids(ids, state)
             state.constraint_tree_evaluated = True
 
-        # 🧾 Format final response using the selected renderer (defaulting to summary).
-        # Converts structured state into human-readable output.
+        # 🖼️ Format result
         renderer = RESPONSE_RENDERERS.get(
             state.response_format or "summary", format_fallback)
         state.formatted_response = renderer(state)
 
+        # 🧠 Final explanation
         explanation_lines = []
         if getattr(state, "satisfied_roles", None):
             explanation_lines.append(
                 f"✅ Roles satisfied via intersection: {', '.join(sorted(state.satisfied_roles))}."
             )
-
-        explanation_lines.append(
-            QueryExplanationBuilder.build_final_explanation(
-                extraction_result=state.extraction_result,
-                relaxed_parameters=state.relaxed_parameters,
-                fallback_used=any(step.get("fallback_injected")
-                                  for step in state.plan_steps)
-            )
-        )
-
+        explanation_lines.append(QueryExplanationBuilder.build_final_explanation(
+            extraction_result=state.extraction_result,
+            relaxed_parameters=state.relaxed_parameters,
+            fallback_used=any(step.get("fallback_injected")
+                              for step in state.plan_steps)
+        ))
         state.explanation = "\n".join(explanation_lines)
 
         if getattr(state, "relaxed_parameters", []):
@@ -347,6 +346,7 @@ class StepRunner:
                 state=state
             )
 
+        # 📣 Output final results
         for r in state.responses:
             title = r.get("title") or r.get("name") or "<untitled>"
             print(
@@ -354,5 +354,4 @@ class StepRunner:
             )
 
         log_summary(state)
-
         return state
