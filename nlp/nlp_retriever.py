@@ -588,6 +588,7 @@ class ResultExtractor:
                     "release_date") or item.get("first_air_date")
 
                 summaries.append({
+                    "id": item.get("id"),
                     "type": "movie_summary",
                     "title": title,
                     "overview": overview.strip(),
@@ -610,6 +611,7 @@ class ResultExtractor:
             profile_type = "person_profile" if is_person_profile else "movie_summary"
 
             summaries.append({
+                "id": item.get("id"),
                 "type": profile_type,
                 "title": flat_title or "Untitled",
                 "overview": flat_overview.strip() or "No bio available.",
