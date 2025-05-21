@@ -1,5 +1,6 @@
 from core.model.evaluator import evaluate_constraint_tree
 from core.model.constraint import Constraint
+from core.model.constraint import ConstraintGroup
 
 
 def is_symbol_free_query(state) -> bool:
@@ -146,7 +147,8 @@ def route_symbol_free_intent(state):
 
     return state.model_copy(update={
         "plan_steps": plan_steps,
-        "step": "plan"
+        "step": "plan",
+        "constraint_tree": ConstraintGroup([])  # ✅ Inject empty tree
     })
 
 
@@ -170,9 +172,22 @@ def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -
     Returns:
         list: Entities that pass the symbolic filter.
     """
+
+    if (
+        not constraint_tree or
+        not getattr(constraint_tree, "constraints", None) or
+        len(constraint_tree.constraints) == 0
+    ):
+        print("✅ Skipping symbolic filtering — no constraints to evaluate.")
+        for m in entities:
+            m["_provenance"] = m.get("_provenance", {})
+            m["_provenance"]["matched_constraints"] = []
+            print(
+                f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={m.get('id')} — no constraints applied.")
+        return entities
+
     ids = evaluate_constraint_tree(constraint_tree, registry)
 
-    # Support both movie and tv entries
     valid_ids = set()
     for media_type in ("movie", "tv"):
         matches = ids.get(media_type, {})
@@ -197,18 +212,14 @@ def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -
     for m in entities:
         mid = m.get("id")
         passed = mid in valid_ids
-
         m["_provenance"] = m.get("_provenance", {})
 
         if passed:
-            # ✅ Inject matched constraints for debugging and traceability
             matched = extract_matched_constraints(m, constraint_tree, registry)
             m["_provenance"]["matched_constraints"] = matched
-
             print(
                 f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={mid} — matched: {matched}")
             filtered.append(m)
-
         else:
             print(
                 f"❌ [REJECTED] {m.get('title') or m.get('name')} — ID={mid} — failed symbolic filter")
