@@ -19,7 +19,14 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
         else:
             value_str = str(node.value)
             media_type = node.metadata.get("media_type", "movie")
-            id_set = data_registry.get(node.key, {}).get(value_str, set())
+
+            # 🔒 Defensive structure validation
+            if not isinstance(data_registry.get(node.key), dict):
+                print(
+                    f"❌ CORRUPTED {node.key} registry — resetting to empty dict.")
+                data_registry[node.key] = {}
+
+            id_set = data_registry[node.key].get(value_str, set())
             result = {media_type: {node.key: id_set}} if id_set else {}
         results.append(result)
 
