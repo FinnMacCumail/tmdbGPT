@@ -4,7 +4,7 @@ import spacy
 import huggingface_hub
 from importlib import import_module
 
-# sentence-transformers versions prior to v2.3 expect `cached_download` from
+# sentence-transformers versions prior to v2.3 expect cached_download from
 # huggingface_hub. Recent huggingface_hub releases removed this helper. Insert a
 # compatibility shim so the import succeeds regardless of the installed hub
 # version.
@@ -326,6 +326,11 @@ class ResultExtractor:
         if not json_data:
             print("⚠️ ResultExtractor: Empty json_data")
             return []
+
+        # ✅ Movie detail endpoint
+        if endpoint.startswith("/movie/") and endpoint.count("/") == 2:
+            print("🎯 Routing to _extract_movie_details")
+            return ResultExtractor._extract_movie_details(json_data, endpoint)
 
         print(f"🧪 ResultExtractor.extract called with endpoint: {endpoint}")
         summaries = []
@@ -653,63 +658,23 @@ class ResultExtractor:
 
         return endpoint.startswith("/discover") or endpoint.startswith("/search")
 
-    # possible redundant code - Currently use -
-    # symbolic constraint filtering via passes_symbolic_filter(...)
-    # Post-validation rules (like POST_VALIDATION_RULES)
-    # Final response pruning in ExecutionOrchestrator
-    # may want it if
-    # A query is vague (e.g., “show me good action movies”), Symbolic constraints weren’t extractable or matched
-    # or working with /discover/* endpoints without applied parameters or want a soft filter (e.g., match genre names in overviews)
+    @staticmethod
+    def _extract_movie_details(json_data, endpoint):
+        title = json_data.get("title", "Untitled")
+        overview = json_data.get("overview") or "No synopsis available."
+        release_date = json_data.get("release_date")
+        score = json_data.get("vote_average", 0) / 10.0
 
-    # @staticmethod
-    # def post_filter_responses(responses, query_entities, extraction_result, endpoint=None):
-    #     """
-    #     Post-filter responses only if necessary.
-    #     If the API step already filtered by genre/person/company, skip aggressive filtering.
-    #     """
-    #     if not responses:
-    #         return []
-
-    #     if not endpoint.startswith("/discover/"):
-    #         return responses  # Don't filter trending/search results
-
-    #     # ⚡ Check if original planning already injected strong filters (e.g., with_genres, with_people)
-    #     strong_filter_applied = False
-    #     applied_params = extraction_result.get("applied_parameters", {})
-    #     if applied_params:
-    #         strong_filter_applied = any(
-    #             key in applied_params
-    #             for key in ("with_genres", "with_people", "with_companies", "with_networks")
-    #         )
-
-    #     if strong_filter_applied:
-    #         # print("⚡ Strong filters already applied in plan — skipping aggressive post-filtering.")
-    #         # ✅ Skip aggressive filtering if strong param filtering was applied.
-    #         return responses
-
-    #     # ✅ Otherwise fallback to textual entity matching
-    #     genre_names = [e["name"].lower()
-    #                    for e in query_entities if e.get("type") == "genre"]
-    #     person_names = [e["name"].lower()
-    #                     for e in query_entities if e.get("type") == "person"]
-
-    #     filtered = []
-    #     for r in responses:
-    #         text = (r.get("title", "") + " " + r.get("overview", "")).lower()
-    #         keep = True
-
-    #         for genre in genre_names:
-    #             if genre not in text:
-    #                 keep = False
-
-    #         for person in person_names:
-    #             if person not in text:
-    #                 keep = False
-
-    #         if keep:
-    #             filtered.append(r)
-
-    #     return filtered
+        return [{
+            "id": json_data.get("id"),
+            "type": "movie_summary",
+            "title": title,
+            "overview": overview.strip(),
+            "release_date": release_date,
+            "final_score": round(score, 2),
+            "source": endpoint,
+            "media_type": "movie"
+        }]
 
     @staticmethod
     def extract_cast_and_crew_credits(json_data, endpoint):
