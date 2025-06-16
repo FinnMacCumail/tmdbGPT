@@ -316,4 +316,23 @@ class DependencyManager:
             }
             new_steps.append(discover_step)
 
+        # ✅ Inject direct /movie/{id} or /tv/{id} detail lookup
+        for ent in query_entities:
+            if ent.get("type") == "movie" and ent.get("resolved_id"):
+                new_steps.append({
+                    "step_id": f"step_movie_details_{ent['resolved_id']}",
+                    "endpoint": f"/movie/{ent['resolved_id']}",
+                    "produces": ["movie_summary"],
+                    "requires": ["movie_id"],
+                    "from_constraint": "direct_lookup"
+                })
+            elif ent.get("type") == "tv" and ent.get("resolved_id"):
+                new_steps.append({
+                    "step_id": f"step_tv_details_{ent['resolved_id']}",
+                    "endpoint": f"/tv/{ent['resolved_id']}",
+                    "produces": ["tv_summary"],
+                    "requires": ["tv_id"],
+                    "from_constraint": "direct_lookup"
+                })
+
         return new_steps
