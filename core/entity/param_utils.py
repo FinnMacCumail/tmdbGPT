@@ -200,6 +200,19 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     if not isinstance(entity, dict):
         return
 
+    # 🔒 Ensure movie_id and tv_id are always dict[str → set[int]]
+    for key in ["movie_id", "tv_id"]:
+        current = registry.get(key)
+        if not isinstance(current, dict):
+            print(f"❌ CORRUPTED {key} registry — resetting to dict.")
+            registry[key] = {}
+        elif isinstance(current, set):
+            print(f"⚠️ Found malformed set in {key}. Wrapping into dict.")
+            registry[key] = {str(v): {v} for v in current}
+
+    print(
+        f"🔍 Registry types: movie_id={type(registry.get('movie_id'))}, tv_id={type(registry.get('tv_id'))}")
+
     media_type = entity.get("media_type") or (
         "tv" if "first_air_date" in entity else "movie")
     entity_id = entity.get("id")
@@ -225,6 +238,9 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
         else:
             print(
                 f"⚠️ Skipped cast indexing: entity missing ID for actor {actor_id}")
+
+    # ✅ Ensure self-indexing of ID (for constraint tree matching)
+    enrich_media_id(entity, registry)
 
     # 🔹 Preferred enrichment paths (external API results passed in)
     enrich_person_roles(entity, credits, registry, media_type)
@@ -444,6 +460,25 @@ def enrich_watch_providers(entity, watch_providers, registry):
             if pid:
                 registry.setdefault("with_watch_providers", {}).setdefault(
                     str(pid), set()).add(entity["id"])
+
+
+def enrich_media_id(entity: dict, registry: dict):
+    """
+    Ensure the entity is indexed under its own media ID:
+    - movie_id["27205"] = {27205}
+    - tv_id["12345"] = {12345}
+    """
+    entity_id = entity.get("id")
+    if not entity_id:
+        return
+
+    media_type = entity.get("media_type") or (
+        "tv" if "first_air_date" in entity else "movie")
+
+    key = "movie_id" if media_type == "movie" else "tv_id"
+    registry.setdefault(key, {}).setdefault(
+        str(entity_id), set()).add(entity_id)
+    print(f"✅ Indexed {key}[{entity_id}] → {entity_id}")
 
 
 def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, release_info=None, watch_providers=None):
