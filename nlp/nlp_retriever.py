@@ -332,6 +332,11 @@ class ResultExtractor:
             print("🎯 Routing to _extract_movie_details")
             return ResultExtractor._extract_movie_details(json_data, endpoint)
 
+        # ✅ TV detail endpoint (e.g. Breaking Bad)
+        if endpoint.startswith("/tv/") and endpoint.count("/") == 2:
+            print("🎯 Routing to _extract_tv_details")
+            return ResultExtractor._extract_tv_details(json_data, endpoint)
+
         print(f"🧪 ResultExtractor.extract called with endpoint: {endpoint}")
         summaries = []
         if "/credits" in endpoint:
@@ -674,6 +679,24 @@ class ResultExtractor:
             "final_score": round(score, 2),
             "source": endpoint,
             "media_type": "movie"
+        }]
+
+    @staticmethod
+    def _extract_tv_details(json_data, endpoint):
+        name = json_data.get("name", "Untitled")
+        overview = json_data.get("overview") or "No synopsis available."
+        first_air_date = json_data.get("first_air_date")
+        score = json_data.get("vote_average", 0) / 10.0
+
+        return [{
+            "id": json_data.get("id"),
+            "type": "tv_summary",
+            "title": name,
+            "overview": overview.strip(),
+            "release_date": first_air_date,
+            "final_score": round(score, 2),
+            "source": endpoint,
+            "media_type": "tv"
         }]
 
     @staticmethod
