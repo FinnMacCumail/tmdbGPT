@@ -230,15 +230,23 @@ def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -
 def extract_matched_constraints(entity, constraint_tree, registry):
     ids = evaluate_constraint_tree(constraint_tree, registry)
     matched = []
+
     for constraint in constraint_tree:
         if isinstance(constraint, Constraint):
-            cid_sets = ids.get(entity.get("media_type", "movie"), {}).get(
-                constraint.key, {})
+            media_type = entity.get("media_type", "movie")
+            cid_sets = ids.get(media_type, {}).get(constraint.key, {})
             value = constraint.value
+
             # ✅ Normalize list-wrapped values like [4495] → 4495
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            if value in cid_sets:
-                if entity.get("id") in cid_sets[value]:
+
+            # ✅ Handle case where cid_sets is a set directly (malformed but tolerated)
+            if isinstance(cid_sets, set):
+                if entity.get("id") in cid_sets:
                     matched.append(f"{constraint.key}={value}")
+            elif isinstance(cid_sets, dict):
+                if str(value) in cid_sets and entity.get("id") in cid_sets[str(value)]:
+                    matched.append(f"{constraint.key}={value}")
+
     return matched
