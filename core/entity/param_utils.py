@@ -210,9 +210,6 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
             print(f"⚠️ Found malformed set in {key}. Wrapping into dict.")
             registry[key] = {str(v): {v} for v in current}
 
-    print(
-        f"🔍 Registry types: movie_id={type(registry.get('movie_id'))}, tv_id={type(registry.get('tv_id'))}")
-
     media_type = entity.get("media_type") or (
         "tv" if "first_air_date" in entity else "movie")
     entity_id = entity.get("id")
