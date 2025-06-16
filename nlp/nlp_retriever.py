@@ -1,6 +1,17 @@
 import chromadb
 import os
 import spacy
+import huggingface_hub
+from importlib import import_module
+
+# sentence-transformers versions prior to v2.3 expect `cached_download` from
+# huggingface_hub. Recent huggingface_hub releases removed this helper. Insert a
+# compatibility shim so the import succeeds regardless of the installed hub
+# version.
+if not hasattr(huggingface_hub, "cached_download"):
+    from huggingface_hub import hf_hub_download as cached_download
+    huggingface_hub.cached_download = cached_download
+
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import re
