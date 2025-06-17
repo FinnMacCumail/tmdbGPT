@@ -252,9 +252,6 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     enrich_year(entity, registry)
     enrich_watch_providers(entity, watch_providers, registry)
 
-    if "4495" not in registry.get("cast", {}):
-        print("❌ cast_4495 not indexed in registry!")
-
     # 🔁 Direct fallback indexing from *_ids if enrich_* failed or wasn't used
     def fallback_index(entity, field_key, registry_key):
         """
@@ -305,8 +302,8 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     debug_keys = list(registry.keys())
     entity_title = entity.get("title") or entity.get("name") or "Unknown"
     entity_id = entity.get("id")
-    print(
-        f"🧩 Enriched {entity_title} (ID: {entity_id}) with keys: {sorted(debug_keys)}")
+    # print(
+    # f"🧩 Enriched {entity_title} (ID: {entity_id}) with keys: {sorted(debug_keys)}")
     for key in sorted(registry):
         subkeys = registry[key]
         for subk, ids in subkeys.items():
@@ -475,7 +472,7 @@ def enrich_media_id(entity: dict, registry: dict):
     key = "movie_id" if media_type == "movie" else "tv_id"
     registry.setdefault(key, {}).setdefault(
         str(entity_id), set()).add(entity_id)
-    print(f"✅ Indexed {key}[{entity_id}] → {entity_id}")
+    # print(f"✅ Indexed {key}[{entity_id}] → {entity_id}")
 
 
 def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, release_info=None, watch_providers=None):
