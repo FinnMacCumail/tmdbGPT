@@ -204,8 +204,23 @@ class FallbackHandler:
         print("🛑 Credit fallback injection skipped completely.")
 
     @staticmethod
-    def generate_steps(resolved_entities, intents=None):
+    def generate_steps(resolved_entities, intents=None, extraction_result=None):
+        """
+        Generate fallback steps based on resolved entities or user intent.
+        Includes an early bail-out for fact-style queries already handled by detail endpoints.
+        """
         steps = []
+
+        # 🚫 Early Bail-Out: prevent fallback if fact-style query already hit /movie/{id} or /tv/{id}
+        if extraction_result:
+            question_type = extraction_result.get("question_type")
+            handled = extraction_result.get("__handled_endpoints", [])
+            if question_type == "fact" and any(
+                ep.startswith("/movie/") or ep.startswith("/tv/") for ep in handled
+            ):
+                print(
+                    "🚫 Skipping fallback injection — fact-style query handled via detail endpoint.")
+                return []
 
         # 1️⃣ Entity-based fallbacks
         if "person_id" in resolved_entities:
@@ -238,6 +253,29 @@ class FallbackHandler:
                     "method": "GET",
                     "produces": ["network_profile"],
                     "requires": ["network_id"],
+                    "fallback_injected": True
+                })
+
+        # 1️⃣.5 Movie/TV entity fallbacks (include credits for fact-style queries like director/creator)
+        if "movie_id" in resolved_entities:
+            for mid in resolved_entities["movie_id"]:
+                steps.append({
+                    "step_id": f"step_movie_details_{mid}",
+                    "endpoint": f"/movie/{mid}?append_to_response=credits",
+                    "method": "GET",
+                    "produces": ["movie_summary"],
+                    "requires": ["movie_id"],
+                    "fallback_injected": True
+                })
+
+        if "tv_id" in resolved_entities:
+            for tid in resolved_entities["tv_id"]:
+                steps.append({
+                    "step_id": f"step_tv_details_{tid}",
+                    "endpoint": f"/tv/{tid}?append_to_response=credits",
+                    "method": "GET",
+                    "produces": ["tv_summary"],
+                    "requires": ["tv_id"],
                     "fallback_injected": True
                 })
 
