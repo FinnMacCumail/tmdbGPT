@@ -53,5 +53,7 @@ class AppState(BaseModel):
     steps: Optional[List[Dict]] = Field(
         default_factory=list)  # tracked injected steps
 
+    roles_validated_from_person_credits: bool = False
+
     class Config:
         arbitrary_types_allowed = True
