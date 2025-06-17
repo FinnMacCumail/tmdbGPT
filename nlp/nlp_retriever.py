@@ -342,8 +342,8 @@ class ResultExtractor:
         if "/credits" in endpoint:
             summaries += ResultExtractor.extract_cast_and_crew_credits(
                 json_data, endpoint)
-            print(
-                f"✅ Total summaries extracted from credits: {len(summaries)}")
+            # print(
+            # f"✅ Total summaries extracted from credits: {len(summaries)}")
             return summaries  # ← THIS is critical
         # ✅ Credits endpoints: tv or movie
         if "tv_credits" in endpoint or "movie_credits" in endpoint:
@@ -459,8 +459,8 @@ class ResultExtractor:
         """
         cast = json_data.get("cast", [])
         crew = json_data.get("crew", [])
-        print(
-            f"🟢 _extract_tv_credits called — cast: {len(cast)}, crew: {len(crew)}")
+        # print(
+        # f"🟢 _extract_tv_credits called — cast: {len(cast)}, crew: {len(crew)}")
 
         summaries = []
 
@@ -472,11 +472,6 @@ class ResultExtractor:
             overview = entry.get("overview") or entry.get(
                 "character") or "Cast"
             release_date = entry.get("first_air_date") or "Unknown"
-
-            # 🔍 Debug: Recognize special known shows
-            if "office" in title.lower():
-                print(
-                    f"✅ DEBUG: Found The Office → id={entity_id}, actor_id={person_id}")
 
             summary = {
                 "id": entity_id,
@@ -726,7 +721,7 @@ class ResultExtractor:
         cast_list = json_data.get("cast", [])
         crew_list = json_data.get("crew", [])
 
-        print(f"🎭 Extracting cast from {endpoint} → {len(cast_list)} entries")
+        # print(f"🎭 Extracting cast from {endpoint} → {len(cast_list)} entries")
         for member in cast_list:
             name = member.get("name") or "Unknown"
             character = member.get("character") or "Unknown role"
@@ -740,7 +735,7 @@ class ResultExtractor:
                 "release_date": None
             })
 
-        print(f"🎞️ Extracting crew from {endpoint} → {len(crew_list)} entries")
+        # print(f"🎞️ Extracting crew from {endpoint} → {len(crew_list)} entries")
         for member in crew_list:
             name = member.get("name") or "Unknown"
             job = member.get("job") or "Crew"
@@ -754,7 +749,7 @@ class ResultExtractor:
                 "release_date": None
             })
 
-        print(f"✅ Total summaries extracted from credits: {len(summaries)}")
+        # print(f"✅ Total summaries extracted from credits: {len(summaries)}")
         return summaries
 
 

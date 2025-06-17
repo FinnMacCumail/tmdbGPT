@@ -17,9 +17,9 @@ def inject_lookup_steps_from_role_intersection(state):
     - Falls back to discovery if no intersection found, even after relaxation.
     """
     print(f"🧪 Constraint tree: {state.constraint_tree}")
-    print(f"🧪 Data registry: {state.data_registry}")
-    print(f"🧪 Response IDs: {[r['id'] for r in state.responses]}")
-    print(f"🧪 Intended type: {state.intended_media_type}")
+    # print(f"🧪 Data registry: {state.data_registry}")
+    # print(f"🧪 Response IDs: {[r['id'] for r in state.responses]}")
+    # print(f"🧪 Intended type: {state.intended_media_type}")
 
     intended_type = getattr(state, "intended_media_type", "both") or "both"
     expected = {
@@ -322,7 +322,7 @@ class DependencyManager:
             if ent.get("type") == "movie" and ent.get("resolved_id"):
                 new_steps.append({
                     "step_id": f"step_movie_details_{ent['resolved_id']}",
-                    "endpoint": f"/movie/{ent['resolved_id']}",
+                    "endpoint": f"/movie/{ent['resolved_id']}?append_to_response=credits",
                     "produces": ["movie_summary"],
                     "requires": ["movie_id"],
                     "from_constraint": "direct_lookup"
