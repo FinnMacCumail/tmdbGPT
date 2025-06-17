@@ -50,8 +50,9 @@ def inject_lookup_steps_from_role_intersection(state):
 
         if not intersection:
             fallback_steps = FallbackHandler.generate_steps(
-                state.resolved_entities,
-                intents=state.extraction_result
+                resolved_entities=state.resolved_entities,
+                intents=state.extraction_result,
+                extraction_result=state.extraction_result
             )
             if isinstance(fallback_steps, dict):
                 fallback_steps = [fallback_steps]
