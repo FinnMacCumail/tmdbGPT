@@ -48,11 +48,17 @@ class DiscoveryHandler:
             for summary in summaries:
                 summary["source"] = path
                 summary["_step"] = step
-                summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
+                # 🔎 Preserve existing type if set (e.g., person_profile)
+                if "type" not in summary:
+                    summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
 
-             # 🔁 Enrich TV/movie summaries with symbolic keys (e.g. cast_4495)
-            for summary in summaries:
+            # 🧩 Only enrich movie/TV summaries
+            enrichable = [s for s in summaries if s["type"]
+                          in ("movie_summary", "tv_summary")]
+
+            # 🔁 Enrich TV/movie summaries with symbolic keys (e.g. cast_4495)
+            for summary in enrichable:
                 enrich_symbolic_registry(
                     movie=summary,
                     registry=state.data_registry,
