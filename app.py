@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
 from nlp.nlp_retriever import RerankPlanning
 from core.planner.plan_validator import SymbolicConstraintFilter, PlanValidator
+from core.model.constraint import ConstraintGroup
 from core.formatting.formatter import ResponseFormatter
 from core.formatting.templates import format_fallback, format_ranked_list, generate_relaxation_explanation
 from core.constraint_model import ConstraintBuilder
@@ -108,9 +109,14 @@ def plan(state: AppState) -> AppState:
         return route_symbol_free_intent(state)
 
     builder = ConstraintBuilder()
-    state.constraint_tree = builder.build_from_query_entities(
-        state.extraction_result.get("query_entities", [])
-    )
+
+    if state.extraction_result.get("question_type") != "fact":
+        state.constraint_tree = builder.build_from_query_entities(
+            state.extraction_result.get("query_entities", [])
+        )
+    else:
+        print("🛑 Skipping symbolic constraint tree — fact-style query")
+        state.constraint_tree = ConstraintGroup([], logic="AND")
 
     # 🧠 Inject raw query into resolved_entities for downstream access.
     # Some validators (e.g., semantic parameter inference) need access to the original query string.
@@ -238,7 +244,9 @@ def plan(state: AppState) -> AppState:
     # Prevents empty responses and ensures execution can still proceed.
     if not signal_steps:
         signal_steps = FallbackHandler.generate_steps(
-            state.resolved_entities, state.extraction_result)
+            resolved_entities=state.resolved_entities,
+            intents=state.extraction_result,
+            extraction_result=state.extraction_result)
 
     return state.model_copy(update={"plan_steps": signal_steps, "step": "plan"})
 
