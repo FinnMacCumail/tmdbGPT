@@ -81,7 +81,9 @@ def format_ranked_list(state, include_debug=False):
 @register_renderer("summary")
 def format_summary(state) -> dict:
     responses = state.responses
+    question_type = state.extraction_result.get("question_type", "summary")
     entries = []
+
     SUMMARY_TYPES = {
         "movie_summary": "🎬",
         "tv_summary": "📺",
@@ -92,15 +94,55 @@ def format_summary(state) -> dict:
     }
 
     for r in responses:
+        if not isinstance(r, dict):
+            continue
+
         r_type = r.get("type")
         emoji = SUMMARY_TYPES.get(r_type, "🔹")
-        title = r.get("title", "Untitled")
-        overview = r.get("overview", "No summary available.")
+        title = r.get("title") or r.get("name", "Untitled")
+        overview = r.get("overview") or r.get(
+            "biography") or "No summary available."
+
+        # 👤 Person profile rendering
+        if r_type == "person_profile":
+            name = r.get("name", "Unknown")
+            bio = r.get("biography", "No biography available.")
+            known_for = r.get("known_for")
+            birthday = r.get("birthday")
+
+            person_entry = f"{emoji} {name}: {bio.strip()}"
+            if known_for:
+                person_entry += f"\n🧠 Known For: {known_for}"
+            if birthday:
+                person_entry += f"\n🎂 Birthday: {birthday}"
+
+            entries.append(person_entry)
+            continue
+
+        # 🧠 Fact-style rendering for known roles
+        if question_type == "fact":
+            # 🎬 Movie: show directors
+            if r_type == "movie_summary" and r.get("directors"):
+                directors = ", ".join(r["directors"])
+                entries.append(f"{emoji} {title} was directed by {directors}.")
+                continue
+
+            # 📺 TV: show creators
+            if r_type == "tv_summary" and r.get("created_by"):
+                creators = [
+                    c.get("name") for c in r["created_by"] if c.get("name")
+                ]
+                if creators:
+                    entries.append(
+                        f"{emoji} {title} was created by {', '.join(creators)}.")
+                    continue
+
+        # 🧾 Default rendering
         entries.append(f"{emoji} {title}: {overview.strip()}")
 
     return {
         "response_format": "summary",
-        "question_type": state.extraction_result.get("question_type", "summary"),
+        "question_type": question_type,
         "entries": entries or ["⚠️ No summary available."]
     }
 
