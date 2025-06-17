@@ -677,12 +677,22 @@ class ResultExtractor:
         release_date = json_data.get("release_date")
         score = json_data.get("vote_average", 0) / 10.0
 
+        # ✅ Extract director(s) from credits, if available
+        directors = []
+        if "credits" in json_data:
+            for crew_member in json_data["credits"].get("crew", []):
+                if crew_member.get("job", "").lower() == "director":
+                    name = crew_member.get("name")
+                    if name:
+                        directors.append(name)
+
         return [{
             "id": json_data.get("id"),
             "type": "movie_summary",
             "title": title,
             "overview": overview.strip(),
             "release_date": release_date,
+            "directors": directors,  # ✅ Add this line
             "final_score": round(score, 2),
             "source": endpoint,
             "media_type": "movie"
@@ -690,18 +700,21 @@ class ResultExtractor:
 
     @staticmethod
     def _extract_tv_details(json_data, endpoint):
-        name = json_data.get("name", "Untitled")
-        overview = json_data.get("overview") or "No synopsis available."
-        first_air_date = json_data.get("first_air_date")
-        score = json_data.get("vote_average", 0) / 10.0
+        title = json_data.get("name", "Untitled")
+        overview = json_data.get(
+            "overview", "").strip() or "No synopsis available."
+        release_date = json_data.get("first_air_date")
+        score = round(json_data.get("vote_average", 0) / 10.0, 2)
 
         return [{
             "id": json_data.get("id"),
             "type": "tv_summary",
-            "title": name,
-            "overview": overview.strip(),
-            "release_date": first_air_date,
-            "final_score": round(score, 2),
+            "title": title,
+            "overview": overview,
+            "release_date": release_date,
+            # ✅ Used for fact queries
+            "created_by": json_data.get("created_by", []),
+            "final_score": score,
             "source": endpoint,
             "media_type": "tv"
         }]
