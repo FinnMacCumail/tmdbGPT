@@ -202,6 +202,17 @@ class DiscoveryHandler:
         ranked = EntityAwareReranker.boost_by_entity_mentions(
             filtered, query_entities)
 
+        # 🧩 Inject symbolic enrichment before constraint filtering
+        for item in ranked:
+            enrich_symbolic_registry(
+                movie=item,
+                registry=state.data_registry,
+                credits=None,
+                keywords=None,
+                release_info=None,
+                watch_providers=None
+            )
+
         # 🧠 Apply Symbolic Filtering (if supported)
         # If the current step supports symbolic constraint filtering (e.g., /discover/movie),
         # filter results using the constraint tree and symbolic registry to enforce role, genre, and entity alignment.
