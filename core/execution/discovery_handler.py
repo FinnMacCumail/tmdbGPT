@@ -39,6 +39,13 @@ class DiscoveryHandler:
             summaries = ResultExtractor.extract(
                 json_data, path, state.resolved_entities)
 
+            # 🚩 Mark endpoint as handled to suppress fallbacks for fact queries
+            if summaries:
+                handled = state.extraction_result.setdefault(
+                    "__handled_endpoints", [])
+                if path not in handled:
+                    handled.append(path)
+
             if not summaries:
                 return
 
@@ -50,12 +57,27 @@ class DiscoveryHandler:
                 summary["_step"] = step
                 # 🔎 Preserve existing type if set (e.g., person_profile)
                 if "type" not in summary:
-                    summary["type"] = "tv_summary" if "tv" in path else "movie_summary"
+                    if "/movie/" in path and path.count("/") == 2:
+                        summary["type"] = "movie_summary"
+                    elif "/tv/" in path and path.count("/") == 2:
+                        summary["type"] = "tv_summary"
+                    elif "/person/" in path and path.count("/") == 2:
+                        summary["type"] = "person_profile"
+                    elif "/company/" in path:
+                        summary["type"] = "company_profile"
+                    elif "/network/" in path:
+                        summary["type"] = "network_profile"
+                    elif "/collection/" in path:
+                        summary["type"] = "collection_profile"
+                    else:
+                        summary["type"] = "generic_summary"
                 summary["final_score"] = summary.get("final_score", 1.0)
 
             # 🧩 Only enrich movie/TV summaries
-            enrichable = [s for s in summaries if s["type"]
-                          in ("movie_summary", "tv_summary")]
+            enrichable = [
+                s for s in summaries
+                if s.get("type") in ("movie_summary", "tv_summary")
+            ]
 
             # 🔁 Enrich TV/movie summaries with symbolic keys (e.g. cast_4495)
             for summary in enrichable:
@@ -67,6 +89,16 @@ class DiscoveryHandler:
                     release_info=None,
                     watch_providers=None
                 )
+
+            # 🎬 Attach director(s) if available in json_data["credits"]
+            if summary.get("type") == "movie_summary":
+                credits = json_data.get("credits", {})
+                directors = [
+                    p.get("name") for p in credits.get("crew", [])
+                    if p.get("job", "").lower() == "director" and p.get("name")
+                ]
+                if directors:
+                    summary["directors"] = directors
 
             # 🔁 Skip symbolic filtering if not needed
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
