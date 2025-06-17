@@ -363,7 +363,7 @@ class ResultExtractor:
         # ✅ Person profile (not a sub-resource like /credits, /tv, /movie)
         if "/person/" in endpoint and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"]):
             print("🎯 Routing to _extract_person_profile")
-            return ResultExtractor._extract_person_profile(json_data)
+            return ResultExtractor._extract_person_profile(json_data, endpoint)
 
         # ✅ Company / Network lookups
         if "/company/" in endpoint or "/network/" in endpoint:
@@ -557,17 +557,24 @@ class ResultExtractor:
         return results
 
     @staticmethod
-    def _extract_person_profile(json_data):
+    def _extract_person_profile(json_data, endpoint):
         name = json_data.get("name", "Unknown")
         bio = json_data.get("biography", "No biography available.")
+        department = json_data.get("known_for_department", "N/A")
+        birthday = json_data.get("birthday")
+        place = json_data.get("place_of_birth")
 
         return [{
-            "type": "person_profile",
             "id": json_data.get("id"),
-            "title": name,
-            "overview": bio.strip(),
-            "source": "/person/profile",
-            "final_score": 1.0
+            "type": "person_profile",
+            "name": name,
+            "biography": bio.strip(),
+            "known_for": department,
+            "birthplace": place,
+            "birthday": birthday,
+            "final_score": 1.0,
+            "media_type": "person",
+            "source": endpoint
         }]
 
     @staticmethod

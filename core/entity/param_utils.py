@@ -204,7 +204,7 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     for key in ["movie_id", "tv_id"]:
         current = registry.get(key)
         if not isinstance(current, dict):
-            print(f"❌ CORRUPTED {key} registry — resetting to dict.")
+            # print(f"❌ CORRUPTED {key} registry — resetting to dict.")
             registry[key] = {}
         elif isinstance(current, set):
             print(f"⚠️ Found malformed set in {key}. Wrapping into dict.")
@@ -263,7 +263,7 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
         values = entity.get(field_key)
 
         if not values:
-            print(f"🔕 No values for {field_key} in {entity.get('id')}")
+            # print(f"🔕 No values for {field_key} in {entity.get('id')}")
             return
 
         if not isinstance(values, list):
