@@ -112,10 +112,19 @@ class ConstraintBuilder:
 
         constraints = []
         for ent in query_entities:
+            ent_type = ent["type"]
+
+            # ✅ Patch: Use scalar-safe parameter key for 'date'
+            if ent_type == "date":
+                param_key = "primary_release_year"
+            else:
+                param_key = get_param_key_for_type(ent_type, prefer="with_")
+
             c = Constraint(
-                key=get_param_key_for_type(ent["type"], prefer="with_"),
-                value=ent.get("id") or ent.get("resolved_id"),
-                type_=ent["type"],
+                key=param_key,
+                value=ent.get("id") or ent.get(
+                    "resolved_id") or ent.get("name"),
+                type_=ent_type,
                 subtype=ent.get("role"),
                 priority=ent.get("priority", 2),
                 confidence=ent.get("confidence", 1.0),
