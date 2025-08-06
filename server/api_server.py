@@ -31,11 +31,9 @@ async def run_query(req: QueryRequest, request: Request):
     # Log raw request body for debugging
     try:
         raw_body = await request.body()
-        logger.debug(f"🧾 Raw body: {raw_body.decode('utf-8')}")
     except Exception as e:
         logger.warning(f"⚠️ Could not log raw body: {e}")
 
-    logger.info(f"🧠 Parsed query: {req.query!r}")
 
     try:
         # Create a proper AppState with both input and query
@@ -44,7 +42,6 @@ async def run_query(req: QueryRequest, request: Request):
         # Invoke the graph with the AppState
         result = graph.invoke(state)
 
-        logger.info("✅ Graph invoke completed.")
 
         return {
             "entries": result.get("formatted_response", []),

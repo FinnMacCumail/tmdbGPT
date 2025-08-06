@@ -64,7 +64,6 @@ def generate_param_to_entity_map():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(param_to_entity, f, indent=2, ensure_ascii=False)
 
-    print(
         f"✅ Successfully wrote {len(param_to_entity)} parameter mappings to {output_path}")
 
 

@@ -37,7 +37,6 @@ def clean_tmdb_schema(input_path, output_path):
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump(cleaned_data, file, indent=4)
 
-    print(f"✅ Cleaned TMDB schema saved to: {output_path}")
 
 # Run the cleaning process
 if __name__ == "__main__":

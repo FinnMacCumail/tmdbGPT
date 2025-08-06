@@ -4,12 +4,7 @@ import json
 class ExecutionTraceLogger:
     @staticmethod
     def log_step(step_id, path, status, summary=None, state=None):
-        print("\n📍 Execution Trace")
-        print(f"├─ Step: {step_id}")
-        print(f"├─ Endpoint: {path}")
-        print(f"├─ Status: {status}")
 
-        print(
             f"🧾 Trace Entry Added → Step: {step_id}, Status: {status}, Notes: {summary}")
 
         if summary is not None:
@@ -18,7 +13,6 @@ class ExecutionTraceLogger:
                     summary, str) else json.dumps(summary, default=str)
             except Exception:
                 text = str(summary)
-            print(f"└─ Result: {text[:100]}{'...' if len(text) > 100 else ''}")
 
         if state is not None and hasattr(state, "execution_trace"):
             trace_entry = {

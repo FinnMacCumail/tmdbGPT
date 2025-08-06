@@ -53,5 +53,4 @@ Respond with JSON:
 
         return result.get("recommended_endpoints", [])
     except Exception as e:
-        print(f"⚠️ LLM planner failed: {e}")
         return []

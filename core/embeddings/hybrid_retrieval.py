@@ -256,7 +256,6 @@ def convert_matches_to_execution_steps(matches, extraction_result, resolved_enti
         parameters = normalize_parameters(raw_params)
 
         if not isinstance(parameters, dict):
-            # print(f"❌ Parameter normalization failed for {endpoint}: type={type(parameters)} → forcing empty dict")
             parameters = {}
         else:
             assert isinstance(

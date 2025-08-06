@@ -63,13 +63,10 @@ for p in param_index.values():
         p["entity_type"] = ENTITY_PARAM_MAP[p["name"]]
     parameter_data.append(p)
 
-print("\n📦 Extracted Parameters (sample):")
 for p in parameter_data[:10]:
     entity = f" (entity: {p['entity_type']})" if "entity_type" in p else ""
-    print(f"- {p['name']}{entity}: {p['description'][:80]}... used in {len(p['used_in'])} endpoints")
 
 # Save output
 with open("data/tmdb_parameters.json", "w") as f:
     json.dump(parameter_data, f, indent=2)
 
-print(f"\n✅ Extracted {len(parameter_data)} total parameters (including path-based) and saved to tmdb_parameters.json")

@@ -81,7 +81,6 @@ def extract_entities_and_intents(query: str) -> dict:
 
         # phase 19.9 - Media Type Enforcement Baseline
         result["media_type"] = infer_media_type_from_query(query)
-        # print(f"🎥 Inferred media type: {result['media_type']}")
 
         # ✅ Fallback correction for known streaming services
         streaming_services = {
@@ -107,7 +106,6 @@ def extract_entities_and_intents(query: str) -> dict:
             if ent.get("type") == "person" and "role" not in ent:
                 inferred_role = infer_role_for_entity(ent["name"], query)
                 ent["role"] = inferred_role
-                # print(f"🔎 Smarter role inferred for '{ent['name']}': {inferred_role}")
 
             name_lower = ent.get("name", "").strip().lower()
 
@@ -125,7 +123,6 @@ def extract_entities_and_intents(query: str) -> dict:
                         corrected_type = streaming_services[keyword]
 
                     if ent.get("type") != corrected_type:
-                        # print(f"🔁 Correcting '{ent['name']}' type dynamically: {ent.get('type')} → {corrected_type}")
                         ent["type"] = corrected_type
                         if corrected_type not in result["entities"]:
                             result["entities"].append(corrected_type)
@@ -133,7 +130,6 @@ def extract_entities_and_intents(query: str) -> dict:
         return result
 
     except Exception as e:
-        # print(f"⚠️ LLM extraction failed: {e}")
         return {
             "intents": [],
             "entities": [],

@@ -16,10 +16,6 @@ def inject_lookup_steps_from_role_intersection(state):
     - Injects /movie/{id} or /tv/{id} lookup steps based on matched entries.
     - Falls back to discovery if no intersection found, even after relaxation.
     """
-    print(f"🧪 Constraint tree: {state.constraint_tree}")
-    # print(f"🧪 Data registry: {state.data_registry}")
-    # print(f"🧪 Response IDs: {[r['id'] for r in state.responses]}")
-    # print(f"🧪 Intended type: {state.intended_media_type}")
 
     intended_type = getattr(state, "intended_media_type", "both") or "both"
     expected = {
@@ -111,7 +107,6 @@ def inject_lookup_steps_from_role_intersection(state):
             summary=f"Injected lookup steps for IDs: {injected_ids}",
             state=state
         )
-        print(f"✅ Injected role-based lookup steps for IDs: {injected_ids}")
 
     return state
 
@@ -223,7 +218,6 @@ class DependencyManager:
 
                         for role_tag in roles:
                             if role_tag in getattr(state, "satisfied_roles", set()):
-                                print(
                                     f"🛑 Skipped credit step for {role_tag}_{_id} — already satisfied.")
                                 continue
 
@@ -244,10 +238,8 @@ class DependencyManager:
                                     "media_type": mtype
                                 })
 
-                        print(
                             f"🔍 Checking role step for person_id={_id}, role={role_tag}")
                         if role_tag in getattr(state, "satisfied_roles", set()):
-                            print(
                                 f"🛑 Skipped credit steps for person_id={_id} because {role_tag} is already satisfied.")
                             continue
 

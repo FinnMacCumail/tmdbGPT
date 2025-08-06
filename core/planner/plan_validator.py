@@ -13,7 +13,6 @@ from core.planner.plan_utils import is_symbolically_filterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CHROMA_PATH = PROJECT_ROOT / "chroma_db"
-print("✅ plan_validator.py - CHROMA_PATH:", CHROMA_PATH)
 
 
 class PlanValidator:
@@ -215,7 +214,6 @@ def should_apply_symbolic_filter(state, step) -> bool:
         for constraint in constraint_tree:
             # 🔍 This is where symbolic constraints (like director_1032) are extracted from the parsed query and incorporated into the constraint tree.
             if isinstance(constraint, Constraint) and constraint.key in symbolic_keys:
-                print(f"🔁 Overriding symbolic filter for fallback: {endpoint}")
                 return True
 
     return False

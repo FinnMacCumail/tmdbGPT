@@ -105,7 +105,6 @@ def retrieve_context(state: AppState) -> AppState:
 
 def plan(state: AppState) -> AppState:
     if is_symbol_free_query(state):
-        print("⚠️ No symbolic entities — using symbol-free planner override")
         return route_symbol_free_intent(state)
 
     builder = ConstraintBuilder()
@@ -115,7 +114,6 @@ def plan(state: AppState) -> AppState:
             state.extraction_result.get("query_entities", [])
         )
     else:
-        print("🛑 Skipping symbolic constraint tree — fact-style query")
         state.constraint_tree = ConstraintGroup([], logic="AND")
 
     # 🧠 Inject raw query into resolved_entities for downstream access.
@@ -311,5 +309,3 @@ if __name__ == "__main__":
         if user_input.lower() in {"exit", "quit"}:
             break
         result = graph.invoke({"input": user_input})
-        print("\n--- RESPONSE ---")
-        print(result["responses"])

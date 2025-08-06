@@ -178,11 +178,9 @@ def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -
         not getattr(constraint_tree, "constraints", None) or
         len(constraint_tree.constraints) == 0
     ):
-        print("✅ Skipping symbolic filtering — no constraints to evaluate.")
         for m in entities:
             m["_provenance"] = m.get("_provenance", {})
             m["_provenance"]["matched_constraints"] = []
-            print(
                 f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={m.get('id')} — no constraints applied.")
         return entities
 
@@ -217,11 +215,9 @@ def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -
         if passed:
             matched = extract_matched_constraints(m, constraint_tree, registry)
             m["_provenance"]["matched_constraints"] = matched
-            print(
                 f"✅ [PASSED] {m.get('title') or m.get('name')} — ID={mid} — matched: {matched}")
             filtered.append(m)
         else:
-            print(
                 f"❌ [REJECTED] {m.get('title') or m.get('name')} — ID={mid} — failed symbolic filter")
 
     return filtered

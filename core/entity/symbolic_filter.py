@@ -35,7 +35,6 @@ def passes_symbolic_filter(entity: dict, constraint_tree, registry: dict) -> boo
         len(constraint_tree.constraints) == 0
     ):
         # ✅ No constraints = allow all
-        print("✅ passes_symbolic_filter bypassed — no constraints to check.")
         return True
 
     constraint_ids = evaluate_constraint_tree(constraint_tree, registry)
@@ -86,14 +85,12 @@ def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url)
     """
     entity_id = entity.get("id")
     if not entity_id:
-        print("⚠️ Entity is missing an ID — cannot enrich.")
         return False
 
     media_type = "tv" if "first_air_date" in entity else "movie"
 
     # ✅ Shortcut: no constraints, always pass
     if not constraint_tree or not getattr(constraint_tree, "constraints", []):
-        print(
             f"✅ No constraints — accepted: {entity.get('title') or entity.get('name')}")
         return True
 
@@ -106,7 +103,6 @@ def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url)
         url = f"{base_url}/{media_type}/{entity_id}"
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
-            print(
                 f"⚠️ Failed to fetch enrichment for ID={entity_id} — status: {res.status_code}")
             return False
 
@@ -135,5 +131,4 @@ def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url)
         return passes_symbolic_filter(entity, constraint_tree, registry)
 
     except Exception as e:
-        print(f"⚠️ Lazy enrichment failed for ID={entity_id}: {e}")
         return False

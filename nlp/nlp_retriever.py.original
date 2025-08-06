@@ -39,6 +39,7 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
+print("✅ nlp- retriever.py - CHROMA_PATH:", CHROMA_PATH)
 
 # Load NLP and embedding models
 nlp = spacy.load("en_core_web_trf")
@@ -137,7 +138,9 @@ class PostStepUpdater:
         extracted = {}
 
         if path.startswith("/search/"):
+            # print("🔎 Raw /search/person results:")
             for item in json_data.get("results", []):
+                # print(f"  → {item.get('name')} (id={item.get('id')})")
                 if not isinstance(item, dict):
                     continue
                 entity_id = item.get("id")
@@ -147,6 +150,7 @@ class PostStepUpdater:
                     if entity_type:
                         key = f"{entity_type}_id"
                         extracted.setdefault(key, []).append(entity_id)
+                        # print(f"🔍 Resolved {entity_type}: '{entity_name}' → {entity_id}")
 
         if extracted:
             state.resolved_entities.update(extracted)
@@ -221,10 +225,12 @@ class RerankPlanning:
             # --- Bonus Boost for Strong Param Coverage ---
             if optional_match_count >= 3:
                 boost += 0.05
+                # print(f"⭐ Strong optional param coverage bonus applied (+0.05) for {endpoint}")
 
             # --- Apply Pre-Recorded Penalty from SymbolicConstraintFilter ---
             additional_penalty = match.get("penalty", 0.0)
             if additional_penalty > 0:
+                # print(f"🔻 Applying additional penalty of {additional_penalty} to {endpoint}")
                 penalty += additional_penalty
 
             # --- NEW: Penalty if Missing Supported Intents ---
@@ -232,6 +238,7 @@ class RerankPlanning:
                 match.get("metadata", match))
             if not supported_intents:
                 penalty += 0.1
+                # print(f"⚠️ Missing supported_intents penalty applied to {endpoint} (-0.1)")
 
             # --- Final Scoring ---
             base_score = match.get("final_score", 0.0)
@@ -245,6 +252,14 @@ class RerankPlanning:
             reranked.append(match)
 
             # --- Clean Debug Output ---
+            # print("\n📊 Rerank Debug Info")
+            # print(f"Endpoint: {endpoint}")
+            # print(f"🔹 Base Score: {base_score}")
+            # print(f"➕ Boost Applied: {round(boost, 3)}")
+            # print(f"➖ Penalty Applied: {round(penalty, 3)}")
+            # print(f"🎯 Final Score: {final_score}")
+            # print(f"🔎 Missing Entities (path params): {needs}")
+            # print("-" * 40)
 
         return sorted(reranked, key=lambda x: x["final_score"], reverse=True)
 
@@ -275,11 +290,14 @@ class RerankPlanning:
 
         for match in ranked_matches:
             endpoint_path = match.get("endpoint") or match.get("path", "")
+            # print(f"🔍 Evaluating: {endpoint_path}")
             # 🔐 Standard validation: do we have required parameters?
             is_valid = RerankPlanning.validate_parameters(
                 endpoint_path, resolved_entities)
+            # print(f"🔎 validate_parameters = {is_valid} for {endpoint_path}")
             # phase 19.7 ✅ Strategic override: allow /person/{id}/movie_credits or tv_credits if role + count query
             if not is_valid:
+                # print(f"⚠️ Rejected in feasibility: {endpoint_path} due to missing resolved params")
                 if endpoint_path in {"/person/{person_id}/movie_credits", "/person/{person_id}/tv_credits"}:
                     if question_type == "count":
                         if any(
@@ -287,6 +305,7 @@ class RerankPlanning:
                                 "director", "cast", "writer", "producer", "composer"}
                             for ent in query_entities
                         ):
+                            # print(f"✅ Allowing role-aware count query: {endpoint_path}")
                             is_valid = True
 
             if is_valid:
@@ -305,43 +324,54 @@ class ResultExtractor:
         resolved_entities = resolved_entities or {}
 
         if not json_data:
+            print("⚠️ ResultExtractor: Empty json_data")
             return []
 
         # ✅ Movie detail endpoint
         if endpoint.startswith("/movie/") and endpoint.count("/") == 2:
+            print("🎯 Routing to _extract_movie_details")
             return ResultExtractor._extract_movie_details(json_data, endpoint)
 
         # ✅ TV detail endpoint (e.g. Breaking Bad)
         if endpoint.startswith("/tv/") and endpoint.count("/") == 2:
+            print("🎯 Routing to _extract_tv_details")
             return ResultExtractor._extract_tv_details(json_data, endpoint)
 
+        print(f"🧪 ResultExtractor.extract called with endpoint: {endpoint}")
         summaries = []
         if "/credits" in endpoint:
             summaries += ResultExtractor.extract_cast_and_crew_credits(
                 json_data, endpoint)
+            # print(
             # f"✅ Total summaries extracted from credits: {len(summaries)}")
             return summaries  # ← THIS is critical
         # ✅ Credits endpoints: tv or movie
         if "tv_credits" in endpoint or "movie_credits" in endpoint:
+            print("🎯 Routing to _extract_credits (tv/movie)")
             return ResultExtractor._extract_credits(json_data, endpoint, resolved_entities=resolved_entities)
 
         # ✅ Discovery endpoint
         if "/discover/" in endpoint:
+            print("🎯 Routing to _extract_discovery")
             return ResultExtractor._extract_discovery(json_data, endpoint)
 
         # ✅ Search: person
         if "/search/person" in endpoint:
+            print("🎯 Routing to _extract_search_person")
             return ResultExtractor._extract_search_person(json_data)
 
         # ✅ Person profile (not a sub-resource like /credits, /tv, /movie)
         if "/person/" in endpoint and not any(k in endpoint for k in ["/credits", "/images", "/tv", "/movie"]):
+            print("🎯 Routing to _extract_person_profile")
             return ResultExtractor._extract_person_profile(json_data, endpoint)
 
         # ✅ Company / Network lookups
         if "/company/" in endpoint or "/network/" in endpoint:
+            print("🎯 Routing to _extract_company_or_network")
             return ResultExtractor._extract_company_or_network(json_data)
 
         # ✅ Generic fallback
+        print("🛠️ Routing to _extract_generic (fallback)")
         return ResultExtractor._extract_generic(json_data, endpoint)
 
     @staticmethod
@@ -429,6 +459,7 @@ class ResultExtractor:
         """
         cast = json_data.get("cast", [])
         crew = json_data.get("crew", [])
+        # print(
         # f"🟢 _extract_tv_credits called — cast: {len(cast)}, crew: {len(crew)}")
 
         summaries = []
@@ -484,6 +515,7 @@ class ResultExtractor:
                     "genre_ids": entry.get("genre_ids", []),
                 })
 
+        print(f"✅ Returning {len(summaries)} TV summaries")
         return summaries
 
     @staticmethod
@@ -689,9 +721,11 @@ class ResultExtractor:
         cast_list = json_data.get("cast", [])
         crew_list = json_data.get("crew", [])
 
+        # print(f"🎭 Extracting cast from {endpoint} → {len(cast_list)} entries")
         for member in cast_list:
             name = member.get("name") or "Unknown"
             character = member.get("character") or "Unknown role"
+            # print(f"    🎬 Cast: {name} as {character}")
             summaries.append({
                 "type": "movie_summary",
                 "title": name,
@@ -701,9 +735,11 @@ class ResultExtractor:
                 "release_date": None
             })
 
+        # print(f"🎞️ Extracting crew from {endpoint} → {len(crew_list)} entries")
         for member in crew_list:
             name = member.get("name") or "Unknown"
             job = member.get("job") or "Crew"
+            # print(f"    🛠️ Crew: {name} - {job}")
             summaries.append({
                 "type": "movie_summary",
                 "title": name,
@@ -713,6 +749,7 @@ class ResultExtractor:
                 "release_date": None
             })
 
+        # print(f"✅ Total summaries extracted from credits: {len(summaries)}")
         return summaries
 
 
@@ -720,6 +757,7 @@ def extract_id_from_endpoint(endpoint):
     """
     Extracts numeric ID from an endpoint like /movie/594/credits.
     """
+    print(f"endpoint in xtract_id_from_endpoint: {endpoint}")
     match = re.search(r"/movie/(\d+)", endpoint)
     if match:
         return int(match.group(1))

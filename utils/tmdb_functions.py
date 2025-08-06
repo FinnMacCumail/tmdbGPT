@@ -13,7 +13,6 @@ def load_tmdb_schema():
     try:
         with open(DATA_PATH, "r", encoding="utf-8") as file:
             api_schema = json.load(file)
-        logger.info(f"✅ Successfully loaded TMDB schema from {DATA_PATH}")
         return api_schema
     except Exception as e:
         logger.error(f"❌ Error loading TMDB schema: {e}")

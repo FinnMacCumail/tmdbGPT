@@ -63,7 +63,6 @@ class GenreNormalizer:
         else:
             normalized = GenreNormalizer.GENRE_ALIASES.get(name, name)
         if name != normalized:
-            print(
                 f"🎭 Normalized genre alias for {media_type}: '{name}' → '{normalized}'")
         return normalized
 
@@ -102,10 +101,8 @@ class ParameterMapper:
             try:
                 if ent_value:
                     step_parameters[param_name] = cast_fn(ent_value)
-                    print(
                         f"✅ Injected {param_name} = {step_parameters[param_name]}")
             except ValueError:
-                print(
                     f"⚠️ Failed to parse value '{ent_value}' for param '{param_name}'")
 
 
@@ -204,10 +201,8 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     for key in ["movie_id", "tv_id"]:
         current = registry.get(key)
         if not isinstance(current, dict):
-            # print(f"❌ CORRUPTED {key} registry — resetting to dict.")
             registry[key] = {}
         elif isinstance(current, set):
-            print(f"⚠️ Found malformed set in {key}. Wrapping into dict.")
             registry[key] = {str(v): {v} for v in current}
 
     media_type = entity.get("media_type") or (
@@ -231,9 +226,7 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
                 actor_id, set()).add(entity_id)
             registry.setdefault("cast", {}).setdefault(
                 actor_id, set()).add(entity_id)
-            print(f"✅ Explicit cast[{actor_id}] → {entity_id}")
         else:
-            print(
                 f"⚠️ Skipped cast indexing: entity missing ID for actor {actor_id}")
 
     # ✅ Ensure self-indexing of ID (for constraint tree matching)
@@ -260,7 +253,6 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
         values = entity.get(field_key)
 
         if not values:
-            # print(f"🔕 No values for {field_key} in {entity.get('id')}")
             return
 
         if not isinstance(values, list):
@@ -269,7 +261,6 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
         for v in values:
             if v is None:
                 continue
-            print(f"✅ Indexing fallback: {registry_key}[{v}] → {entity['id']}")
             registry.setdefault(registry_key, {}).setdefault(
                 str(v), set()).add(entity["id"])
 
@@ -302,14 +293,12 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
     debug_keys = list(registry.keys())
     entity_title = entity.get("title") or entity.get("name") or "Unknown"
     entity_id = entity.get("id")
-    # print(
     # f"🧩 Enriched {entity_title} (ID: {entity_id}) with keys: {sorted(debug_keys)}")
     for key in sorted(registry):
         subkeys = registry[key]
         for subk, ids in subkeys.items():
             # ✅ Defensive: only check `in` if ids is a set
             if isinstance(ids, set) and str(entity_id) in ids:
-                print(f"   ↳ {key}[{subk}]: matched ID {entity_id}")
 
 
 def enrich_person_roles(entity, credits, registry, media_type):
@@ -363,7 +352,6 @@ def enrich_genres(entity, registry, media_type):
     for gid in genre_ids:
         registry.setdefault("with_genres", {}).setdefault(
             str(gid), set()).add(entity["id"])
-        print(f"✅ Indexing genre_id[{gid}] → {entity['id']}")
 
 
 def enrich_networks(entity, registry):
@@ -472,7 +460,6 @@ def enrich_media_id(entity: dict, registry: dict):
     key = "movie_id" if media_type == "movie" else "tv_id"
     registry.setdefault(key, {}).setdefault(
         str(entity_id), set()).add(entity_id)
-    # print(f"✅ Indexed {key}[{entity_id}] → {entity_id}")
 
 
 def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, release_info=None, watch_providers=None):
@@ -502,7 +489,6 @@ def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, re
             watch_providers=watch_providers
         )
     except Exception as e:
-        print(
             f"⚠️ Failed symbolic indexing for movie ID {movie.get('id')}: {e}")
 
 
@@ -520,7 +506,6 @@ def enrich_symbolic_fields(summary: dict, state) -> dict:
             return summary
         details = res.json()
     except Exception as e:
-        print(f"⚠️ Failed to enrich {media_type}/{summary['id']}: {e}")
         return summary
 
     # Patch genre_ids

@@ -30,11 +30,9 @@ class PostValidator:
         for result in results:
             if PostValidator.validate_result(result, query_entities):
                 validated.append(result)
-                print(
                     f"✅ VALIDATED result: {result.get('title')} ({result.get('id')})")
 
             else:
-                print(
                     f"❌ DROPPED result: {result.get('title')} ({result.get('id')}) — failed field validation")
 
         return validated
@@ -100,7 +98,6 @@ class PostValidator:
         High-level: Validate one result against all entity constraints.
         Returns True if valid, False otherwise.
         """
-        print(
             f"🔍 VALIDATE_RESULT called for ID={result.get('id')} with entities: {query_entities}")
         valid = True
 
@@ -334,7 +331,6 @@ class PostValidator:
                             validated.append(item)
 
                     except Exception as e:
-                        print(f"⚠️ Validation failed for ID={item_id}: {e}")
 
                 break
 
@@ -502,9 +498,6 @@ class PostValidator:
 
         movie["_provenance"]["satisfied_roles"] = list(satisfied_roles)
 
-        print(f"🧠 Matched: {matched_constraints}")
-        print(
             f"🎯 Score: {score} / {sum(WEIGHTS.get(c.subtype or c.type, 0) for c in flattened)}")
-        print(f"🔍 Final normalized score: {normalized_score}")
 
         return normalized_score, matched_constraints

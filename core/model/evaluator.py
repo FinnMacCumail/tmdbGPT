@@ -22,7 +22,6 @@ def evaluate_constraint_tree(group: ConstraintGroup, data_registry: dict) -> Dic
 
             # 🔒 Defensive structure validation
             if not isinstance(data_registry.get(node.key), dict):
-                # print(
                 # f"❌ CORRUPTED {node.key} registry — resetting to empty dict.")
                 data_registry[node.key] = {}
 

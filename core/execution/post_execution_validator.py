@@ -18,15 +18,12 @@ class PostExecutionValidator:
         media_matches = evaluate_constraint_tree(
             state.constraint_tree, state.data_registry)
 
-        print("Symbolic Matches:", media_matches)
 
         if not media_matches["movie"] and not media_matches["tv"]:
-            print("🛑 No media matches found. Attempting relaxation...")
 
             relaxed_tree, dropped_constraints, reasons = relax_constraint_tree(
                 state.constraint_tree)
             if not relaxed_tree:
-                print("❌ Could not relax any constraints.")
                 return []
 
             state.constraint_tree = relaxed_tree

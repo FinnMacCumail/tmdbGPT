@@ -57,7 +57,6 @@ class StepRunner:
 
                 depth = step_origin_depth.get(step_id, 0)
                 if depth > MAX_CHAIN_DEPTH:
-                    print(
                         f"⚠️ Skipping step {step_id} due to max chain depth.")
                     continue
 
@@ -83,7 +82,6 @@ class StepRunner:
                     if not expected_role_steps.issubset(set(state.completed_steps)):
                         missing = expected_role_steps - \
                             set(state.completed_steps)
-                        print(
                             f"⏸️ Discovery step '{step['step_id']}' deferred — waiting on role credit steps: {missing}")
                         state.plan_steps.append(step)
                         continue
@@ -98,7 +96,6 @@ class StepRunner:
                 # 🚫 Skip step if required entities (e.g., person, network) are unresolved.
                 # Soft-missing fields like genre/date are marked for potential fallback instead.
                 if self._has_missing_required_entities(step, state):
-                    print(
                         f"⏭️ Skipping step {step.get('step_id')} — endpoint '{step.get('endpoint')}' does not match intended media type: {state.intended_media_type}")
                     continue
 
@@ -177,7 +174,6 @@ class StepRunner:
                                 if qe.get("type") == "person" and qe.get("role")
                             }
                             if expected_role_steps.issubset(set(state.completed_steps)):
-                                print(
                                     "✅ All symbolic role steps complete → triggering intersection")
                                 state = DependencyManager.analyze_dependencies(
                                     state)
@@ -220,12 +216,9 @@ class StepRunner:
         endpoint = step.get("endpoint", "")
         resolved_path = PathRewriter.rewrite(endpoint, state.resolved_entities)
         if state.intended_media_type == "tv" and "/movie" in resolved_path:
-            print(f"⏭️ Skipping movie step for TV query: {resolved_path}")
             return True
         if state.intended_media_type == "movie" and "/tv" in resolved_path:
-            print(f"⏭️ Skipping TV step for movie query: {resolved_path}")
             return True
-        print(f"🎯 [Media Filter] Resolved path: {resolved_path}")
         return False
 
     def _has_missing_required_entities(self, step, state) -> bool:
@@ -263,7 +256,6 @@ class StepRunner:
                 if r.get("final_score", 0) > 0
             ]
         else:
-            print("⚠️ Skipped symbolic filtering — no constraint tree found")
             filtered = [r for r in state.responses if r.get(
                 "final_score", 0) > 0]
 
@@ -278,7 +270,6 @@ class StepRunner:
 
         # 🆘 Inject fallback if nothing remains
         if not state.responses:
-            print(
                 "⚠️ No valid responses after filtering and deduplication — injecting final fallback")
             fallback_step = FallbackSemanticBuilder.enrich_fallback_step(
                 original_step={"endpoint": "/discover/movie"},
@@ -349,7 +340,6 @@ class StepRunner:
         # 📣 Output final results
         for r in state.responses:
             title = r.get("title") or r.get("name") or "<untitled>"
-            print(
                 f"🧠 Final Result: {title} — score: {r.get('final_score')} — constraints: {r.get('_provenance', {}).get('matched_constraints', [])}"
             )
 

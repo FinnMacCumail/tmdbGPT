@@ -102,7 +102,6 @@ class DiscoveryHandler:
 
             # 🔁 Skip symbolic filtering if not needed
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
-                print(
                     f"✅ Skipping full symbolic filtering for: {resolved_path} — fallback will still use lazy_enrich_and_filter()")
                 filtered = filter_symbolic_responses(state, summaries, path)
                 state.responses.extend(filtered)
@@ -133,14 +132,11 @@ class DiscoveryHandler:
                         summary["_provenance"]["matched_constraints"] = matched_constraints
 
                         if matched_constraints:
-                            print(
                                 f"✅ [PASSED] {summary.get('title')} — matched: {matched_constraints}")
                             filtered.append(summary)
                         else:
-                            print(
                                 f"❌ [REJECTED] {summary.get('title')} — matched nothing")
                 except Exception as e:
-                    print(
                         f"⚠️ Lazy filter failed for {summary.get('title')} → {e}")
 
             state.responses.extend(filtered)
@@ -314,7 +310,6 @@ class DiscoveryHandler:
                     watch_providers=None
                 )
             else:
-                print(
                     f"⚠️ Skipping role validation for {item.get('title')} (ID: {item.get('id')}) — credits not available")
                 item.setdefault("_provenance", {}).setdefault(
                     "post_validations", []).append("missing_credits")
@@ -322,7 +317,6 @@ class DiscoveryHandler:
             satisfied = item["_provenance"].get("satisfied_roles", [])
             state.satisfied_roles.update(satisfied)
 
-            print(
                 f"🧠 Appending validated movie: {item.get('title')} with score {item.get('final_score')}")
             state.responses.append(item)
 
@@ -413,7 +407,6 @@ def fetch_credits_for_entity(entity: dict, base_url: str, headers: dict, state=N
 
     try:
         url = f"{base_url}/{media_type}/{entity_id}/credits"
-        print(
             f"🎯 Fetching credits for {media_type.upper()} ID={entity_id} → {url}")
         response = requests.get(url, headers=headers)
 
@@ -423,10 +416,8 @@ def fetch_credits_for_entity(entity: dict, base_url: str, headers: dict, state=N
                 state.data_registry["credits_cache"][cache_key] = data
             return data
         else:
-            print(
                 f"⚠️ Failed to fetch credits for {media_type} {entity_id}: {response.status_code}")
     except Exception as e:
-        print(
             f"❌ Exception fetching credits for {media_type} ID={entity_id}: {e}")
 
     return {}

@@ -94,9 +94,6 @@ def validate_roles(
         for entity in query_entities if entity.get("type") == "person"
     }
 
-    # print("🎯 Role Validation Summary:")
-    # print(f"    ➤ Expected:  {sorted(expected_roles)}")
-    # print(f"    ➤ Satisfied: {sorted(satisfied_roles)}")
 
     return role_results
 
