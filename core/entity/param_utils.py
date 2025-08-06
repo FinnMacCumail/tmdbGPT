@@ -63,7 +63,7 @@ class GenreNormalizer:
         else:
             normalized = GenreNormalizer.GENRE_ALIASES.get(name, name)
         if name != normalized:
-                f"🎭 Normalized genre alias for {media_type}: '{name}' → '{normalized}'")
+            pass  # Genre normalized
         return normalized
 
 
@@ -101,9 +101,8 @@ class ParameterMapper:
             try:
                 if ent_value:
                     step_parameters[param_name] = cast_fn(ent_value)
-                        f"✅ Injected {param_name} = {step_parameters[param_name]}")
             except ValueError:
-                    f"⚠️ Failed to parse value '{ent_value}' for param '{param_name}'")
+                pass  # Failed to parse parameter value
 
 
 # --- Dynamic Entity → Parameter Map for Phase 2 ---
@@ -227,7 +226,7 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
             registry.setdefault("cast", {}).setdefault(
                 actor_id, set()).add(entity_id)
         else:
-                f"⚠️ Skipped cast indexing: entity missing ID for actor {actor_id}")
+                pass  # Skipped cast indexing: entity missing ID
 
     # ✅ Ensure self-indexing of ID (for constraint tree matching)
     enrich_media_id(entity, registry)
@@ -299,6 +298,7 @@ def update_symbolic_registry(entity: dict, registry: dict, *, credits=None, keyw
         for subk, ids in subkeys.items():
             # ✅ Defensive: only check `in` if ids is a set
             if isinstance(ids, set) and str(entity_id) in ids:
+                pass  # Entity matched in registry
 
 
 def enrich_person_roles(entity, credits, registry, media_type):
@@ -489,7 +489,7 @@ def enrich_symbolic_registry(movie, registry, *, credits=None, keywords=None, re
             watch_providers=watch_providers
         )
     except Exception as e:
-            f"⚠️ Failed symbolic indexing for movie ID {movie.get('id')}: {e}")
+            pass  # Failed symbolic indexing
 
 
 def enrich_symbolic_fields(summary: dict, state) -> dict:

@@ -59,3 +59,4 @@ if param_to_entity:
         json.dump(param_to_entity, f, indent=2)
 
 else:
+    pass  # No mappings to save

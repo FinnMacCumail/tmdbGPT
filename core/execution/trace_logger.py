@@ -4,8 +4,7 @@ import json
 class ExecutionTraceLogger:
     @staticmethod
     def log_step(step_id, path, status, summary=None, state=None):
-
-            f"🧾 Trace Entry Added → Step: {step_id}, Status: {status}, Notes: {summary}")
+        # Debug output removed
 
         if summary is not None:
             try:

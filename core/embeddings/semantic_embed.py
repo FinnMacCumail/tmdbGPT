@@ -207,7 +207,7 @@ def process_endpoints():
         embs.append(embedding)
         metas.append(metadata)
 
-        f"📦 Upserting {len(ids)} endpoints into ChromaDB (tmdb_endpoints)...")
+        # Debug output removed
     collection.upsert(
         ids=ids,
         documents=docs,

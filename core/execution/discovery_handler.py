@@ -102,7 +102,7 @@ class DiscoveryHandler:
 
             # 🔁 Skip symbolic filtering if not needed
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):
-                    f"✅ Skipping full symbolic filtering for: {resolved_path} — fallback will still use lazy_enrich_and_filter()")
+                # Debug output removed
                 filtered = filter_symbolic_responses(state, summaries, path)
                 state.responses.extend(filtered)
                 ExecutionTraceLogger.log_step(
@@ -132,12 +132,14 @@ class DiscoveryHandler:
                         summary["_provenance"]["matched_constraints"] = matched_constraints
 
                         if matched_constraints:
-                                f"✅ [PASSED] {summary.get('title')} — matched: {matched_constraints}")
+                            # Debug output removed
                             filtered.append(summary)
                         else:
-                                f"❌ [REJECTED] {summary.get('title')} — matched nothing")
+                            # Debug output removed
+                            pass
                 except Exception as e:
-                        f"⚠️ Lazy filter failed for {summary.get('title')} → {e}")
+                    # Debug output removed
+                    pass
 
             state.responses.extend(filtered)
             ExecutionTraceLogger.log_step(
@@ -310,14 +312,14 @@ class DiscoveryHandler:
                     watch_providers=None
                 )
             else:
-                    f"⚠️ Skipping role validation for {item.get('title')} (ID: {item.get('id')}) — credits not available")
+                # Debug output removed
                 item.setdefault("_provenance", {}).setdefault(
                     "post_validations", []).append("missing_credits")
 
             satisfied = item["_provenance"].get("satisfied_roles", [])
             state.satisfied_roles.update(satisfied)
 
-                f"🧠 Appending validated movie: {item.get('title')} with score {item.get('final_score')}")
+            # Debug output removed
             state.responses.append(item)
 
         state.data_registry[step_id]["validated"] = ranked
@@ -407,7 +409,7 @@ def fetch_credits_for_entity(entity: dict, base_url: str, headers: dict, state=N
 
     try:
         url = f"{base_url}/{media_type}/{entity_id}/credits"
-            f"🎯 Fetching credits for {media_type.upper()} ID={entity_id} → {url}")
+        # Debug output removed
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
@@ -416,8 +418,10 @@ def fetch_credits_for_entity(entity: dict, base_url: str, headers: dict, state=N
                 state.data_registry["credits_cache"][cache_key] = data
             return data
         else:
-                f"⚠️ Failed to fetch credits for {media_type} {entity_id}: {response.status_code}")
+            # Debug output removed
+            pass
     except Exception as e:
-            f"❌ Exception fetching credits for {media_type} ID={entity_id}: {e}")
+        # Debug output removed
+        pass
 
     return {}

@@ -91,7 +91,7 @@ def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url)
 
     # ✅ Shortcut: no constraints, always pass
     if not constraint_tree or not getattr(constraint_tree, "constraints", []):
-            f"✅ No constraints — accepted: {entity.get('title') or entity.get('name')}")
+        # Debug output removed
         return True
 
     # ✅ Initial filter pass
@@ -103,7 +103,7 @@ def lazy_enrich_and_filter(entity, constraint_tree, registry, headers, base_url)
         url = f"{base_url}/{media_type}/{entity_id}"
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
-                f"⚠️ Failed to fetch enrichment for ID={entity_id} — status: {res.status_code}")
+                # Debug output removed
             return False
 
         enriched = res.json()

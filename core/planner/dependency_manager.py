@@ -16,6 +16,10 @@ def inject_lookup_steps_from_role_intersection(state):
     - Injects /movie/{id} or /tv/{id} lookup steps based on matched entries.
     - Falls back to discovery if no intersection found, even after relaxation.
     """
+    # Debug output removed
+    # print(f"🧪 Data registry: {state.data_registry}")
+    # print(f"🧪 Response IDs: {[r['id'] for r in state.responses]}")
+    # print(f"🧪 Intended type: {state.intended_media_type}")
 
     intended_type = getattr(state, "intended_media_type", "both") or "both"
     expected = {
@@ -107,6 +111,7 @@ def inject_lookup_steps_from_role_intersection(state):
             summary=f"Injected lookup steps for IDs: {injected_ids}",
             state=state
         )
+        # Debug output removed
 
     return state
 
@@ -218,7 +223,7 @@ class DependencyManager:
 
                         for role_tag in roles:
                             if role_tag in getattr(state, "satisfied_roles", set()):
-                                    f"🛑 Skipped credit step for {role_tag}_{_id} — already satisfied.")
+                                # Debug output removed
                                 continue
 
                             target_types = {
@@ -238,9 +243,9 @@ class DependencyManager:
                                     "media_type": mtype
                                 })
 
-                            f"🔍 Checking role step for person_id={_id}, role={role_tag}")
+                        # Debug output removed
                         if role_tag in getattr(state, "satisfied_roles", set()):
-                                f"🛑 Skipped credit steps for person_id={_id} because {role_tag} is already satisfied.")
+                            # Debug output removed
                             continue
 
                         # 🔁 Determine target media types

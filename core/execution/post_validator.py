@@ -30,10 +30,11 @@ class PostValidator:
         for result in results:
             if PostValidator.validate_result(result, query_entities):
                 validated.append(result)
-                    f"✅ VALIDATED result: {result.get('title')} ({result.get('id')})")
+                # Debug output removed
 
             else:
-                    f"❌ DROPPED result: {result.get('title')} ({result.get('id')}) — failed field validation")
+                # Debug output removed
+                pass
 
         return validated
 
@@ -98,7 +99,7 @@ class PostValidator:
         High-level: Validate one result against all entity constraints.
         Returns True if valid, False otherwise.
         """
-            f"🔍 VALIDATE_RESULT called for ID={result.get('id')} with entities: {query_entities}")
+        # Debug output removed
         valid = True
 
         # If query mentions cast/director → validate roles
@@ -331,7 +332,8 @@ class PostValidator:
                             validated.append(item)
 
                     except Exception as e:
-
+                        # Debug output removed
+                        pass
                 break
 
         return validated or results
@@ -474,8 +476,7 @@ class PostValidator:
             "final_score": normalized_score,
             "matched_constraints": matched_constraints,
             "relaxed_constraints": [
-                f"Dropped {c.key}={c.value} (priority={c.priority}, confidence={c.confidence})"
-                for c in relaxed
+                f"{c.key}={c.value}" for c in relaxed
             ],
             "post_validations": post_validations,
             "matched_roles": sorted(matched_roles),
@@ -498,6 +499,6 @@ class PostValidator:
 
         movie["_provenance"]["satisfied_roles"] = list(satisfied_roles)
 
-            f"🎯 Score: {score} / {sum(WEIGHTS.get(c.subtype or c.type, 0) for c in flattened)}")
+            # Debug output removed
 
         return normalized_score, matched_constraints

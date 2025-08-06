@@ -50,7 +50,7 @@ class TMDBEntityResolver:
         if intended_media_type != "movie":
             for name, gid in self.genre_cache.get("movie", {}).items():
                 if canonical_name.lower() in name.lower():
-                        f"⚠️ Fallback match in movie genres for '{canonical_name}'.")
+                    # Debug output removed
                     return gid
 
 
@@ -64,12 +64,12 @@ class TMDBEntityResolver:
             if hasattr(self, 'network_cache'):
                 if name_normalized in self.network_cache:
                     network_id = self.network_cache[name_normalized]
-                        f"✅ Resolved network '{name}' → {network_id} (from local cache)")
+                    # Debug output removed
                     return network_id
 
                 for cached_name, nid in self.network_cache.items():
                     if name_normalized in cached_name or cached_name in name_normalized:
-                            f"⚡ Fuzzy matched network '{name}' → '{cached_name}' → {nid}")
+                        # Debug output removed
                         return nid
 
         try:
@@ -91,7 +91,7 @@ class TMDBEntityResolver:
                 for item in results:
                     label = item.get("name", "").strip().lower()
                     if name_normalized in label and item.get("origin_country") == "US":
-                            f"⚠️ Fuzzy fallback to US match '{label}' → ID {item['id']}")
+                            # Debug output removed
                         return item["id"]
 
             # Generic exact match for all types
@@ -99,7 +99,7 @@ class TMDBEntityResolver:
                 label = (item.get("name") or item.get(
                     "title") or "").strip().lower()
                 if label == name_normalized:
-                        f"✅ Exact match for {entity_type} '{name}' → ID {item['id']}")
+                        # Debug output removed
                     return item["id"]
 
             # Generic substring match for all types
@@ -107,17 +107,19 @@ class TMDBEntityResolver:
                 label = (item.get("name") or item.get(
                     "title") or "").strip().lower()
                 if name_normalized in label:
-                        f"⚠️ Substring match for {entity_type} '{name}' → ID {item['id']}")
+                        # Debug output removed
                     return item["id"]
 
             # Fallback to first result
             if results:
                 fallback = results[0]
-                    f"⚠️ Fallback to top result for {entity_type} '{name}' → ID {fallback['id']}")
+                    # Debug output removed
                 return fallback["id"]
 
         except Exception as e:
-
+            # Debug output removed
+            pass
+            
         return None
 
     def resolve_entities(self, query_entities, intended_media_type="movie"):
@@ -188,3 +190,4 @@ class TMDBEntityResolver:
                     if name and nid:
                         self.network_cache[name] = nid
         except Exception as e:
+            pass

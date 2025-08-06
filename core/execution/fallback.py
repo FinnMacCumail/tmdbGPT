@@ -62,6 +62,7 @@ class FallbackSemanticBuilder:
             )
 
         # Final debug
+        # print(f"✨ Smart fallback created: {fallback_step['endpoint']} with params {fallback_step['parameters']}")
 
         return fallback_step
 
@@ -93,12 +94,14 @@ class FallbackHandler:
                 relaxed_step["parameters"].pop(param_key, None)
                 relaxed_step["step_id"] = f"{original_step['step_id']}_relaxed_{label}"
                 relaxed_steps.append(relaxed_step)
+                # print(f"♻️ Relaxing {label}: dropped {param_key}")
 
                 # ➡️ NEW: Track relaxation
                 if state is not None:
                     if not hasattr(state, "relaxed_parameters"):
                         state.relaxed_parameters = []
                     state.relaxed_parameters.append(label)
+                    # print(f"📝 Relaxation tracked: {label}")
 
                     # ➡️ Log in execution trace
 
@@ -168,10 +171,12 @@ class FallbackHandler:
             discover_step["step_id"], {}).get("results", [])
         new_steps = []
 
-            state, "satisfied_roles", set()))
+        # Debug output removed
+        # Debug output removed
         # ✅ Skip if roles already satisfied via discovery
         if getattr(state, "satisfied_roles", set()) >= {"cast", "director"}:
-                  state.satisfied_roles)
+            # Debug output removed
+            # Debug output removed
             return
 
         for movie in movie_results:
@@ -191,8 +196,9 @@ class FallbackHandler:
         if new_steps:
             discover_step["fallback_injected"] = True
             state.plan_steps.extend(new_steps)
-                f"🔁 Injected {len(new_steps)} fallback credit steps after {discover_step['step_id']}")
+            # Debug output removed
 
+        # Debug output removed
 
     @staticmethod
     def generate_steps(resolved_entities, intents=None, extraction_result=None):
@@ -209,7 +215,7 @@ class FallbackHandler:
             if question_type == "fact" and any(
                 ep.startswith("/movie/") or ep.startswith("/tv/") for ep in handled
             ):
-                    "🚫 Skipping fallback injection — fact-style query handled via detail endpoint.")
+                # Debug output removed
                 return []
 
         # 1️⃣ Entity-based fallbacks

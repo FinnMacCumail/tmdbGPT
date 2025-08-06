@@ -41,7 +41,7 @@ collection = chroma_client.get_or_create_collection(
 
 
 # Load NLP and embedding models
-nlp = spacy.load("en_core_web_trf")
+nlp = spacy.load("en_core_web_sm")
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # TMDB API configuration
