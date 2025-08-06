@@ -303,21 +303,17 @@ def build_app_graph():
 
 
 if __name__ == "__main__":
-    print("🚀 Debug: Starting TMDBGPT application")
+    # Initialize application
     graph = build_app_graph()
-    print("🔧 Debug: Graph built successfully")
     
     while True:
         user_input = input("\nAsk something (or type 'exit' to quit): ")
-        print(f"📝 Debug: User input received: '{user_input}'")
         
         if user_input.lower() in {"exit", "quit"}:
-            print("👋 Debug: Exit command detected")
             break
             
-        print("⚙️ Debug: Invoking graph with user input")
+        # Process user query through the application graph
         result = graph.invoke({"input": user_input})
-        print(f"📊 Debug: Graph result keys: {list(result.keys()) if result else 'None'}")
         
         # Display the final formatted response to user
         if result and "formatted_response" in result:
