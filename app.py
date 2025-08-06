@@ -1,3 +1,6 @@
+# Debug mode control - Set to True for development debugging
+DEBUG_MODE = False
+
 from core.planner.entity_reranker import RoleAwareReranker
 from core.execution.execution_orchestrator import ExecutionOrchestrator
 from core.planner.dependency_manager import DependencyManager
@@ -35,6 +38,8 @@ SAFE_OPTIONAL_PARAMS = {
 
 
 def parse(state: AppState) -> AppState:
+    if not DEBUG_MODE:
+        print("🎭 Identifying people, movies, and details...", flush=True)
     return state.model_copy(update={"status": "parsed", "step": "parse", "__write_guard__": f"parse_{int(time.time()*1000)}"})
 
 # 🧠 Entity & Intent Extraction Step
@@ -45,6 +50,9 @@ def parse(state: AppState) -> AppState:
 
 
 def extract_entities(state: AppState) -> AppState:
+    if not DEBUG_MODE:
+        print("🔎 Looking up information...", flush=True)
+    
     if hasattr(state, "mock_extraction") and state.mock_extraction:
         extraction = state.mock_extraction
     else:
@@ -67,6 +75,9 @@ def extract_entities(state: AppState) -> AppState:
 
 
 def resolve_entities(state: AppState) -> AppState:
+    if not DEBUG_MODE:
+        print("📚 Gathering context...", flush=True)
+    
     extraction = state.extraction_result
     query_entities = extraction.get("query_entities", [])
     resolved_entities, unresolved_entities = entity_resolver.resolve_entities(
@@ -99,11 +110,17 @@ def resolve_entities(state: AppState) -> AppState:
 
 
 def retrieve_context(state: AppState) -> AppState:
+    if not DEBUG_MODE:
+        print("🗓️ Planning search strategy...", flush=True)
+    
     retrieved_matches = rank_and_score_matches(state.extraction_result)
     return state.model_copy(update={"retrieved_matches": retrieved_matches, "step": "retrieve_context"})
 
 
 def plan(state: AppState) -> AppState:
+    if not DEBUG_MODE:
+        print("🎬 Searching movies and shows...", flush=True)
+    
     if is_symbol_free_query(state):
         return route_symbol_free_intent(state)
 
@@ -250,6 +267,9 @@ def plan(state: AppState) -> AppState:
 
 
 def execute(state: AppState) -> AppState:
+    if not DEBUG_MODE:
+        print("✨ Preparing your results...", flush=True)
+    
     updated_state = orchestrator.execute(state.model_copy(update={
         "pending_steps": state.plan_steps,
         "question_type": state.extraction_result.get("question_type"),
@@ -261,6 +281,9 @@ def execute(state: AppState) -> AppState:
 
 
 def respond(state: AppState):
+    if not DEBUG_MODE:
+        print("📋 Formatting your results...", flush=True)
+    
     if state.formatted_response:
         return {"responses": state.formatted_response}
 
@@ -312,6 +335,10 @@ if __name__ == "__main__":
         if user_input.lower() in {"exit", "quit"}:
             break
             
+        # Show user-friendly progress indicators (unless in debug mode)
+        if not DEBUG_MODE:
+            print("🔍 Understanding your question...", flush=True)
+        
         # Process user query through the application graph
         result = graph.invoke({"input": user_input})
         

@@ -346,5 +346,13 @@ class StepRunner:
             title = r.get("title") or r.get("name") or "<untitled>"
             # Debug output removed
 
-        log_summary(state)
+        # Show debugging summary only if in debug mode
+        try:
+            import app
+            if app.DEBUG_MODE:
+                log_summary(state)
+        except (ImportError, AttributeError):
+            # Fallback: show summary if DEBUG_MODE can't be imported
+            log_summary(state)
+        
         return state
