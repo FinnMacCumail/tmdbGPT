@@ -5,17 +5,32 @@ This document outlines the development workflow for TMDBGPT using a clean featur
 
 ## Branch Strategy
 
-### Primary Branches
-- **`main`**: Production-ready code with clean implementation
+### Local and Remote Branch Organization
+
+#### **Primary Development Branch**
+- **`main` (local and remote)**: Production-ready code with clean implementation
   - Contains essential debugging via 🧠 DEBUGGING SUMMARY REPORT
   - No temporary debug statements or development artifacts
   - Ready for deployment at any time
+  - **This is where all active development happens**
 
-### Archived Branches
-- **`archive/reorg-debug-branch-2025-01-06`**: Historical branch with full debugging capabilities
-  - Preserved as Git tag for reference
-  - Contains comprehensive debug logging for complex troubleshooting
-  - Not actively maintained but available for historical reference
+#### **Historical Reference Branches**
+- **`origin/reorg` (remote only)**: Historical debug-rich branch
+  - Preserved on GitHub as reference for complex debugging scenarios  
+  - Contains comprehensive debug logging and development artifacts
+  - **NOT for active development** - use for reference only
+  - Team members should not create new branches from this
+
+- **`archive/reorg-debug-branch-2025-01-06` (local tag)**: Local archive snapshot
+  - Git tag preserving the exact state when workflow changed
+  - Available locally for historical analysis
+  - Can be pushed to remote if needed: `git push origin --tags`
+
+#### **Team Collaboration Guidelines**
+- **All team members**: Work exclusively from `main` branch
+- **New features**: Always branch from `main`, never from `origin/reorg`
+- **Pull requests**: Always target `main` branch
+- **Remote sync**: `git pull origin main` before starting new features
 
 ## Feature Development Workflow
 
@@ -167,15 +182,47 @@ git push origin main
 
 ### If You Need Historical Debug Information
 ```bash
-# View the archived debug-rich branch
+# Option 1: View the local archived tag
 git show archive/reorg-debug-branch-2025-01-06
 
-# Create a temporary branch from the archive if needed
+# Option 2: Reference the remote historical branch
+git fetch origin reorg
+git log origin/reorg --oneline -10
+
+# Option 3: Create temporary branch from local archive if needed
 git checkout -b temp-debug-reference archive/reorg-debug-branch-2025-01-06
+
+# Option 4: Create temporary branch from remote historical branch
+git checkout -b temp-debug-reference origin/reorg
 ```
+
+## Remote Branch Management
+
+### Pushing Changes
+```bash
+# Standard workflow - push your feature work
+git push origin main
+
+# Push tags (including archive tags) to remote
+git push origin --tags
+```
+
+### Team Synchronization
+```bash
+# Before starting any new feature
+git checkout main
+git pull origin main
+
+# Never pull from origin/reorg - it's historical reference only
+```
+
+### Branch Status Overview
+- **Active Development**: `main` (local) ↔ `origin/main` (remote)
+- **Historical Reference**: `origin/reorg` (remote, read-only)
+- **Local Archive**: `archive/reorg-debug-branch-2025-01-06` (tag)
 
 ## Questions or Issues
 If you encounter any issues with this workflow or need clarification, refer to:
 - The 🧠 DEBUGGING SUMMARY REPORT output for production debugging
-- The archived tag for historical debugging examples
+- The `origin/reorg` branch or local archive tag for historical debugging examples
 - This document for workflow clarification
