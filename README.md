@@ -8,7 +8,7 @@ TMDBGPT is a sophisticated query planner that combines semantic search with symb
 
 ### Key Features
 
-- **Natural Language Understanding**: Ask questions in plain English like "Movies directed by Christopher Nolan starring Leonardo DiCaprio"
+- **Natural Language Understanding**: Ask questions in plain English like "Movies starring Leonardo DiCaprio directed by Martin Scorsese"
 - **Multi-Entity Constraint Solving**: Handle complex queries involving multiple people, genres, companies, and filters simultaneously
 - **Semantic Search**: Uses ChromaDB and sentence transformers to find relevant information even with unconventional phrasing
 - **Role-Aware Validation**: Accurately validates that directors, actors, writers, and other roles are correctly matched
@@ -63,22 +63,22 @@ TMDBGPT can handle a wide variety of natural language questions:
 **Simple Queries:**
 - "Tell me about the movie Inception"
 - "Movies directed by Christopher Nolan"
-- "What are Leonardo DiCaprio's best movies?"
+- "Movies starring Tom Hanks"
 
 **Complex Multi-Entity Queries:**
-- "Movies directed by Martin Scorsese starring Leonardo DiCaprio"
-- "2010s thriller movies directed by Christopher Nolan and starring Michael Caine"
-- "Netflix crime shows from 2020 with high ratings"
+- "Movies starring Leonardo DiCaprio directed by Martin Scorsese"
+- "Movies starring Brad Pitt produced by Plan B Entertainment"
+- "Movies with Al Pacino, Robert De Niro, Val Kilmer"
 
 **Count and Fact Queries:**
 - "How many movies has Quentin Tarantino directed?"
 - "Who directed The Dark Knight?"
-- "What genres does Jordan Peele work in?"
+- "How many films has Sofia Coppola directed?"
 
-**Company and Network Queries:**
-- "Best Netflix original series"
-- "Movies produced by Marvel Studios"
-- "HBO drama series with high ratings"
+**Production and Role Queries:**
+- "Movies scored by Hans Zimmer made by Warner Bros"
+- "TV shows directed by David Lynch aired on Showtime"  
+- "Movies written by Quentin Tarantino with music by Ennio Morricone"
 
 ## How It Works
 

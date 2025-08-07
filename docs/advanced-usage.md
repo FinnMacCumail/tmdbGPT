@@ -52,13 +52,12 @@ Structure queries to take advantage of automatic fallback:
 
 ```bash
 # Primary query with fallback potential
-"Netflix sci-fi movies from 2023 with ratings above 8.0"
+"Thrillers directed by David Fincher"
 
 # System will progressively relax:
-# 1. Remove rating constraint
-# 2. Remove year constraint  
-# 3. Remove network constraint
-# 4. Keep sci-fi genre (core constraint)
+# 1. Remove director constraint (show all thrillers)
+# 2. Keep thriller genre (core constraint)
+# 3. Fallback to similar genres if needed
 ```
 
 ## Advanced Features
