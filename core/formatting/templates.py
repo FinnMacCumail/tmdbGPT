@@ -83,6 +83,9 @@ def format_summary(state) -> dict:
     responses = state.responses
     question_type = state.extraction_result.get("question_type", "summary")
     entries = []
+    
+    # For fact questions, try to detect the specific fact type being asked
+    query_text = getattr(state, 'input', '').lower() if question_type == "fact" else ""
 
     SUMMARY_TYPES = {
         "movie_summary": "🎬",
@@ -121,21 +124,104 @@ def format_summary(state) -> dict:
 
         # 🧠 Fact-style rendering for known roles
         if question_type == "fact":
-            # 🎬 Movie: show directors
-            if r_type == "movie_summary" and r.get("directors"):
-                directors = ", ".join(r["directors"])
-                entries.append(f"{emoji} {title} was directed by {directors}.")
-                continue
+            # Enhanced fact extraction based on query intent
+            
+            # Detect specific fact type being requested
+            is_year_question = any(keyword in query_text for keyword in ["year", "when", "released", "came out", "aired"])
+            is_runtime_question = any(keyword in query_text for keyword in ["long", "runtime", "duration", "minutes", "hours"])
+            is_genre_question = any(keyword in query_text for keyword in ["genre", "type of", "kind of", "category"])
+            is_director_question = any(keyword in query_text for keyword in ["direct", "director"])
+            is_budget_question = any(keyword in query_text for keyword in ["budget", "cost", "money", "expensive"])
+            is_creator_question = any(keyword in query_text for keyword in ["create", "creator", "made by"])
+            
+            # Try to extract specific facts based on available data and query intent
+            fact_extracted = False
+            
+            # 🎬 Movie facts
+            if r_type == "movie_summary":
+                # Prioritize based on query intent
+                if is_runtime_question:
+                    runtime = r.get("runtime")
+                    if runtime and isinstance(runtime, (int, float)) and runtime > 0:
+                        entries.append(f"{emoji} {title} has a runtime of {runtime} minutes.")
+                        fact_extracted = True
+                        continue
+                
+                if is_genre_question:
+                    genres = r.get("genres")
+                    if genres and isinstance(genres, list) and len(genres) > 0:
+                        genre_names = [g.get("name") if isinstance(g, dict) else str(g) for g in genres]
+                        genre_names = [g for g in genre_names if g]  # Filter out empty values
+                        if genre_names:
+                            genre_text = ", ".join(genre_names)
+                            entries.append(f"{emoji} {title} is a {genre_text} film.")
+                            fact_extracted = True
+                            continue
+                
+                if is_director_question:
+                    if r.get("directors"):
+                        directors = ", ".join(r["directors"])
+                        entries.append(f"{emoji} {title} was directed by {directors}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_budget_question:
+                    budget = r.get("budget")
+                    if budget and isinstance(budget, (int, float)) and budget > 0:
+                        entries.append(f"{emoji} {title} had a budget of ${budget:,}.")
+                        fact_extracted = True
+                        continue
+                
+                # Year/release date questions (including default for fact questions)
+                if is_year_question or not fact_extracted:
+                    release_date = r.get("release_date")
+                    if release_date and len(release_date) >= 4:
+                        year = release_date[:4]
+                        entries.append(f"{emoji} {title} was released in {year}.")
+                        fact_extracted = True
+                        continue
 
-            # 📺 TV: show creators
-            if r_type == "tv_summary" and r.get("created_by"):
-                creators = [
-                    c.get("name") for c in r["created_by"] if c.get("name")
-                ]
-                if creators:
-                    entries.append(
-                        f"{emoji} {title} was created by {', '.join(creators)}.")
-                    continue
+            # 📺 TV facts
+            if r_type == "tv_summary":
+                # Prioritize based on query intent for TV shows
+                if is_creator_question:
+                    if r.get("created_by"):
+                        creators = [
+                            c.get("name") for c in r["created_by"] if c.get("name")
+                        ]
+                        if creators:
+                            entries.append(
+                                f"{emoji} {title} was created by {', '.join(creators)}.")
+                            fact_extracted = True
+                            continue
+                
+                # Episode/season count facts
+                is_episodes_question = any(keyword in query_text for keyword in ["episodes", "seasons", "how many", "number of"])
+                if is_episodes_question:
+                    number_of_seasons = r.get("number_of_seasons")
+                    number_of_episodes = r.get("number_of_episodes")
+                    if number_of_seasons and isinstance(number_of_seasons, (int, float)):
+                        if number_of_episodes and isinstance(number_of_episodes, (int, float)):
+                            entries.append(f"{emoji} {title} has {number_of_seasons} seasons and {number_of_episodes} episodes.")
+                        else:
+                            entries.append(f"{emoji} {title} has {number_of_seasons} seasons.")
+                        fact_extracted = True
+                        continue
+                
+                # Year/first air date questions (including default for TV fact questions)
+                if is_year_question or not fact_extracted:
+                    first_air_date = r.get("first_air_date")
+                    if first_air_date and len(first_air_date) >= 4:
+                        year = first_air_date[:4]
+                        entries.append(f"{emoji} {title} first aired in {year}.")
+                        fact_extracted = True
+                        continue
+
+            # Continue to next response if we extracted a specific fact
+            
+            # If we extracted a specific fact, don't fall through to default rendering
+            if fact_extracted:
+                continue
 
         # 🧾 Default rendering
         entries.append(f"{emoji} {title}: {overview.strip()}")
