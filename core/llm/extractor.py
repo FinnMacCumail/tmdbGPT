@@ -92,6 +92,22 @@ def extract_entities_and_intents(query: str) -> dict:
         if any(keyword in query_lower for keyword in role_keywords):
             result["question_type"] = "fact"
             result["response_format"] = "summary"
+            
+            # ✅ Fix intent/entity type mismatches
+            # Correct intents when they don't match the resolved entity types
+            query_entities = result.get("query_entities", [])
+            intents = result.get("intents", [])
+            
+            # Check for movie/TV entity types and correct intents accordingly
+            has_movie_entities = any(e.get("type") == "movie" for e in query_entities)
+            has_tv_entities = any(e.get("type") == "tv" for e in query_entities)
+            
+            if has_tv_entities and "details.movie" in intents:
+                # Replace details.movie with details.tv for TV entities
+                result["intents"] = [intent if intent != "details.movie" else "details.tv" for intent in intents]
+            elif has_movie_entities and "details.tv" in intents:
+                # Replace details.tv with details.movie for movie entities  
+                result["intents"] = [intent if intent != "details.tv" else "details.movie" for intent in intents]
 
         # phase 19.9 - Media Type Enforcement Baseline
         result["media_type"] = infer_media_type_from_query(query)
