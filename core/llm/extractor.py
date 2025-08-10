@@ -1,7 +1,12 @@
 # core/planner/extractor.py
 
 import json
+import os
+from dotenv import load_dotenv
 from core.llm.llm_client import OpenAILLMClient
+
+# Load environment variables
+load_dotenv()
 from core.llm.role_inference import (
     infer_role_for_entity,
     infer_role_from_query,
@@ -47,6 +52,7 @@ def extract_entities_and_intents(query: str) -> dict:
         - Use 'timeline' for "what was the first... what came after..."
         - Use 'side_by_side' for "which is better, X or Y?"
         - Use 'summary' for bios or overviews.
+        - Use 'fact' with 'summary' format for role questions like "Who directed X?", "Who starred in X?", "Who wrote X?"
         - Default to 'ranked_list' for recommendations or results.
         - Do NOT include commentary — only respond with valid JSON.
 
@@ -130,6 +136,7 @@ def extract_entities_and_intents(query: str) -> dict:
         return result
 
     except Exception as e:
+        print(f"LLM extraction error for query '{query}': {e}")
         return {
             "intents": [],
             "entities": [],

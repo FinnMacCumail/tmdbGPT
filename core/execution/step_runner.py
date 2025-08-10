@@ -299,6 +299,28 @@ class StepRunner:
         
         state.responses = list(seen_keys.values())
 
+        # 🎯 Fact-specific filtering: For fact queries, keep only the main entity being queried
+        question_type = state.extraction_result.get("question_type")
+        if question_type == "fact":
+            query_entities = state.extraction_result.get("query_entities", [])
+            main_entities = [e.get("name", "").lower() for e in query_entities if e.get("type") in ["movie", "tv"]]
+            
+            if main_entities:
+                fact_filtered = []
+                for r in state.responses:
+                    title = (r.get("title") or r.get("name") or "").lower()
+                    # Keep responses whose title contains or closely matches the queried entity
+                    if any(entity in title or title in entity for entity in main_entities):
+                        fact_filtered.append(r)
+                    # Also keep person profiles that might be relevant (but deprioritize them)
+                    elif r.get("type") == "person_profile":
+                        # Only keep person profiles that have some role data
+                        if any(r.get(field) for field in ["directors", "creators", "writers", "composers", "producers", "cast"]):
+                            fact_filtered.append(r)
+                
+                if fact_filtered:
+                    state.responses = fact_filtered
+
         # 🆘 Inject fallback if nothing remains
         if not state.responses:
             # Debug output removed
