@@ -170,9 +170,18 @@ def format_summary(state) -> dict:
             is_year_question = any(keyword in query_text for keyword in ["year", "when", "released", "came out", "aired"])
             is_runtime_question = any(keyword in query_text for keyword in ["long", "runtime", "duration", "minutes", "hours"])
             is_genre_question = any(keyword in query_text for keyword in ["genre", "type of", "kind of", "category"])
-            is_director_question = any(keyword in query_text for keyword in ["direct", "director"])
+            is_director_question = any(keyword in query_text for keyword in ["direct", "director", "directed"])
             is_budget_question = any(keyword in query_text for keyword in ["budget", "cost", "money", "expensive"])
-            is_creator_question = any(keyword in query_text for keyword in ["create", "creator", "made by"])
+            is_creator_question = any(keyword in query_text for keyword in ["create", "creator", "made by", "created"])
+            is_cast_question = any(keyword in query_text for keyword in ["starred", "stars", "cast", "actors", "actor", "starring"])
+            is_writer_question = any(keyword in query_text for keyword in ["wrote", "written", "writer", "screenplay", "script"])
+            is_composer_question = any(keyword in query_text for keyword in ["composed", "composer", "music", "score", "soundtrack"])
+            is_producer_question = any(keyword in query_text for keyword in ["produced", "producer", "executive producer"])
+            
+            # Director questions for TV shows often use "directed" but should show creators
+            is_director_or_creator_question = is_director_question or is_creator_question
+            # Any role-based question
+            is_role_question = is_director_or_creator_question or is_cast_question or is_writer_question or is_composer_question or is_producer_question
             
             # Try to extract specific facts based on available data and query intent
             fact_extracted = False
@@ -198,10 +207,38 @@ def format_summary(state) -> dict:
                             fact_extracted = True
                             continue
                 
-                if is_director_question:
+                if is_director_or_creator_question:
                     if r.get("directors"):
                         directors = ", ".join(r["directors"])
                         entries.append(f"{emoji} {title} was directed by {directors}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_cast_question:
+                    if r.get("cast"):
+                        cast_list = ", ".join(r["cast"])
+                        entries.append(f"{emoji} {title} starred {cast_list}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_writer_question:
+                    if r.get("writers"):
+                        writers = ", ".join(r["writers"])
+                        entries.append(f"{emoji} {title} was written by {writers}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_composer_question:
+                    if r.get("composers"):
+                        composers = ", ".join(r["composers"])
+                        entries.append(f"{emoji} {title} was composed by {composers}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_producer_question:
+                    if r.get("producers"):
+                        producers = ", ".join(r["producers"])
+                        entries.append(f"{emoji} {title} was produced by {producers}.")
                         fact_extracted = True
                         continue
                 
@@ -224,16 +261,45 @@ def format_summary(state) -> dict:
             # 📺 TV facts
             if r_type == "tv_summary":
                 # Prioritize based on query intent for TV shows
-                if is_creator_question:
-                    if r.get("created_by"):
-                        creators = [
+                if is_director_or_creator_question:
+                    # Try the extracted creators field first (from credits)
+                    creators = r.get("creators")
+                    if creators and isinstance(creators, list):
+                        entries.append(f"{emoji} {title} was created by {', '.join(creators)}.")
+                        fact_extracted = True
+                        continue
+                    
+                    # Fallback to created_by field
+                    elif r.get("created_by"):
+                        created_by_data = [
                             c.get("name") for c in r["created_by"] if c.get("name")
                         ]
-                        if creators:
+                        if created_by_data:
                             entries.append(
-                                f"{emoji} {title} was created by {', '.join(creators)}.")
+                                f"{emoji} {title} was created by {', '.join(created_by_data)}.")
                             fact_extracted = True
                             continue
+                
+                if is_cast_question:
+                    if r.get("cast"):
+                        cast_list = ", ".join(r["cast"])
+                        entries.append(f"{emoji} {title} starred {cast_list}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_writer_question:
+                    if r.get("writers"):
+                        writers = ", ".join(r["writers"])
+                        entries.append(f"{emoji} {title} was written by {writers}.")
+                        fact_extracted = True
+                        continue
+                
+                if is_producer_question:
+                    if r.get("producers"):
+                        producers = ", ".join(r["producers"])
+                        entries.append(f"{emoji} {title} was produced by {producers}.")
+                        fact_extracted = True
+                        continue
                 
                 # Episode/season count facts
                 is_episodes_question = any(keyword in query_text for keyword in ["episodes", "seasons", "how many", "number of"])

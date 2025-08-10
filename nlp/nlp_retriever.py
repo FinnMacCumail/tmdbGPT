@@ -640,14 +640,36 @@ class ResultExtractor:
         release_date = json_data.get("release_date")
         score = json_data.get("vote_average", 0) / 10.0
 
-        # ✅ Extract director(s) from credits, if available
+        # ✅ Extract all crew roles from credits, if available
         directors = []
+        writers = []
+        composers = []
+        producers = []
+        cast = []
+        
         if "credits" in json_data:
+            # Extract crew roles
             for crew_member in json_data["credits"].get("crew", []):
-                if crew_member.get("job", "").lower() == "director":
-                    name = crew_member.get("name")
-                    if name:
+                job = crew_member.get("job", "").lower()
+                name = crew_member.get("name")
+                if name:
+                    if job == "director":
                         directors.append(name)
+                    elif job in ["writer", "screenplay", "story", "characters"]:
+                        if name not in writers:  # Avoid duplicates
+                            writers.append(name)
+                    elif job in ["original music composer", "music", "composer", "music by"]:
+                        if name not in composers:
+                            composers.append(name)
+                    elif job in ["producer", "executive producer"]:
+                        if name not in producers:
+                            producers.append(name)
+            
+            # Extract main cast (limit to top 5 to avoid overly long responses)
+            for cast_member in json_data["credits"].get("cast", [])[:5]:
+                name = cast_member.get("name")
+                if name:
+                    cast.append(name)
 
         # ✅ Extract additional fields for fact queries
         runtime = json_data.get("runtime")
@@ -661,6 +683,10 @@ class ResultExtractor:
             "overview": overview.strip(),
             "release_date": release_date,
             "directors": directors,
+            "writers": writers,  # ✅ Add writers field
+            "composers": composers,  # ✅ Add composers field
+            "producers": producers,  # ✅ Add producers field
+            "cast": cast,  # ✅ Add main cast field
             "runtime": runtime,  # ✅ Add runtime field
             "genres": genres,    # ✅ Add genres field
             "budget": budget,    # ✅ Add budget field
@@ -677,6 +703,42 @@ class ResultExtractor:
         release_date = json_data.get("first_air_date")
         score = round(json_data.get("vote_average", 0) / 10.0, 2)
 
+        # ✅ Extract creators from created_by field and all crew roles from credits
+        creators = []
+        writers = []
+        producers = []
+        cast = []
+        
+        # Extract from created_by field
+        created_by_data = json_data.get("created_by", [])
+        if created_by_data:
+            for creator in created_by_data:
+                if isinstance(creator, dict) and creator.get("name"):
+                    creators.append(creator["name"])
+        
+        # ✅ Extract all crew and cast roles from credits, if available
+        if "credits" in json_data:
+            # Extract crew roles
+            for crew_member in json_data["credits"].get("crew", []):
+                job = crew_member.get("job", "").lower()
+                name = crew_member.get("name")
+                if name:
+                    if job in ["creator", "executive producer", "director"]:
+                        if name not in creators:
+                            creators.append(name)
+                    elif job in ["writer", "screenplay", "story", "teleplay", "television writer"]:
+                        if name not in writers:
+                            writers.append(name)
+                    elif job in ["producer", "executive producer", "co-executive producer"]:
+                        if name not in producers:
+                            producers.append(name)
+            
+            # Extract main cast (limit to top 5 for TV shows)
+            for cast_member in json_data["credits"].get("cast", [])[:5]:
+                name = cast_member.get("name")
+                if name:
+                    cast.append(name)
+
         # ✅ Extract additional fields for TV fact queries
         number_of_seasons = json_data.get("number_of_seasons")
         number_of_episodes = json_data.get("number_of_episodes") 
@@ -690,6 +752,10 @@ class ResultExtractor:
             "release_date": release_date,
             "first_air_date": first_air_date,  # ✅ Add first air date field
             "created_by": json_data.get("created_by", []),
+            "creators": creators,  # ✅ Add extracted creators list
+            "writers": writers,  # ✅ Add writers field
+            "producers": producers,  # ✅ Add producers field
+            "cast": cast,  # ✅ Add main cast field
             "number_of_seasons": number_of_seasons,    # ✅ Add seasons field
             "number_of_episodes": number_of_episodes,  # ✅ Add episodes field
             "final_score": score,

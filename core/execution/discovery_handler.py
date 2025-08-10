@@ -90,15 +90,15 @@ class DiscoveryHandler:
                     watch_providers=None
                 )
 
-            # 🎬 Attach director(s) if available in json_data["credits"]
-            if summary.get("type") == "movie_summary":
-                credits = json_data.get("credits", {})
-                directors = [
-                    p.get("name") for p in credits.get("crew", [])
-                    if p.get("job", "").lower() == "director" and p.get("name")
-                ]
-                if directors:
-                    summary["directors"] = directors
+                # 🎬 Attach director(s) if available in json_data["credits"]
+                if summary.get("type") == "movie_summary":
+                    credits = json_data.get("credits", {})
+                    directors = [
+                        p.get("name") for p in credits.get("crew", [])
+                        if p.get("job", "").lower() == "director" and p.get("name")
+                    ]
+                    if directors:
+                        summary["directors"] = directors
 
             # 🔁 Skip symbolic filtering if not needed
             if is_symbol_free_query(state) or not is_symbolically_filterable(resolved_path):

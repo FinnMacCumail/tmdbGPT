@@ -263,14 +263,41 @@ class StepRunner:
             filtered = [r for r in state.responses if r.get(
                 "final_score", 0) > 0]
 
-        # 🧹 Deduplicate
-        seen, deduped = set(), []
+        # 🧹 Deduplicate - prefer responses with more complete data (e.g., directors from credits)
+        seen_keys = {}
         for r in filtered:
             key = r.get("id") or r.get("title") or r.get("name")
-            if key and key not in seen:
-                deduped.append(r)
-                seen.add(key)
-        state.responses = deduped
+            if key:
+                if key not in seen_keys:
+                    # First response with this key
+                    seen_keys[key] = r
+                else:
+                    # Duplicate found - prefer the one with more complete role data from credits
+                    existing = seen_keys[key]
+                    
+                    # Check for all role fields that indicate complete credits data
+                    current_role_fields = [
+                        bool(r.get("directors")), bool(r.get("creators")),
+                        bool(r.get("writers")), bool(r.get("composers")), 
+                        bool(r.get("producers")), bool(r.get("cast"))
+                    ]
+                    existing_role_fields = [
+                        bool(existing.get("directors")), bool(existing.get("creators")),
+                        bool(existing.get("writers")), bool(existing.get("composers")), 
+                        bool(existing.get("producers")), bool(existing.get("cast"))
+                    ]
+                    
+                    current_has_complete_data = any(current_role_fields)
+                    existing_has_complete_data = any(existing_role_fields)
+                    current_role_count = sum(current_role_fields)
+                    existing_role_count = sum(existing_role_fields)
+                    
+                    # Prefer response with more role data, or any role data over none
+                    if (current_role_count > existing_role_count) or \
+                       (current_has_complete_data and not existing_has_complete_data):
+                        seen_keys[key] = r
+        
+        state.responses = list(seen_keys.values())
 
         # 🆘 Inject fallback if nothing remains
         if not state.responses:
