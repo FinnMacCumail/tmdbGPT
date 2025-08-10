@@ -83,15 +83,27 @@ def route_symbol_free_intent(state):
     # --- DETAILS ---
     elif "details.movie" in intents and "movie_id" in state.resolved_entities:
         movie_id = state.resolved_entities["movie_id"][0]
+        # Add credits for fact questions that might need director/cast info
+        question_type = state.extraction_result.get("question_type", "")
+        if question_type == "fact":
+            endpoint = f"/movie/{movie_id}?append_to_response=credits"
+        else:
+            endpoint = f"/movie/{movie_id}"
         plan_steps.append(step(
             "step_details_movie",
-            f"/movie/{movie_id}"
+            endpoint
         ))
     elif "details.tv" in intents and "tv_id" in state.resolved_entities:
         tv_id = state.resolved_entities["tv_id"][0]
+        # Add credits for fact questions that might need creator/cast info
+        question_type = state.extraction_result.get("question_type", "")
+        if question_type == "fact":
+            endpoint = f"/tv/{tv_id}?append_to_response=credits"
+        else:
+            endpoint = f"/tv/{tv_id}"
         plan_steps.append(step(
             "step_details_tv",
-            f"/tv/{tv_id}"
+            endpoint
         ))
 
     # --- CREDITS ---

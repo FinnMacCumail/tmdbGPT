@@ -25,11 +25,51 @@ def format_fallback(state) -> dict:
 
 @register_renderer("count_summary")
 def format_count_summary(state) -> dict:
-    movie_count = 0
-    tv_count = 0
-
     entity = state.extraction_result.get("query_entities", [{}])[0]
     name = entity.get("name", "This person")
+    query_text = getattr(state, 'input', '').lower()
+    
+    # Enhanced count summary to handle TV show attributes
+    
+    # Check if this is a TV show attributes question (seasons/episodes)
+    is_seasons_question = any(keyword in query_text for keyword in ["season", "seasons"])
+    is_episodes_question = any(keyword in query_text for keyword in ["episode", "episodes"])
+    
+    if is_seasons_question or is_episodes_question:
+        # Look for TV show data in responses
+        for r in state.responses:
+            if not isinstance(r, dict):
+                continue
+            if r.get("type") == "tv_summary":
+                title = r.get("title", name)
+                seasons = r.get("number_of_seasons")
+                episodes = r.get("number_of_episodes")
+                
+                # Process TV show data for count questions
+                
+                if is_seasons_question and seasons:
+                    text = f"📺 {title} has {seasons} seasons."
+                elif is_episodes_question and episodes:
+                    if seasons:
+                        text = f"📺 {title} has {episodes} episodes across {seasons} seasons."
+                    else:
+                        text = f"📺 {title} has {episodes} episodes."
+                elif seasons and episodes:
+                    text = f"📺 {title} has {seasons} seasons and {episodes} episodes."
+                else:
+                    text = f"📺 {title}: Season and episode information not available."
+                
+                return {
+                    "response_format": "count_summary",
+                    "question_type": "count",
+                    "entity": title,
+                    "text": text,
+                    "entries": [text]
+                }
+    
+    # Default behavior: count person roles in movies/TV
+    movie_count = 0
+    tv_count = 0
     role = entity.get("role", "director").lower()
     role_label = {
         "cast": "actor", "actor": "actor",
