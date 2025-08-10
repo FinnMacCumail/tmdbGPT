@@ -649,13 +649,21 @@ class ResultExtractor:
                     if name:
                         directors.append(name)
 
+        # ✅ Extract additional fields for fact queries
+        runtime = json_data.get("runtime")
+        genres = json_data.get("genres", [])
+        budget = json_data.get("budget")
+
         return [{
             "id": json_data.get("id"),
             "type": "movie_summary",
             "title": title,
             "overview": overview.strip(),
             "release_date": release_date,
-            "directors": directors,  # ✅ Add this line
+            "directors": directors,
+            "runtime": runtime,  # ✅ Add runtime field
+            "genres": genres,    # ✅ Add genres field
+            "budget": budget,    # ✅ Add budget field
             "final_score": round(score, 2),
             "source": endpoint,
             "media_type": "movie"
@@ -669,14 +677,21 @@ class ResultExtractor:
         release_date = json_data.get("first_air_date")
         score = round(json_data.get("vote_average", 0) / 10.0, 2)
 
+        # ✅ Extract additional fields for TV fact queries
+        number_of_seasons = json_data.get("number_of_seasons")
+        number_of_episodes = json_data.get("number_of_episodes") 
+        first_air_date = json_data.get("first_air_date")
+
         return [{
             "id": json_data.get("id"),
             "type": "tv_summary",
             "title": title,
             "overview": overview,
             "release_date": release_date,
-            # ✅ Used for fact queries
+            "first_air_date": first_air_date,  # ✅ Add first air date field
             "created_by": json_data.get("created_by", []),
+            "number_of_seasons": number_of_seasons,    # ✅ Add seasons field
+            "number_of_episodes": number_of_episodes,  # ✅ Add episodes field
             "final_score": score,
             "source": endpoint,
             "media_type": "tv"
