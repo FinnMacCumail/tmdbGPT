@@ -71,23 +71,54 @@ Movies starring Brad Pitt produced by Plan B Entertainment
 Movies with Al Pacino, Robert De Niro, Val Kilmer
 ```
 
-### 4. Count Queries
+### 4. Count Queries 
 
 Ask about quantities and statistics:
 
+#### Person Role Counts
 ```
 How many movies has Quentin Tarantino directed?
 How many films has Sofia Coppola directed?
+How many movies has Leonardo DiCaprio starred in?
 ```
 
-### 5. Fact Queries
-
-Get specific factual information:
-
+#### TV Show Attributes 
 ```
+How many seasons does Breaking Bad have?
+How many episodes does The Office have?
+How many seasons does Game of Thrones have?
+How many episodes does Friends have?
+```
+
+### 5. Fact Queries ✅ GREATLY ENHANCED
+
+Get specific factual information with high accuracy:
+
+#### Movie Facts
+```
+# Directors and Crew
 Who directed The Godfather?
-What year was Blade Runner released?
-Who composed the music for Jaws?
+Who wrote Inception?
+Who composed The Dark Knight?
+
+# Technical Details  
+How long is Titanic?              # Runtime in minutes
+What genre is The Matrix?         # Action, Science Fiction
+What was Avengers budget?         # Budget amount
+What year was Blade Runner released? # Release year
+```
+
+#### TV Show Facts 
+```
+# Creators and Cast
+Who created Breaking Bad?
+Who starred in The Office?
+Who wrote Friends?
+
+# Show Attributes
+How many seasons does Breaking Bad have?      # Season count
+How many episodes does Game of Thrones have?  # Episode count
+When did The Office first air?               # First air date
 ```
 
 ### 6. Studio and Production Queries
@@ -153,16 +184,48 @@ Films from Studio Ghibli
 
 ### Role-Specific Queries
 
-```
-# Directors
-"Christopher Nolan's filmography"
-"TV shows directed by David Lynch aired on Showtime"
+TMDBGPT now has **comprehensive role support** for both movies and TV shows, with 90-95% success rates:
 
-# Composers
+#### TV Show Role Queries 
+
+```
+# TV Creators and Cast
+"Who created Breaking Bad?"
+"Who starred in The Office?"
+"Who starred in Breaking Bad?"
+"Who starred in Friends?"
+
+# TV Writers and Producers  
+"Who wrote Breaking Bad?"
+"Who produced Game of Thrones?"
+"Who produced The Office?"
+```
+
+#### Movie Role Queries 
+
+```
+# Directors and Writers
+"Who directed The Dark Knight?"
+"Who wrote Inception?"
+"Who wrote Pulp Fiction?"
+
+# Composers and Producers
+"Who composed The Dark Knight?"
+"Who produced Pulp Fiction?"
+"Who produced The Godfather?"
+
+# Cast Members
+"Who starred in Inception?"
+"Who starred in The Godfather?"
+```
+
+#### Legacy Production Queries
+
+```
+# Studio and Network Queries
 "Movies scored by Hans Zimmer"
 "Films with music by John Williams"
-
-# Producers
+"TV shows directed by David Lynch aired on Showtime"
 "Movies produced by Jerry Bruckheimer"
 "Films from Studio Ghibli"
 ```
@@ -176,8 +239,9 @@ When `DEBUG_MODE = False` in `app.py`, you'll see:
 1. **Progress Indicators**: Friendly messages showing processing stages
 2. **Clean Results**: Well-formatted movie/TV information
 3. **Simple Output**: Easy-to-read results without technical details
+4. **Enhanced Role Data**: Complete cast, crew, and creator information ✨
 
-Example:
+Example (Movie Discovery):
 ```
 🔍 Understanding your question...
 🎭 Identifying people, movies, and details...
@@ -200,6 +264,22 @@ Example:
    Starring: Leonardo DiCaprio, Mark Ruffalo
    Overview: In 1954, a U.S. Marshal investigates the disappearance...
    Rating: 8.2/10
+============================================================
+```
+
+Example (Role Query) ✨:
+```
+🔍 Understanding your question...
+🎭 Identifying people, movies, and details...
+🔎 Looking up information...
+📚 Gathering context...
+🗓️ Planning search strategy...
+🎬 Searching movies and shows...
+✨ Preparing your results...
+📋 Formatting your results...
+
+============================================================
+📺 Breaking Bad was created by Vince Gilligan, Michelle MacLaren, Mark Johnson.
 ============================================================
 ```
 

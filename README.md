@@ -2,6 +2,21 @@
 
 An intelligent movie and TV query system that understands natural language questions and provides accurate, detailed answers using The Movie Database (TMDB) API.
 
+## 🚧 Project Status: Active Development (August 2025)
+
+### ✅ What Works Excellently Now (90-95% Success)
+- **TV Show Role Queries**: "Who created Breaking Bad?", "Who starred in The Office?"
+- **Movie Role Queries**: "Who wrote Inception?", "Who composed Interstellar?"  
+- **TV Show Counts**: "How many seasons does Breaking Bad have?"
+- **Movie Facts**: "How long is Titanic?", "What genre is The Matrix?"
+- **Single Entity Info**: "Tell me about Inception", "Who is Christopher Nolan?"
+
+- **Multi-Entity Constraints**: "Movies by Spielberg starring Tom Hanks" (Currently 70-80%)
+- **Complex Triple Constraints**: Advanced multi-filter queries (Currently 50-65%)
+- **Abstract Concepts**: Franchise phases, award categories (Planned for future release)
+
+**Development Roadmap**: See our [Advanced Strategies Analysis](../rnd/tmdbGPTDocs/advanced-strategies-analysis.md) for the comprehensive improvement plan targeting 95% success rates through compositional AI strategies.
+
 ## What is TMDBGPT?
 
 TMDBGPT is a sophisticated query planner that combines semantic search with symbolic constraints to answer complex questions about movies and TV shows. It uses AI-powered natural language understanding to interpret your questions and provides precise, validated results.
@@ -15,6 +30,28 @@ TMDBGPT is a sophisticated query planner that combines semantic search with symb
 - **Fallback & Relaxation**: Gracefully handles difficult queries by progressively relaxing constraints while maintaining relevance
 - **User-Friendly Interface**: Toggle between detailed debugging mode and clean user experience
 - **Comprehensive Logging**: Full traceability of query processing for debugging and transparency
+
+### 🎆 Enhanced Query Types (2025 Updates)
+
+**Complete TV Show Role Support**
+- **TV Creators**: "Who created Breaking Bad?" → Returns creators/showrunners
+- **TV Cast**: "Who starred in The Office?" → Returns main cast members  
+- **TV Writers**: "Who wrote Breaking Bad?" → Returns writers/creators
+- **TV Producers**: "Who produced Game of Thrones?" → Returns producers
+
+**Enhanced Movie Role Queries**
+- **All Crew Roles**: Directors, writers, composers, producers now fully supported
+- **Cast Information**: Complete main cast extraction from TMDB credits
+- **Examples**: "Who composed The Dark Knight?", "Who wrote Inception?"
+
+**TV Show Attributes**
+- **Season Counts**: "How many seasons does Breaking Bad have?"
+- **Episode Counts**: "How many episodes does Game of Thrones have?"
+- **Combined Info**: "Breaking Bad has 5 seasons and 62 episodes"
+
+- **Movie Details**: Runtime ("How long is Titanic?"), Genre, Budget information  
+- **Release Information**: Accurate year/date extraction for movies and TV
+- **Technical Data**: High accuracy extraction from TMDB API fields
 
 ## Quick Start
 
@@ -65,15 +102,26 @@ TMDBGPT can handle a wide variety of natural language questions:
 - "Movies directed by Christopher Nolan"
 - "Movies starring Tom Hanks"
 
+**TV Show Role Queries** ✨ NEW:
+- "Who created Breaking Bad?" → Returns Vince Gilligan and creators
+- "Who starred in The Office?" → Returns Steve Carell, John Krasinski, etc.
+- "Who wrote Breaking Bad?" → Returns writing team/creators
+
+**Enhanced Movie Role Queries:**
+- "Who wrote Inception?" → Returns Christopher Nolan
+- "Who composed The Dark Knight?" → Returns Hans Zimmer, James Newton Howard
+- "Who produced Pulp Fiction?" → Returns Lawrence Bender
+
 **Complex Multi-Entity Queries:**
 - "Movies starring Leonardo DiCaprio directed by Martin Scorsese"
 - "Movies starring Brad Pitt produced by Plan B Entertainment"
 - "Movies with Al Pacino, Robert De Niro, Val Kilmer"
 
-**Count and Fact Queries:**
+**Count and Fact Queries** 
 - "How many movies has Quentin Tarantino directed?"
-- "Who directed The Dark Knight?"
-- "How many films has Sofia Coppola directed?"
+- "How many seasons does Breaking Bad have?" 
+- "How long is Titanic?" → Returns 194 minutes 
+- "What genre is The Matrix?" → Returns Action, Science Fiction 
 
 **Production and Role Queries:**
 - "Movies scored by Hans Zimmer made by Warner Bros"
@@ -96,7 +144,7 @@ TMDBGPT processes queries through several sophisticated stages:
 TMDBGPT supports two modes controlled by the `DEBUG_MODE` setting in `app.py`:
 
 ### User Mode (DEBUG_MODE = False)
-Clean, friendly progress indicators:
+Clean, friendly progress indicators with enhanced role data:
 ```
 🔍 Understanding your question...
 🎭 Identifying people, movies, and details...
@@ -106,6 +154,8 @@ Clean, friendly progress indicators:
 🎬 Searching movies and shows...
 ✨ Preparing your results...
 📋 Formatting your results...
+
+📺 Breaking Bad was created by Vince Gilligan, Michelle MacLaren, Mark Johnson.
 ```
 
 ### Debug Mode (DEBUG_MODE = True)

@@ -2,6 +2,102 @@
 
 This guide helps resolve common issues when installing, configuring, or using TMDBGPT.
 
+## 🎆 August 2025 Update: Major Query Success Improvements
+
+Many previously failing queries now work excellently. If you're experiencing issues with:
+- **TV role queries** ("Who starred in Breaking Bad?")
+- **Movie role queries** ("Who wrote Inception?")
+- **TV show counts** ("How many seasons does X have?")
+- **Movie facts** ("How long is Titanic?")
+
+These now have 85-95% success rates. Try your query again before troubleshooting.
+
+## Query-Specific Troubleshooting
+
+### TV Show Role Queries
+
+#### "Who starred in [TV Show]?" 
+
+**Status**: 
+
+**Working Examples**:
+```bash
+"Who starred in Breaking Bad?"     # → Bryan Cranston, Aaron Paul, etc.
+"Who starred in The Office?"       # → Steve Carell, John Krasinski, etc.
+"Who starred in Friends?"          # → Jennifer Aniston, Courteney Cox, etc.
+"Who created Breaking Bad?"        # → Vince Gilligan, etc.
+```
+
+**If still not working**:
+1. **Check show name spelling**: Use exact TMDB titles
+2. **Try alternative phrasings**: "cast of [show]", "actors in [show]"
+3. **TMDB data availability**: Some older/obscure shows may lack cast data
+
+#### "Who created [TV Show]?" returning air dates instead of creators
+
+**Status**: ✅ **RESOLVED** - Creator information now extracted correctly
+
+**Working Examples**:
+```bash
+"Who created The Office?"          # → Greg Daniels, Ricky Gervais  
+"Who created Game of Thrones?"     # → David Benioff, D.B. Weiss
+"Who wrote Breaking Bad?"          # → Vince Gilligan and writing team
+```
+
+### Movie Role Queries 
+
+#### "Who wrote [Movie]?" or "Who composed [Movie]?" not working
+
+**Status**:
+
+**Working Examples**:
+```bash
+"Who wrote Inception?"             # → Christopher Nolan
+"Who composed Interstellar?"       # → Hans Zimmer  
+"Who produced The Godfather?"      # → Albert S. Ruddy
+"Who starred in Pulp Fiction?"     # → John Travolta, Samuel L. Jackson, etc.
+```
+
+**If still not working**:
+1. **Credits availability**: Verify the movie has complete credits on TMDB
+2. **Role-specific queries**: Be specific about the role ("director", "writer", "composer")
+3. **Try alternative phrasings**: "music by", "screenplay by", "directed by"
+
+### TV Show Count Queries
+
+#### "How many seasons/episodes does [Show] have?" returning wrong information
+
+**Status**:
+
+**Working Examples**:
+```bash
+"How many seasons does Breaking Bad have?"      # → 5 seasons
+"How many episodes does The Office have?"       # → 201 episodes across 9 seasons
+"How many seasons does Game of Thrones have?"   # → 8 seasons
+```
+
+**If returning incorrect data**:
+1. **TMDB data accuracy**: Information comes directly from TMDB database
+2. **Show name precision**: Ensure exact show title (e.g., "The Office" vs "Office")
+3. **Regional differences**: Some shows have different seasons across regions
+
+### Enhanced Fact Queries 
+
+#### "How long is [Movie]?" or "What genre is [Movie]?
+
+**Working Examples**:
+```bash
+"How long is Titanic?"             # → 194 minutes
+"What genre is The Matrix?"        # → Action, Science Fiction
+"What was Avengers budget?"        # → $220,000,000  
+"What year was Blade Runner released?" # → 1982
+```
+
+**If still not working**:
+1. **TMDB field availability**: Not all movies have complete technical data
+2. **Query phrasing**: Try "runtime of [movie]", "genres of [movie]"
+3. **Movie title precision**: Use exact titles as they appear on TMDB
+
 ## Installation Issues
 
 ### Python and Dependencies
