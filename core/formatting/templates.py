@@ -293,6 +293,12 @@ def format_summary(state) -> dict:
                         entries.append(f"{emoji} {title} was written by {writers}.")
                         fact_extracted = True
                         continue
+                    # Fall back to creators for TV shows when no specific writers found
+                    elif r.get("creators"):
+                        creators = ", ".join(r["creators"])
+                        entries.append(f"{emoji} {title} was written by {creators}.")
+                        fact_extracted = True
+                        continue
                 
                 if is_producer_question:
                     if r.get("producers"):

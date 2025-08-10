@@ -325,9 +325,15 @@ class DependencyManager:
                     "from_constraint": "direct_lookup"
                 })
             elif ent.get("type") == "tv" and ent.get("resolved_id"):
+                # Add credits for fact questions that might need role information
+                question_type = state.extraction_result.get("question_type", "")
+                if question_type == "fact":
+                    endpoint = f"/tv/{ent['resolved_id']}?append_to_response=credits"
+                else:
+                    endpoint = f"/tv/{ent['resolved_id']}"
                 new_steps.append({
                     "step_id": f"step_tv_details_{ent['resolved_id']}",
-                    "endpoint": f"/tv/{ent['resolved_id']}",
+                    "endpoint": endpoint,
                     "produces": ["tv_summary"],
                     "requires": ["tv_id"],
                     "from_constraint": "direct_lookup"
