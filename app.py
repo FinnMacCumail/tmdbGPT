@@ -57,7 +57,7 @@ def extract_entities(state: AppState) -> AppState:
         extraction = state.mock_extraction
     else:
         extraction = extract_entities_and_intents(state.input)
-
+    
     if not extraction:
         return state.model_copy(update={"extraction_result": {}, "step": "extract_entities_failed"})
     return state.model_copy(update={
@@ -277,6 +277,7 @@ def execute(state: AppState) -> AppState:
         "base_url": BASE_URL,
         "headers": HEADERS
     }))
+    
     return updated_state.model_copy(update={"plan_steps": []})
 
 

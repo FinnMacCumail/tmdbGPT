@@ -52,7 +52,7 @@ def extract_entities_and_intents(query: str) -> dict:
         - Use 'timeline' for "what was the first... what came after..."
         - Use 'side_by_side' for "which is better, X or Y?"
         - Use 'summary' for bios or overviews.
-        - Use 'fact' with 'summary' format for role questions like "Who directed X?", "Who starred in X?", "Who wrote X?"
+        - Use 'fact' with 'summary' format for ALL role questions like "Who directed X?", "Who starred in X?", "Who wrote X?", "Who created X?", "Who produced X?" - regardless of whether X is a movie or TV show
         - Default to 'ranked_list' for recommendations or results.
         - Do NOT include commentary — only respond with valid JSON.
 
@@ -84,6 +84,14 @@ def extract_entities_and_intents(query: str) -> dict:
         result.setdefault("entities", [])
         result.setdefault("question_type", "summary")
         result.setdefault("response_format", "ranked_list")
+        
+        # ✅ Force correct classification for role-based queries
+        # Check if this is a role question and ensure it's classified as fact
+        query_lower = query.lower()
+        role_keywords = ['who starred', 'who directed', 'who wrote', 'who created', 'who produced', 'who composed']
+        if any(keyword in query_lower for keyword in role_keywords):
+            result["question_type"] = "fact"
+            result["response_format"] = "summary"
 
         # phase 19.9 - Media Type Enforcement Baseline
         result["media_type"] = infer_media_type_from_query(query)

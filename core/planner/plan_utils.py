@@ -7,10 +7,19 @@ def is_symbol_free_query(state) -> bool:
     """
     Returns True if there are no symbolic query entities (like people, genres, companies),
     and no entity types besides media_type hints like 'tv' or 'movie'.
+    
+    Special case: Single-entity fact queries should use symbol-free route because
+    constraint strategy can't handle single entity queries effectively.
     """
     extraction = state.extraction_result or {}
     query_entities = extraction.get("query_entities") or []
     entities = extraction.get("entities") or []
+    question_type = extraction.get("question_type")
+
+    # ✅ Single-entity fact queries should use symbol-free route
+    # These are asking for facts ABOUT an entity, not constraining BY multiple entities
+    if question_type == "fact" and len(query_entities) == 1:
+        return True
 
     non_symbolic_entities = {"movie", "tv"}
 
