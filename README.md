@@ -88,7 +88,19 @@ TMDBGPT is a sophisticated query planner that combines semantic search with symb
    OPENAI_API_KEY=your_openai_api_key_here
    ```
 
-5. **Run the application**
+5. **Initialize ChromaDB Vector Database**
+   ```bash
+   # REQUIRED: Set up semantic search before first use
+   python core/embeddings/semantic_embed.py
+   python core/embeddings/embed_tmdb_parameters.py
+   
+   # Verify setup
+   ls chroma_db/  # Should contain chroma.sqlite3 and collections
+   ```
+   
+   > **Note**: See the [Installation Guide](docs/installation.md) for detailed ChromaDB troubleshooting and verification steps.
+
+6. **Run the application**
    ```bash
    python app.py
    ```

@@ -94,14 +94,33 @@ TMDB_API_KEY=your_tmdb_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-### Step 6: Initialize ChromaDB
+## Step 6: Initialize ChromaDB Vector Database
 
-The first time you run TMDBGPT, it will automatically:
-1. Create the ChromaDB database
-2. Initialize vector collections
-3. Embed TMDB API endpoint descriptions
+**CRITICAL**: ChromaDB must be manually initialized before first use.
 
-This process takes 2-3 minutes on first run.
+### Manual Database Setup (Required)
+```bash
+# Populate TMDB API endpoint embeddings (54 endpoints)
+python core/embeddings/semantic_embed.py
+
+# Populate parameter search embeddings  
+python core/embeddings/embed_tmdb_parameters.py
+```
+
+### Verify ChromaDB Initialization
+```bash
+# Check that chroma_db directory was created
+ls chroma_db/
+# Expected: chroma.sqlite3 and collection subdirectories
+
+# Test semantic search functionality
+python -c "from core.embeddings.hybrid_retrieval import retrieve_semantic_matches; print(retrieve_semantic_matches('find movies by actor'))"
+```
+
+### ChromaDB Setup Notes
+- **First Run**: Sentence transformer model downloads (~90MB) automatically
+- **Processing Time**: Initial setup takes 2-3 minutes
+- **Storage**: Creates ~20MB of vector database files
 
 ## Step 7: Test Installation
 
@@ -133,11 +152,19 @@ If successful, you'll see movie information displayed. Type `exit` to quit.
 pip install --upgrade -r requirements.txt
 ```
 
-#### 2. ChromaDB Issues
+#### 2. ChromaDB Setup Issues
 ```bash
-# Clear ChromaDB and reinitialize
+# If manual initialization fails
+python core/embeddings/semantic_embed.py
+python core/embeddings/embed_tmdb_parameters.py
+
+# Clear ChromaDB and reinitialize if corrupted
 rm -rf chroma_db/
-python app.py  # Will rebuild on first run
+python core/embeddings/semantic_embed.py
+python core/embeddings/embed_tmdb_parameters.py
+
+# Verify collections were created
+python -c "import chromadb; client = chromadb.PersistentClient(path='chroma_db'); print(client.list_collections())"
 ```
 
 #### 3. API Key Problems
