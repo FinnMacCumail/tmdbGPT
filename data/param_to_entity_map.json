@@ -54,7 +54,7 @@
 
 
   "time_window": "date",
-  
+  "sort_by": "revenue",
 
   "media_type": "media"
 }

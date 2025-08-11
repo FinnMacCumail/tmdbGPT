@@ -106,6 +106,12 @@ class PlanValidator:
         return step
 
     def infer_semantic_parameters(self, query_text: str) -> list:
+        # Check for rating-based queries first
+        rating_keywords = ["highest-rated", "best rated", "top rated", "highly rated", "highest rated"]
+        if any(keyword in query_text.lower() for keyword in rating_keywords):
+            return ["sort_by", "vote_count.gte"]
+        
+        # Fallback to embedding-based inference
         query_embedding = self.embedding_model.encode(query_text).tolist()
         results = self.param_collection.query(
             query_embeddings=[query_embedding], n_results=5)
@@ -118,7 +124,20 @@ class PlanValidator:
             resolved_param = resolve_parameter_for_entity(ent_type)
             if not resolved_param or resolved_param in step["parameters"]:
                 continue
-            value = ent.get("resolved_id") or ent.get("name")
+                
+            # ✅ Handle revenue constraints with sort_by mapping
+            if ent_type == "revenue" and resolved_param == "sort_by":
+                operator = ent.get("operator", "less_than")
+                if operator in ("less_than", "less_than_equal"):
+                    # Use popularity.desc to get mainstream movies with revenue data
+                    value = "popularity.desc"
+                elif operator in ("greater_than", "greater_than_equal"):
+                    value = "revenue.desc"
+                else:
+                    value = "popularity.desc"  # Default to popular films
+            else:
+                value = ent.get("resolved_id") or ent.get("name")
+                
             if value:
                 step["parameters"][resolved_param] = str(value)
         return step

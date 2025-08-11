@@ -25,12 +25,12 @@ def extract_entities_and_intents(query: str) -> dict:
         ],
         "entities": [
             "List of general entity types mentioned or implied in the query.",
-            "Use only: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'date', 'rating', 'language'"
+            "Use only: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'date', 'rating', 'language', 'revenue'"
         ],
         "query_entities": [
             {{
             "name": "Full name or title of a specific person, movie, keyword, etc.",
-            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'rating', or 'date'",
+            "type": "Exact entity type: 'person', 'movie', 'tv', 'genre', 'keyword', 'company', 'collection', 'network', 'rating', 'date', or 'revenue'",
             "role": "Optional — Only for 'person' type. Role such as 'cast', 'director', 'writer', 'producer', or 'composer'. Default to 'cast' if uncertain."
             }}
         ],
@@ -48,11 +48,14 @@ def extract_entities_and_intents(query: str) -> dict:
         - If a query is vague or exploratory, fall back to general types (e.g., 'movie', 'genre').
         - Include rating values like 'above 7.5' as {{ "name": "7.5", "type": "rating" }}
         - Include year references like 'from 2023' as {{ "name": "2023", "type": "date" }}
+        - Include revenue constraints like 'under $10 million' as {{ "name": "10000000", "type": "revenue", "operator": "less_than" }}
+        - For revenue constraints, always convert to raw numbers (e.g., $10M → 10000000) and include operator field
+        - Supported operators: "less_than", "greater_than", "less_than_equal", "greater_than_equal", "between"
         - Use 'count_summary' for queries like "how many movies..."
         - Use 'timeline' for "what was the first... what came after..."
         - Use 'side_by_side' for "which is better, X or Y?"
         - Use 'summary' for bios or overviews.
-        - Use 'fact' with 'summary' format for ALL role questions like "Who directed X?", "Who starred in X?", "Who wrote X?", "Who created X?", "Who produced X?" - regardless of whether X is a movie or TV show
+        - Use 'fact' with 'summary' format for ALL role questions like "Who directed X?", "Who starred in X?", "Who wrote X?", "Who created X?", "Who produced X?", "What's the revenue of X?" - regardless of whether X is a movie or TV show
         - Default to 'ranked_list' for recommendations or results.
         - Do NOT include commentary — only respond with valid JSON.
 

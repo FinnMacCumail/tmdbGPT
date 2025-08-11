@@ -114,19 +114,34 @@ class ConstraintBuilder:
         for ent in query_entities:
             ent_type = ent["type"]
 
-            # ✅ Patch: Use scalar-safe parameter key for 'date'
-            if ent_type == "date":
-                param_key = "primary_release_year"
+            # ✅ Handle revenue constraints with sort_by mapping
+            if ent_type == "revenue":
+                param_key, priority = self._map_revenue_constraint(ent)
+            # ✅ Handle date constraints with range support
+            elif ent_type == "date":
+                date_constraints = self._map_date_constraint(ent)
+                constraints.extend(date_constraints)
+                continue  # Skip the single constraint creation below
+            # ✅ Skip rating entities - these should trigger sorting, not constraints
+            elif ent_type == "rating":
+                continue  # Let semantic parameter inference handle rating-based sorting
             else:
                 param_key = get_param_key_for_type(ent_type, prefer="with_")
+                priority = ent.get("priority", 2)
+
+            # ✅ For revenue constraints, use sort_value as the constraint value
+            if ent_type == "revenue" and param_key == "sort_by":
+                constraint_value = ent.get("sort_value", "revenue.asc")
+            else:
+                constraint_value = ent.get("id") or ent.get(
+                    "resolved_id") or ent.get("name")
 
             c = Constraint(
                 key=param_key,
-                value=ent.get("id") or ent.get(
-                    "resolved_id") or ent.get("name"),
+                value=constraint_value,
                 type_=ent_type,
                 subtype=ent.get("role"),
-                priority=ent.get("priority", 2),
+                priority=priority,
                 confidence=ent.get("confidence", 1.0),
                 metadata={k: v for k, v in ent.items() if k not in {
                     "type", "name", "id", "role", "priority", "confidence"}}
@@ -134,3 +149,127 @@ class ConstraintBuilder:
             constraints.append(c)
 
         return ConstraintGroup(constraints, logic="AND")
+
+    def _map_revenue_constraint(self, ent: dict) -> tuple:
+        """Map revenue constraints to TMDB sort parameters and priority"""
+        operator = ent.get("operator", "less_than")
+        
+        # Map revenue constraints to sort_by parameters
+        if operator in ("less_than", "less_than_equal"):
+            param_key = "sort_by"
+            # Use popularity.desc to get mainstream movies with revenue data first
+            # Then filter by threshold - avoids thousands of $0 revenue indie films
+            ent["sort_value"] = "popularity.desc"
+            ent["threshold"] = int(ent.get("name", 0))
+            ent["threshold_operator"] = operator
+        elif operator in ("greater_than", "greater_than_equal"):
+            param_key = "sort_by"
+            ent["sort_value"] = "revenue.desc"
+            ent["threshold"] = int(ent.get("name", 0))
+            ent["threshold_operator"] = operator
+        else:
+            param_key = "sort_by"
+            ent["sort_value"] = "popularity.desc"  # Default to popular films
+            
+        # Revenue constraints get higher priority (lower number = higher priority)
+        priority = 1
+        
+        return param_key, priority
+    
+    def _map_date_constraint(self, ent: dict) -> list:
+        """Map date constraints to TMDB date parameters with range support"""
+        date_value = ent.get("name") or ent.get("value")
+        priority = ent.get("priority", 3)
+        
+        # Handle date ranges like "1990-1999"
+        if isinstance(date_value, str) and "-" in date_value and len(date_value) == 9:
+            # Parse decade range
+            try:
+                start_year, end_year = date_value.split("-")
+                if len(start_year) == 4 and len(end_year) == 4:
+                    # Create date range constraints
+                    start_date = f"{start_year}-01-01"
+                    end_date = f"{end_year}-12-31"
+                    
+                    return [
+                        Constraint(
+                            key="primary_release_date.gte",
+                            value=start_date,
+                            type_="date",
+                            priority=priority,
+                            confidence=ent.get("confidence", 1.0),
+                            metadata=ent.copy()
+                        ),
+                        Constraint(
+                            key="primary_release_date.lte", 
+                            value=end_date,
+                            type_="date",
+                            priority=priority,
+                            confidence=ent.get("confidence", 1.0),
+                            metadata=ent.copy()
+                        )
+                    ]
+            except (ValueError, IndexError):
+                pass
+        
+        # Handle decade formats like "2010s", "90s", "1990s"
+        if isinstance(date_value, str) and date_value.endswith('s'):
+            decade_str = date_value[:-1]  # Remove 's'
+            try:
+                if len(decade_str) == 2:  # "90s" -> 1990s
+                    decade_num = int(decade_str)
+                    if decade_num >= 20:  # 20s-90s = 1920s-1990s
+                        start_year = 1900 + decade_num
+                    else:  # 00s-19s = 2000s-2010s
+                        start_year = 2000 + decade_num
+                elif len(decade_str) == 4:  # "2010s" -> 2010-2019
+                    start_year = int(decade_str)
+                else:
+                    raise ValueError("Invalid decade format")
+                
+                end_year = start_year + 9
+                start_date = f"{start_year}-01-01"
+                end_date = f"{end_year}-12-31"
+                
+                return [
+                    Constraint(
+                        key="primary_release_date.gte",
+                        value=start_date,
+                        type_="date",
+                        priority=priority,
+                        confidence=ent.get("confidence", 1.0),
+                        metadata=ent.copy()
+                    ),
+                    Constraint(
+                        key="primary_release_date.lte",
+                        value=end_date,
+                        type_="date",
+                        priority=priority,
+                        confidence=ent.get("confidence", 1.0),
+                        metadata=ent.copy()
+                    )
+                ]
+            except (ValueError, IndexError):
+                pass
+        
+        # Handle single year or fallback
+        if isinstance(date_value, str) and len(date_value) == 4 and date_value.isdigit():
+            # Single year constraint
+            return [Constraint(
+                key="primary_release_year",
+                value=date_value,
+                type_="date",
+                priority=priority,
+                confidence=ent.get("confidence", 1.0),
+                metadata=ent.copy()
+            )]
+        
+        # Fallback to primary_release_year
+        return [Constraint(
+            key="primary_release_year",
+            value=date_value,
+            type_="date", 
+            priority=priority,
+            confidence=ent.get("confidence", 1.0),
+            metadata=ent.copy()
+        )]

@@ -171,7 +171,7 @@ def format_summary(state) -> dict:
             is_runtime_question = any(keyword in query_text for keyword in ["long", "runtime", "duration", "minutes", "hours"])
             is_genre_question = any(keyword in query_text for keyword in ["genre", "type of", "kind of", "category"])
             is_director_question = any(keyword in query_text for keyword in ["direct", "director", "directed"])
-            is_budget_question = any(keyword in query_text for keyword in ["budget", "cost", "money", "expensive"])
+            is_revenue_question = any(keyword in query_text for keyword in ["revenue", "earnings", "gross", "box office", "made money", "earned"])
             is_creator_question = any(keyword in query_text for keyword in ["create", "creator", "made by", "created"])
             is_cast_question = any(keyword in query_text for keyword in ["starred", "stars", "cast", "actors", "actor", "starring"])
             is_writer_question = any(keyword in query_text for keyword in ["wrote", "written", "writer", "screenplay", "script"])
@@ -242,10 +242,10 @@ def format_summary(state) -> dict:
                         fact_extracted = True
                         continue
                 
-                if is_budget_question:
-                    budget = r.get("budget")
-                    if budget and isinstance(budget, (int, float)) and budget > 0:
-                        entries.append(f"{emoji} {title} had a budget of ${budget:,}.")
+                if is_revenue_question:
+                    revenue = r.get("revenue")
+                    if revenue and isinstance(revenue, (int, float)) and revenue > 0:
+                        entries.append(f"{emoji} {title} earned ${revenue:,} in revenue.")
                         fact_extracted = True
                         continue
                 
