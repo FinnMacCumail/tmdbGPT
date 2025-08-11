@@ -58,6 +58,30 @@ class TMDBEntityResolver:
 
     def resolve_entity(self, name: str, entity_type: str) -> Optional[int]:
         name_normalized = name.strip().lower()
+        
+        # Normalize common company/network name variations
+        name_variations = [name_normalized]
+        
+        # Handle plural/singular forms
+        if name_normalized.endswith('s') and len(name_normalized) > 3:
+            name_variations.append(name_normalized[:-1])  # Remove 's'
+        else:
+            name_variations.append(name_normalized + 's')   # Add 's'
+        
+        # Handle common company suffixes  
+        suffixes_to_try = ['', ' entertainment', ' entertainments', ' studios', ' studio', 
+                          ' pictures', ' films', ' productions']
+        base_name = name_normalized
+        for suffix in [' entertainment', ' entertainments', ' studios', ' studio', 
+                      ' pictures', ' films', ' productions']:
+            if name_normalized.endswith(suffix):
+                base_name = name_normalized.replace(suffix, '')
+                break
+        
+        for suffix in suffixes_to_try:
+            variant = base_name + suffix
+            if variant not in name_variations:
+                name_variations.append(variant)
 
         # Special handling for networks using local cache
         if entity_type == "network":
@@ -83,28 +107,68 @@ class TMDBEntityResolver:
 
             if entity_type == "company":
                 # Company-specific matching logic with US preference
-                for item in results:
-                    label = item.get("name", "").strip().lower()
-                    if label == name_normalized and item.get("origin_country") == "US":
-                        return item["id"]
+                # Handle company name variations and international versions
+                us_preferred_companies = {"legendary entertainment", "legendary", "marvel", "disney", 
+                                        "warner bros", "universal", "paramount", "sony", "netflix"}
+                needs_us_preference = any(pref in name_normalized for pref in us_preferred_companies)
+                
+                if needs_us_preference:
+                    # Strongly prefer US versions for major studios
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        for name_var in name_variations:
+                            if label == name_var and item.get("origin_country") == "US":
+                                return item["id"]
+                    
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        for name_var in name_variations:
+                            if name_var in label and item.get("origin_country") == "US":
+                                return item["id"]
+                else:
+                    # Standard company matching with US preference
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        if label == name_normalized and item.get("origin_country") == "US":
+                            return item["id"]
 
-                for item in results:
-                    label = item.get("name", "").strip().lower()
-                    if name_normalized in label and item.get("origin_country") == "US":
-                            # Debug output removed
-                        return item["id"]
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        if name_normalized in label and item.get("origin_country") == "US":
+                                # Debug output removed
+                            return item["id"]
 
             elif entity_type == "network":
                 # Network-specific matching logic with US preference  
-                for item in results:
-                    label = item.get("name", "").strip().lower()
-                    if label == name_normalized and item.get("origin_country") == "US":
-                        return item["id"]
+                # Strong US preference for major international services
+                us_preferred_networks = {"hbo", "netflix", "hulu", "amazon prime", "disney+", 
+                                       "apple tv", "peacock", "paramount+", "starz", "showtime"}
+                needs_us_preference = name_normalized in us_preferred_networks
+                
+                if needs_us_preference:
+                    # Strongly prefer US versions for major services
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        for name_var in name_variations:
+                            if label == name_var and item.get("origin_country") == "US":
+                                return item["id"]
+                    
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        for name_var in name_variations:
+                            if name_var in label and item.get("origin_country") == "US":
+                                return item["id"]
+                else:
+                    # Standard network matching with US preference
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        if label == name_normalized and item.get("origin_country") == "US":
+                            return item["id"]
 
-                for item in results:
-                    label = item.get("name", "").strip().lower()
-                    if name_normalized in label and item.get("origin_country") == "US":
-                        return item["id"]
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        if name_normalized in label and item.get("origin_country") == "US":
+                            return item["id"]
 
             # Generic exact match for all types
             for item in results:
