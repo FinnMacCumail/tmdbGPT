@@ -136,14 +136,16 @@ def route_symbol_free_intent(state):
         ))
 
     # --- COMPANY/NETWORK DIRECT ROUTES ---
-    elif "company_id" in state.resolved_entities:
+    # Check for company/network entities and route directly to discover endpoints
+    # This must come early to avoid being blocked by other conditions
+    if "company_id" in getattr(state, 'resolved_entities', {}):
         company_id = state.resolved_entities["company_id"][0]
         plan_steps.append(step(
             "step_company_movies",
             "/discover/movie",
             {"with_companies": str(company_id), "sort_by": "popularity.desc"}
         ))
-    elif "network_id" in state.resolved_entities:
+    elif "network_id" in getattr(state, 'resolved_entities', {}):
         network_id = state.resolved_entities["network_id"][0]
         plan_steps.append(step(
             "step_network_shows", 
