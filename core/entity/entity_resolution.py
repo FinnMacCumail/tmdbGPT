@@ -82,7 +82,7 @@ class TMDBEntityResolver:
             results = response.json().get("results", [])
 
             if entity_type == "company":
-                # Company-specific matching logic
+                # Company-specific matching logic with US preference
                 for item in results:
                     label = item.get("name", "").strip().lower()
                     if label == name_normalized and item.get("origin_country") == "US":
@@ -92,6 +92,18 @@ class TMDBEntityResolver:
                     label = item.get("name", "").strip().lower()
                     if name_normalized in label and item.get("origin_country") == "US":
                             # Debug output removed
+                        return item["id"]
+
+            elif entity_type == "network":
+                # Network-specific matching logic with US preference  
+                for item in results:
+                    label = item.get("name", "").strip().lower()
+                    if label == name_normalized and item.get("origin_country") == "US":
+                        return item["id"]
+
+                for item in results:
+                    label = item.get("name", "").strip().lower()
+                    if name_normalized in label and item.get("origin_country") == "US":
                         return item["id"]
 
             # Generic exact match for all types
