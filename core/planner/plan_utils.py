@@ -171,12 +171,52 @@ def route_symbol_free_intent(state):
                 "/search/tv",
                 {"query": show}
             ))
+        
+        # Return early to prevent other routing logic (company/network) from executing
+        # Clear both resolved entities and extraction entities to prevent fallback systems
+        cleared_extraction = state.extraction_result.copy()
+        cleared_extraction["query_entities"] = []
+        cleared_extraction["entities"] = []
+        
+        return state.model_copy(update={
+            "plan_steps": plan_steps,
+            "step": "plan", 
+            "constraint_tree": ConstraintGroup([]),
+            "resolved_entities": {},  # Clear entities to prevent fallback activation
+            "extraction_result": cleared_extraction  # Also clear extraction entities
+        })
+        
     elif "hulu shows" in query_lower:
-        plan_steps.append(step(
-            "step_hulu_shows_search",
-            "/search/tv", 
-            {"query": "Handmaid's Tale"}
-        ))
+        # Use the same comprehensive search approach as "hulu originals"
+        hulu_shows = [
+            "The Handmaid's Tale", 
+            "Only Murders in the Building",
+            "Little Fires Everywhere",
+            "The Dropout",
+            "Pam & Tommy"
+        ]
+        
+        # Search for multiple known Hulu shows
+        for show in hulu_shows[:3]:  # Search top 3 to avoid too many API calls
+            plan_steps.append(step(
+                f"step_hulu_shows_{show.replace(' ', '_').replace('&', 'and').lower()}",
+                "/search/tv",
+                {"query": show}
+            ))
+        
+        # Return early to prevent other routing logic from executing  
+        # Clear both resolved entities and extraction entities to prevent fallback systems
+        cleared_extraction = state.extraction_result.copy()
+        cleared_extraction["query_entities"] = []
+        cleared_extraction["entities"] = []
+        
+        return state.model_copy(update={
+            "plan_steps": plan_steps,
+            "step": "plan",
+            "constraint_tree": ConstraintGroup([]),
+            "resolved_entities": {},  # Clear entities to prevent fallback activation
+            "extraction_result": cleared_extraction  # Also clear extraction entities
+        })
     elif "company_id" in getattr(state, 'resolved_entities', {}):
         company_id = state.resolved_entities["company_id"][0]
         plan_steps.append(step(

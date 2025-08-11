@@ -86,6 +86,12 @@ class TMDBEntityResolver:
         # Special handling for networks using local cache
         if entity_type == "network":
             if hasattr(self, 'network_cache'):
+                # Special BBC handling - override cache for generic 'bbc' to prefer UK BBC One
+                if name_normalized == "bbc":
+                    # Update cache to prefer UK BBC One over Japanese BBC
+                    self.network_cache[name_normalized] = 4
+                    return 4
+                
                 if name_normalized in self.network_cache:
                     network_id = self.network_cache[name_normalized]
                     # Debug output removed
@@ -139,7 +145,27 @@ class TMDBEntityResolver:
                             return item["id"]
 
             elif entity_type == "network":
-                # Network-specific matching logic with US preference  
+                # Network-specific matching logic with origin preference
+                
+                # BBC should prefer UK/GB origin 
+                if "bbc" in name_normalized:
+                    # First try for BBC One specifically (ID: 4) - most popular BBC network
+                    if name_normalized in {"bbc", "bbc one", "bbc 1"}:
+                        return 4  # Direct return for BBC One
+                    
+                    # For other BBC variants, prefer GB origin
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        origin = item.get("origin_country", "")
+                        if "bbc" in label and origin == "GB":
+                            return item["id"]
+                    
+                    # Fallback for BBC - still prefer GB but allow exact matches
+                    for item in results:
+                        label = item.get("name", "").strip().lower()
+                        if label == name_normalized and item.get("origin_country") == "GB":
+                            return item["id"]
+                
                 # Strong US preference for major international services
                 us_preferred_networks = {"hbo", "netflix", "hulu", "amazon prime", "disney+", 
                                        "apple tv", "peacock", "paramount+", "starz", "showtime"}

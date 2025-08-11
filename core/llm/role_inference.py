@@ -69,9 +69,16 @@ def infer_role_for_entity(name: str, query: str) -> str:
 
 def infer_media_type_from_query(query: str) -> str:
     query_lower = query.lower()
-    if "tv show" in query_lower or "series" in query_lower:
+    
+    # TV indicators - including "shows" which was missing
+    tv_indicators = ["tv show", "series", "shows", "television", "episodes"]
+    if any(indicator in query_lower for indicator in tv_indicators):
         return "tv"
-    elif "movie" in query_lower or "film" in query_lower:
+    
+    # Movie indicators  
+    movie_indicators = ["movie", "film", "movies", "films", "cinema"]
+    if any(indicator in query_lower for indicator in movie_indicators):
         return "movie"
-    else:
-        return "both"
+    
+    # Default to "both" only when truly ambiguous
+    return "both"
