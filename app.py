@@ -33,7 +33,7 @@ entity_resolver = TMDBEntityResolver(os.getenv('TMDB_API_KEY'), HEADERS)
 SAFE_OPTIONAL_PARAMS = {
     "vote_average.gte", "vote_count.gte", "primary_release_year",
     "release_date.gte", "with_runtime.gte", "with_runtime.lte",
-    "with_original_language", "region"
+    "with_original_language", "region", "sort_by"
 }
 
 
@@ -209,6 +209,26 @@ def plan(state: AppState) -> AppState:
     execution_steps = convert_matches_to_execution_steps(
         feasible, state.extraction_result, state.resolved_entities
     )
+    
+    # 📊 Inject Constraint-Based Parameters
+    # Override query-entity-based parameters with constraint-specific parameters
+    # This ensures date ranges, revenue thresholds, etc. are properly applied
+    for step in execution_steps:
+        step.setdefault("parameters", {})
+        
+        # Track if we're adding date range constraints
+        has_date_range = any(c.key in ['primary_release_date.gte', 'primary_release_date.lte'] for c in state.constraint_tree.flatten())
+        
+        for constraint in state.constraint_tree.flatten():
+            constraint_key = constraint.key
+            constraint_value = constraint.value
+            
+            # Add the constraint parameter
+            step["parameters"][constraint_key] = str(constraint_value)
+        
+        # Remove conflicting parameters if we have date ranges
+        if has_date_range:
+            step["parameters"].pop('primary_release_year', None)
 
     # 🎯 Inject Optional Semantic Parameters
     # Uses semantic inference to guess helpful filter parameters based on the query text
@@ -221,7 +241,13 @@ def plan(state: AppState) -> AppState:
         step.setdefault("parameters", {})
         for param_name in optional_params:
             if param_name in SAFE_OPTIONAL_PARAMS and param_name not in step["parameters"]:
-                step["parameters"][param_name] = "<dynamic_value_or_prompt>"
+                # Handle rating-based query parameters
+                if param_name == "sort_by" and any(keyword in state.input.lower() for keyword in ["highest-rated", "best rated", "top rated", "highly rated", "highest rated"]):
+                    step["parameters"][param_name] = "vote_average.desc"
+                elif param_name == "vote_count.gte" and "rated" in state.input.lower():
+                    step["parameters"][param_name] = "50"  # Minimum votes for meaningful ratings
+                else:
+                    step["parameters"][param_name] = "<dynamic_value_or_prompt>"
 
     # 🔗 Expand Plan with Dependency-Based Steps
     # Adds symbolic follow-up steps based on newly resolved entities:

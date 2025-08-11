@@ -23,6 +23,7 @@ from core.planner.constraint_planner import inject_validation_steps_from_ids
 from core.planner.plan_utils import extract_matched_constraints
 from core.execution.post_validator import PostValidator
 from core.validation.role_validators import validate_roles
+from core.execution.financial_filter import FinancialFilter
 
 
 class DiscoveryHandler:
@@ -165,6 +166,29 @@ class DiscoveryHandler:
         # 🎯 Post-validate discovery results using symbolic constraints (e.g., cast, director, genre).
         # If validation rules are triggered (e.g., with_people), performs credit lookups for accuracy.
         filtered = PostValidator.run_post_validations(step, json_data, state)
+
+        # 💰 Apply financial filtering if revenue constraints are present
+        if filtered and FinancialFilter.should_apply_financial_filtering(state.constraint_tree):
+            result_limit = FinancialFilter.estimate_result_limit(state.constraint_tree)
+            
+            # 💡 Fetch revenue data for each movie before applying revenue filters
+            # /discover/movie doesn't return revenue data, so we need individual lookups
+            for movie in filtered:
+                movie_id = movie.get('id')
+                if movie_id and 'revenue' not in movie:
+                    try:
+                        detail_url = f"{state.base_url}/movie/{movie_id}"
+                        detail_response = requests.get(detail_url, headers=state.headers)
+                        if detail_response.status_code == 200:
+                            detail_data = detail_response.json()
+                            movie['revenue'] = detail_data.get('revenue', 0)
+                    except Exception:
+                        # If we can't fetch details, set to 0 (will be filtered out)
+                        movie['revenue'] = 0
+            
+            filtered = FinancialFilter.apply_financial_filters(
+                filtered, state.constraint_tree, max_results=result_limit
+            )
 
         # ❌ No results passed validation or symbolic filtering.
         # Triggers fallback or relaxation logic (e.g., retry with fewer constraints or inject generic discovery).

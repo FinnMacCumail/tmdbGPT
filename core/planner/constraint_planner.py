@@ -1,6 +1,6 @@
 # from core.model.constraint import evaluate_constraint_tree, relax_constraint_tree
 from core.model.constraint import Constraint, ConstraintGroup, ConstraintBuilder
-from core.model.evaluator import evaluate_constraint_tree, relax_constraint_tree
+from core.model.evaluator_enhanced import evaluate_constraint_tree, relax_constraint_tree_enhanced
 
 
 def evaluate_and_inject_from_constraint_tree(state) -> bool:
@@ -29,9 +29,9 @@ def evaluate_and_inject_from_constraint_tree(state) -> bool:
                         })
         return True
 
-    # Phase 2: Relax the constraint tree if no matches
-    relaxed_tree, dropped_constraints, reasons = relax_constraint_tree(
-        state.constraint_tree)
+    # Phase 2: Relax the constraint tree if no matches (Enhanced with multiple drops)
+    relaxed_tree, dropped_constraints, reasons = relax_constraint_tree_enhanced(
+        state.constraint_tree, max_drops=2, data_registry=state.data_registry)
 
     if not relaxed_tree:
         return False

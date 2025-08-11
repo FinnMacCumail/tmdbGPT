@@ -674,7 +674,7 @@ class ResultExtractor:
         # ✅ Extract additional fields for fact queries
         runtime = json_data.get("runtime")
         genres = json_data.get("genres", [])
-        budget = json_data.get("budget")
+        revenue = json_data.get("revenue")
 
         return [{
             "id": json_data.get("id"),
@@ -689,7 +689,7 @@ class ResultExtractor:
             "cast": cast,  # ✅ Add main cast field
             "runtime": runtime,  # ✅ Add runtime field
             "genres": genres,    # ✅ Add genres field
-            "budget": budget,    # ✅ Add budget field
+            "revenue": revenue,  # ✅ Add revenue field
             "final_score": round(score, 2),
             "source": endpoint,
             "media_type": "movie"
