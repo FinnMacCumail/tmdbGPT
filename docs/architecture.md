@@ -98,7 +98,7 @@ Output: {
 
 **Purpose**: Direct API routing for single-entity fact queries bypassing complex constraint planning
 
-**Key Innovation**: Revolutionary improvement from 20% to 90% success rate for TV/movie role queries
+**Key Innovation**: Revolutionary improvement in TV/movie role query performance, transforming from poor to excellent results
 
 **Components**:
 - **Single-Entity Detection**: Identifies fact queries about one entity

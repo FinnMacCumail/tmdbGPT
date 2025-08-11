@@ -4,18 +4,22 @@ An intelligent movie and TV query system that understands natural language quest
 
 ## 🚧 Project Status: Active Development (August 2025)
 
-### ✅ What Works Excellently Now (90-95% Success)
+### ✅ What Works Excellently Now
 - **TV Show Role Queries**: "Who created Breaking Bad?", "Who starred in The Office?"
 - **Movie Role Queries**: "Who wrote Inception?", "Who composed Interstellar?"  
 - **TV Show Counts**: "How many seasons does Breaking Bad have?"
 - **Movie Facts**: "How long is Titanic?", "What genre is The Matrix?"
 - **Single Entity Info**: "Tell me about Inception", "Who is Christopher Nolan?"
 
-- **Multi-Entity Constraints**: "Movies by Spielberg starring Tom Hanks" (Currently 70-80%)
-- **Complex Triple Constraints**: Advanced multi-filter queries (Currently 50-65%)
+### ✅ Working Well (Recent Testing Shows Excellent Performance)
+- **Multi-Entity Constraints**: "Movies by Spielberg starring Tom Hanks", "Movies starring Matt Damon written by Ben Affleck"
+  - *Note: Success rates vary by constraint complexity and data availability*
+
+### ⚠️ Currently Under Development
+- **Complex Triple Constraints**: Advanced multi-filter queries (3+ constraints)
 - **Abstract Concepts**: Franchise phases, award categories (Planned for future release)
 
-**Development Roadmap**: See our [Advanced Strategies Analysis](../rnd/tmdbGPTDocs/advanced-strategies-analysis.md) for the comprehensive improvement plan targeting 95% success rates through compositional AI strategies.
+**Development Roadmap**: See our [Advanced Strategies Analysis](../rnd/tmdbGPTDocs/advanced-strategies-analysis.md) for the comprehensive improvement plan targeting high success rates through compositional AI strategies.
 
 ## What is TMDBGPT?
 

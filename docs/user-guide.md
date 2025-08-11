@@ -184,7 +184,7 @@ Films from Studio Ghibli
 
 ### Role-Specific Queries
 
-TMDBGPT now has **comprehensive role support** for both movies and TV shows, with 90-95% success rates:
+TMDBGPT now has **comprehensive role support** for both movies and TV shows, with excellent performance:
 
 #### TV Show Role Queries 
 

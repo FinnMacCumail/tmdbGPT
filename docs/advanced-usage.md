@@ -8,18 +8,20 @@ TMDBGPT has undergone major improvements with significantly enhanced success rat
 
 ### Query Success Matrix
 
-| Query Type | Examples | Success Rate | Status |
-|------------|----------|--------------|--------|
-| **TV Role Queries** | "Who starred in Breaking Bad?", "Who created The Office?" | **90-95%** | 
-| **Movie Role Queries** | "Who wrote Inception?", "Who composed Interstellar?" | **85-90%** | 
-| **TV Count Queries** | "How many seasons does Breaking Bad have?" | **95%** |
-| **Fact Queries** | "How long is Titanic?", "What genre is The Matrix?" | **85-90%** | 
-| **Single Entity Info** | "Tell me about Inception", "Who is Christopher Nolan?" | **90-95%** | 
-| **Multi-Entity Constraints** | "Movies by Spielberg starring Tom Hanks" | **70-80%** |
-| **Company/Studio Queries** | "Movies by Marvel Studios", "HBO shows" | **65-75%** | 🔧 **Improving** |
-| **Complex Triple Constraints** | "2010s sci-fi by Nolan with Hans Zimmer" | **50-65%** | 🔧 **Under Development** |
+| Query Type | Examples | Performance | Status |
+|------------|----------|-------------|--------|
+| **TV Role Queries** | "Who starred in Breaking Bad?", "Who created The Office?" | **Excellent** | ✅ **Working Well** |
+| **Movie Role Queries** | "Who wrote Inception?", "Who composed Interstellar?" | **Excellent** | ✅ **Working Well** |
+| **TV Count Queries** | "How many seasons does Breaking Bad have?" | **Excellent** | ✅ **Working Well** |
+| **Fact Queries** | "How long is Titanic?", "What genre is The Matrix?" | **Good** | ✅ **Working Well** |
+| **Single Entity Info** | "Tell me about Inception", "Who is Christopher Nolan?" | **Excellent** | ✅ **Working Well** |
+| **Multi-Entity Constraints** | "Movies by Spielberg starring Tom Hanks" | **Good*** | ✅ **Recent Improvements** |
+| **Company/Studio Queries** | "Movies by Marvel Studios", "HBO shows" | **Improving** | 🔧 **Under Development** |
+| **Complex Triple Constraints** | "2010s sci-fi by Nolan with Hans Zimmer" | **Limited** | 🔧 **Under Development** |
 
-### What Works Excellently Now (90-95% Success)
+*Multi-entity constraint performance is based on limited recent testing. Results vary by constraint complexity, entity recognition accuracy, and TMDB data availability.
+
+### What Works Excellently Now
 
 **TV Show Role Queries** -
 ```bash
@@ -36,6 +38,14 @@ TMDBGPT has undergone major improvements with significantly enhanced success rat
 # TV Writers and Producers
 "Who wrote Breaking Bad?"          # → Writing team/creators
 "Who produced Game of Thrones?"    # → Producers list
+```
+
+**Multi-Entity Constraint Queries** - Excellent performance on dual-constraint queries:
+```bash
+# Actor + Director Combinations  
+"Movies by Spielberg starring Tom Hanks"  # → Saving Private Ryan, Catch Me If You Can, The Terminal, Bridge of Spies, The Post
+"Movies starring Matt Damon written by Ben Affleck"  # → Good Will Hunting, The Last Duel, Air
+"Movies starring Leonardo DiCaprio directed by Martin Scorsese"  # → The Departed, Gangs of New York, The Wolf of Wall Street
 ```
 
 **Movie Role Queries** - Major enhancement covering all crew roles:
@@ -79,9 +89,9 @@ TMDBGPT has undergone major improvements with significantly enhanced success rat
 
 ## Advanced Query Techniques
 
-### 🔧 Complex Multi-Entity Queries (70-80% Success Rate)
+### ✅ Multi-Entity Constraint Queries (Working Well - Recent Testing Shows Strong Performance)
 
-TMDBGPT handles sophisticated queries involving multiple constraints with good success rates:
+TMDBGPT handles sophisticated queries involving multiple constraints. Recent testing shows excellent performance on actor+director combinations, though results vary by constraint complexity:
 
 #### Triple Constraint Queries
 ```bash

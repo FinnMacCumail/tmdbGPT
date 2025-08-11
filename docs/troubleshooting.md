@@ -10,7 +10,7 @@ Many previously failing queries now work excellently. If you're experiencing iss
 - **TV show counts** ("How many seasons does X have?")
 - **Movie facts** ("How long is Titanic?")
 
-These now have 85-95% success rates. Try your query again before troubleshooting.
+These now work excellently. Try your query again before troubleshooting.
 
 ## Query-Specific Troubleshooting
 
