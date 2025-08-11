@@ -8,8 +8,9 @@ def is_symbol_free_query(state) -> bool:
     Returns True if there are no symbolic query entities (like people, genres, companies),
     and no entity types besides media_type hints like 'tv' or 'movie'.
     
-    Special case: Single-entity fact queries should use symbol-free route because
-    constraint strategy can't handle single entity queries effectively.
+    Special cases that should use symbol-free route:
+    - Single-entity fact queries (constraint strategy can't handle single entities effectively)
+    - Single company/network queries (like "HBO shows", "Movies by Marvel Studios")
     """
     extraction = state.extraction_result or {}
     query_entities = extraction.get("query_entities") or []
@@ -20,6 +21,13 @@ def is_symbol_free_query(state) -> bool:
     # These are asking for facts ABOUT an entity, not constraining BY multiple entities
     if question_type == "fact" and len(query_entities) == 1:
         return True
+
+    # ✅ Single company/network queries should use symbol-free route
+    # Examples: "HBO shows", "Movies by Marvel Studios", "Netflix originals"
+    if len(query_entities) == 1:
+        entity_type = query_entities[0].get("type")
+        if entity_type in {"company", "network"}:
+            return True
 
     non_symbolic_entities = {"movie", "tv"}
 
@@ -125,6 +133,22 @@ def route_symbol_free_intent(state):
         plan_steps.append(step(
             "step_person_tv_credits",
             f"/person/{pid}/tv_credits"
+        ))
+
+    # --- COMPANY/NETWORK DIRECT ROUTES ---
+    elif "company_id" in state.resolved_entities:
+        company_id = state.resolved_entities["company_id"][0]
+        plan_steps.append(step(
+            "step_company_movies",
+            "/discover/movie",
+            {"with_companies": str(company_id), "sort_by": "popularity.desc"}
+        ))
+    elif "network_id" in state.resolved_entities:
+        network_id = state.resolved_entities["network_id"][0]
+        plan_steps.append(step(
+            "step_network_shows", 
+            "/discover/tv",
+            {"with_networks": str(network_id), "sort_by": "popularity.desc"}
         ))
 
     # --- POPULAR / AIRING / UPCOMING LISTS ---
