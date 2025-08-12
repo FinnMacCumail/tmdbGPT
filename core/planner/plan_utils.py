@@ -1,6 +1,7 @@
 from core.model.evaluator import evaluate_constraint_tree
 from core.model.constraint import Constraint
 from core.model.constraint import ConstraintGroup
+from core.execution.intent_aware_sorting import IntentAwareSorting
 
 
 def is_symbol_free_query(state) -> bool:
@@ -219,18 +220,32 @@ def route_symbol_free_intent(state):
         })
     elif "company_id" in getattr(state, 'resolved_entities', {}):
         company_id = state.resolved_entities["company_id"][0]
-        plan_steps.append(step(
+        
+        # Create base step
+        company_step = step(
             "step_company_movies",
             "/discover/movie",
             {"with_companies": str(company_id), "sort_by": "popularity.desc"}
-        ))
+        )
+        
+        # Apply intent-aware sorting
+        question_type = state.extraction_result.get("question_type", "list")
+        company_step = IntentAwareSorting.apply_sort_to_step_parameters(company_step, state.input, question_type)
+        plan_steps.append(company_step)
     elif "network_id" in getattr(state, 'resolved_entities', {}):
         network_id = state.resolved_entities["network_id"][0]
-        plan_steps.append(step(
+        
+        # Create base step
+        network_step = step(
             "step_network_shows", 
             "/discover/tv",
             {"with_networks": str(network_id), "sort_by": "popularity.desc"}
-        ))
+        )
+        
+        # Apply intent-aware sorting
+        question_type = state.extraction_result.get("question_type", "list")
+        network_step = IntentAwareSorting.apply_sort_to_step_parameters(network_step, state.input, question_type)
+        plan_steps.append(network_step)
 
     # --- POPULAR / AIRING / UPCOMING LISTS ---
     elif "list.popular" in intents:

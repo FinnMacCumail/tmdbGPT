@@ -18,6 +18,7 @@ from core.formatting.formatter import ResponseFormatter
 from core.formatting.templates import format_fallback, format_ranked_list, generate_relaxation_explanation
 from core.constraint_model import ConstraintBuilder
 from core.execution_state import AppState
+from core.execution.intent_aware_sorting import IntentAwareSorting
 import os
 import time
 
@@ -230,21 +231,30 @@ def plan(state: AppState) -> AppState:
         if has_date_range:
             step["parameters"].pop('primary_release_year', None)
 
-    # 🎯 Inject Optional Semantic Parameters
+    # 🎯 Apply Intent-Aware Sorting
+    # Uses intelligent analysis of user query to apply appropriate sorting parameters
+    # (e.g., temporal, quality-based, or popularity sorting) based on detected user intent
+    question_type = state.extraction_result.get("question_type")
+    for step in execution_steps:
+        step = IntentAwareSorting.apply_sort_to_step_parameters(step, state.input, question_type)
+    
+    # 🎯 Inject Additional Optional Semantic Parameters  
     # Uses semantic inference to guess helpful filter parameters based on the query text
     # (e.g., rating, year, language) and adds them to each step if:
     # - They're in the SAFE_OPTIONAL_PARAMS list
-    # - They’re not already set in the step
-    # Inserts a placeholder "<dynamic_value_or_prompt>" for downstream filling or prompting
+    # - They're not already set in the step
+    # - Intent-aware sorting hasn't already handled them
     optional_params = PlanValidator().infer_semantic_parameters(state.input)
     for step in execution_steps:
         step.setdefault("parameters", {})
         for param_name in optional_params:
             if param_name in SAFE_OPTIONAL_PARAMS and param_name not in step["parameters"]:
-                # Handle rating-based query parameters
-                if param_name == "sort_by" and any(keyword in state.input.lower() for keyword in ["highest-rated", "best rated", "top rated", "highly rated", "highest rated"]):
-                    step["parameters"][param_name] = "vote_average.desc"
-                elif param_name == "vote_count.gte" and "rated" in state.input.lower():
+                # Skip sort_by if intent-aware sorting already handled it
+                if param_name == "sort_by":
+                    # Legacy fallback for edge cases not covered by intent-aware sorting
+                    if any(keyword in state.input.lower() for keyword in ["highest-rated"]) and "vote_average.desc" not in step["parameters"].get("sort_by", ""):
+                        step["parameters"][param_name] = "vote_average.desc"
+                elif param_name == "vote_count.gte" and "rated" in state.input.lower() and param_name not in step["parameters"]:
                     step["parameters"][param_name] = "50"  # Minimum votes for meaningful ratings
                 else:
                     step["parameters"][param_name] = "<dynamic_value_or_prompt>"
