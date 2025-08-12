@@ -501,7 +501,8 @@ class ResultExtractor:
                 "type": "movie_summary",
                 "job": "cast",
                 "character": cast.get("character"),
-                "source": endpoint
+                "source": endpoint,
+                "final_score": 1.0  # Person credits are pre-filtered, all valid
             })
 
         for crew in json_data.get("crew", []):
@@ -514,7 +515,8 @@ class ResultExtractor:
                 "type": "movie_summary",
                 "job": crew.get("job"),  # e.g., Director
                 "department": crew.get("department"),
-                "source": endpoint
+                "source": endpoint,
+                "final_score": 1.0  # Person credits are pre-filtered, all valid
             })
 
         return results

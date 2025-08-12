@@ -324,6 +324,30 @@ def filter_valid_movies_or_tv(entities: list, constraint_tree, registry: dict) -
             m["_provenance"]["matched_constraints"] = []
             # Debug output removed
         return entities
+    
+    # Check if these are person credit summaries requiring special handling
+    is_person_credits_data = any(
+        '/person/' in str(m.get('source', '')) and '/movie_credits' in str(m.get('source', ''))
+        for m in entities[:3] if isinstance(m, dict)  # Check first few entities
+    )
+    
+    if is_person_credits_data:
+        # Analyze constraint tree to determine query complexity  
+        constraints = getattr(constraint_tree, 'constraints', [])
+        person_constraints = [c for c in constraints if hasattr(c, 'key') and c.key == 'with_people']
+        
+        # Single-person query detection - only bypass for purely person-based queries
+        is_single_person = (len(person_constraints) == 1 and len(constraints) == 1)
+        
+        if is_single_person:
+            # For single-person queries from person credits, bypass constraint validation
+            # These summaries are already the correct result set from the person endpoint
+            # Timeline queries like "First movies by Steven Spielberg" need this bypass
+            # but multi-constraint queries like "Horror movies by James Wan" should still use validation
+            for m in entities:
+                m["_provenance"] = m.get("_provenance", {})
+                m["_provenance"]["matched_constraints"] = ["person_credits_bypass"]
+            return entities
 
     ids = evaluate_constraint_tree(constraint_tree, registry)
 

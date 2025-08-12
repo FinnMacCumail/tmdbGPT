@@ -160,6 +160,11 @@ def extract_entities_and_intents(query: str) -> dict:
                         if corrected_type not in result["entities"]:
                             result["entities"].append(corrected_type)
 
+        # ✅ Fix response_format for timeline queries
+        # Ensure timeline questions use timeline format, not summary format
+        if result.get("question_type") == "timeline" and result.get("response_format") != "timeline":
+            result["response_format"] = "timeline"
+
         return result
 
     except Exception as e:

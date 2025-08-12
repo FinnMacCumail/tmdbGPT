@@ -385,8 +385,34 @@ def filter_symbolic_responses(state, summaries, endpoint):
     Filters a list of summary dicts based on:
     - final_score > 0
     - symbolic constraint satisfaction (if required for endpoint)
+    
+    Special handling for person credit endpoints:
+    - Single-person queries bypass constraint validation
+    - Multi-person queries maintain validation
     """
     filtered = []
+    
+    # Check if this is a person credit endpoint requiring special handling
+    is_person_credits = '/person/' in endpoint and '/movie_credits' in endpoint
+    
+    if is_person_credits:
+        # Analyze constraint tree to determine query complexity
+        constraints = getattr(state.constraint_tree, 'constraints', []) if hasattr(state, 'constraint_tree') else []
+        person_constraints = [c for c in constraints if hasattr(c, 'key') and c.key == 'with_people']
+        
+        # Single-person query detection - only bypass for purely person-based queries
+        is_single_person = (len(person_constraints) == 1 and len(constraints) == 1)
+        
+        if is_single_person:
+            # For single-person queries from person credits, bypass constraint validation
+            # These summaries are already the correct result set from the person endpoint
+            # Timeline queries like "First movies by Steven Spielberg" need this bypass
+            for s in summaries:
+                if s.get("final_score", 0) > 0:
+                    filtered.append(s)
+            return filtered
+    
+    # Standard filtering logic for all other cases
     for s in summaries:
         score = s.get("final_score", 0)
         if score <= 0:
